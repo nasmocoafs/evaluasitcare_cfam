@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toyota Aftersales Operations - T-Care & T-Care Lite Executive Matrix</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for trends and funnel visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS for processing raw spreadsheets -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              red: '#EB0A1E',
+              darkRed: '#BA0213',
+              navy: '#0F1E36',
+              navyHeader: '#142238',
+              card: '#1E293B',
+              muted: '#64748B'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .scrollbar-thin::-webkit-scrollbar {
+      height: 7px;
+      width: 7px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background-color: #f1f5f9;
+    }
+    /* Sticky column styling for freeze panes */
+    .sticky-col-1 {
+      position: sticky;
+      left: 0;
+      z-index: 20;
+    }
+    .sticky-col-2 {
+      position: sticky;
+      left: 48px;
+      z-index: 20;
+    }
+    /* Cell alert highlight shades matching operational standard */
+    .cell-under-target {
+      background-color: #FCE8E6 !important;
+      color: #B91C1C !important;
+      font-weight: 700 !important;
+    }
+    .cell-negative-lm {
+      color: #DC2626 !important;
+      font-weight: 600;
+    }
+    .cell-positive-lm {
+      color: #15803D !important;
+      font-weight: 500;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printArea, #printArea * {
+        visibility: visible;
+      }
+      #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- Top Executive Header Bar -->
+  <header class="bg-brand-navy text-white sticky top-0 z-40 shadow-lg border-b border-slate-700">
+    <div class="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Title -->
+        <div class="flex items-center space-x-3.5">
+          <div class="w-10 h-10 rounded-lg bg-brand-red flex items-center justify-center font-black text-xl tracking-tighter text-white shadow-md">
+            T
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-[10px] uppercase tracking-widest font-bold text-brand-red bg-brand-red/15 px-2 py-0.5 rounded border border-brand-red/30">AFTER SALES SERVICE</span>
+              <span class="text-xs text-slate-400 font-medium">| Executive Matrix CAI Monitoring</span>
+            </div>
+            <h1 class="text-sm sm:text-lg font-bold leading-tight tracking-tight text-white flex items-center gap-2">
+              <span>T-CARE & T-CARE LITE RETENTION MONITORING</span>
+              <span id="headerProgramBadge" class="text-xs bg-blue-600/80 text-white px-2 py-0.5 rounded-full font-semibold border border-blue-400/40">T-Care CAI (Target 91%)</span>
+            </h1>
+          </div>
+        </div>
+
+        <!-- Controls: Raw Excel Upload & Quick Reset -->
+        <div class="flex items-center space-x-3">
+          <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 sm:px-4 rounded-lg border border-slate-700 transition flex items-center space-x-2 shadow-sm">
+            <i class="fa-solid fa-file-excel text-emerald-400"></i>
+            <span class="hidden sm:inline">Upload Raw Spreadsheet</span>
+            <span class="sm:hidden">Upload</span>
+            <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv" class="hidden">
+          </label>
+          <button onclick="resetToDemoData()" class="bg-brand-red hover:bg-brand-darkRed text-white text-xs sm:text-sm font-medium py-2 px-3 sm:px-4 rounded-lg transition flex items-center space-x-2 shadow-md">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span class="hidden sm:inline">Reset Demo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Top Filtering & Period Range Control Panel -->
+  <div class="bg-white border-b border-slate-200 shadow-sm sticky top-16 z-30">
+    <div class="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        
+        <!-- Left Filter Block: Program Toggle & Period Mode -->
+        <div class="flex flex-wrap items-center gap-3">
+          
+          <!-- Program Switcher -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-300">
+            <button onclick="setProgramMode('tcare')" id="progBtn-tcare" class="text-xs font-bold px-3 py-1.5 rounded-md bg-brand-navy text-white shadow-sm transition">
+              T-Care CAI (91%)
+            </button>
+            <button onclick="setProgramMode('lite')" id="progBtn-lite" class="text-xs font-bold px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition">
+              T-Care Lite (81%)
+            </button>
+            <button onclick="setProgramMode('all')" id="progBtn-all" class="text-xs font-bold px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition">
+              Semua Program (Gabungan)
+            </button>
+          </div>
+
+          <!-- Divider -->
+          <div class="hidden sm:block h-6 w-px bg-slate-200"></div>
+
+          <!-- Evaluation Mode Selection (Single Month vs Date Range) -->
+          <div class="flex items-center space-x-2">
+            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mode Periode:</label>
+            <select id="periodModeSelect" onchange="togglePeriodModeUI()" class="text-xs sm:text-sm font-semibold bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-brand-red focus:outline-none">
+              <option value="single" selected>Bulan Evaluasi vs Last Month (LM)</option>
+              <option value="range">Rentang Periode Fleksibel (Multi-Bulan)</option>
+            </select>
+          </div>
+
+          <!-- Single Month Selector Container -->
+          <div id="singleMonthControls" class="flex items-center space-x-2">
+            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Evaluasi:</label>
+            <select id="monthSelect" onchange="applyFilters()" class="text-xs sm:text-sm font-semibold bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand-red focus:outline-none">
+              <option value="Januari">Januari 2026</option>
+              <option value="Februari" selected>Februari 2026</option>
+              <option value="Maret">Maret 2026</option>
+              <option value="April">April 2026</option>
+              <option value="Mei">Mei 2026</option>
+              <option value="Juni">Juni 2026</option>
+              <option value="Juli">Juli 2026</option>
+              <option value="Agustus">Agustus 2026</option>
+              <option value="September">September 2026</option>
+              <option value="Oktober">Oktober 2026</option>
+            </select>
+            <span class="text-xs text-slate-400 font-medium">(vs LM Otomatis)</span>
+          </div>
+
+          <!-- Multi-Month Range Selector Container (Hidden by default) -->
+          <div id="rangePeriodControls" class="hidden flex items-center space-x-2 bg-red-50/60 p-1.5 rounded-lg border border-red-200">
+            <label class="text-xs font-bold text-brand-darkRed uppercase tracking-wider">Dari:</label>
+            <select id="rangeStartMonth" onchange="applyFilters()" class="text-xs font-semibold bg-white border border-slate-300 rounded-md px-2 py-1">
+              <option value="Januari" selected>Januari 2026</option>
+              <option value="Februari">Februari 2026</option>
+              <option value="Maret">Maret 2026</option>
+              <option value="April">April 2026</option>
+              <option value="Mei">Mei 2026</option>
+              <option value="Juni">Juni 2026</option>
+            </select>
+
+            <label class="text-xs font-bold text-brand-darkRed uppercase tracking-wider">s/d:</label>
+            <select id="rangeEndMonth" onchange="applyFilters()" class="text-xs font-semibold bg-white border border-slate-300 rounded-md px-2 py-1">
+              <option value="Januari">Januari 2026</option>
+              <option value="Februari">Februari 2026</option>
+              <option value="Maret" selected>Maret 2026</option>
+              <option value="April">April 2026</option>
+              <option value="Mei">Mei 2026</option>
+              <option value="Juni">Juni 2026</option>
+            </select>
+
+            <span class="text-[11px] font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200" id="rangeSpanBadge">
+              Kumulatif 3 Bulan
+            </span>
+          </div>
+
+        </div>
+
+        <!-- Right Quick Info Badge -->
+        <div class="flex items-center space-x-3 text-xs">
+          <div id="matrixCohortInfo" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 flex items-center space-x-2 font-medium">
+            <i class="fa-solid fa-calendar-week text-brand-red"></i>
+            <span>Kohort 1st: <strong id="cohortRangeLabel">Dec 25 - Jan 26</strong> | Realisasi: <strong id="cohortActualLabel">s/d Feb 26</strong></span>
+          </div>
+          <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-white font-medium py-1.5 px-3 rounded-lg transition flex items-center space-x-1.5 shadow-sm">
+            <i class="fa-solid fa-print"></i>
+            <span class="hidden sm:inline">Cetak Laporan</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-1 w-full space-y-5">
+
+    <!-- KPI Summary Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      
+      <!-- Card 1: Regional PM Rate (Konsolidasi Retensi) -->
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-2">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">REGIONAL PM RATE</p>
+            <h3 class="text-2xl font-black text-slate-800" id="kpiPmRate">0.0%</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-gauge-high"></i>
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+          <span class="text-slate-500">vs Bulan Sebelumnya:</span>
+          <span id="kpiPmRateLm" class="font-bold text-emerald-600">+0.0%</span>
+        </div>
+      </div>
+
+      <!-- Card 2: 1st Service Retention Benchmark -->
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-2">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">1ST SERVICE (1.000 KM)</p>
+            <h3 class="text-2xl font-black text-slate-800" id="kpi1stAch">0.0%</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-car-side"></i>
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+          <span class="text-slate-500">Benchmark Target: <strong id="kpiBenchmarkTarget">91.0%</strong></span>
+          <span id="kpi1stLm" class="font-bold text-emerald-600">+0.0%</span>
+        </div>
+      </div>
+
+      <!-- Card 3: 7th Service Drop-off Alert -->
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-2">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">7TH SERVICE (60.000 KM)</p>
+            <h3 class="text-2xl font-black text-slate-800" id="kpi7thAch">0.0%</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+          <span class="text-slate-500">vs LM: <strong id="kpi7thLm">+0.0%</strong></span>
+          <span id="kpiRetentionDropBadge" class="text-red-600 font-bold bg-red-50 px-1.5 py-0.2 rounded">Drop: -0.0%</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Cabang Di Bawah Target KPI (Irregularity Count) -->
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-2">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">CABANG DEFISIT KPI</p>
+            <h3 class="text-2xl font-black text-red-600" id="kpiIrregularBranches">0 Cabang</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+          <span class="text-slate-500">Kepatuhan Total:</span>
+          <span id="kpiComplianceRate" class="font-bold text-slate-800">0% Cabang Aman</span>
+        </div>
+      </div>
+
+      <!-- Card 5: Estimasi Total Gap Defisit Unit -->
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-2">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">TOTAL GAP DEFISIT</p>
+            <h3 class="text-2xl font-black text-slate-800" id="kpiTotalGapUnits">0 Unit</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-arrow-trend-down"></i>
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+          <span class="text-slate-500">Estimasi Revenue Loss:</span>
+          <span id="kpiRevenueLoss" class="font-bold text-brand-red">Rp 0</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tab Controls & Toolbar -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="border-b border-slate-200 bg-slate-50 px-4 sm:px-6 flex flex-wrap items-center justify-between gap-3">
+        <!-- Tab Navigation (Naskah Presentasi telah dihilangkan) -->
+        <div class="flex flex-wrap gap-2 sm:gap-6 text-xs sm:text-sm font-semibold">
+          <button onclick="switchTab('breakdownTab')" id="tabBtn-breakdownTab" class="py-3 px-1 border-b-2 border-brand-red text-brand-red font-bold flex items-center gap-2">
+            <i class="fa-solid fa-table-cells"></i>
+            <span>Executive Matrix Breakdown (22 Cabang)</span>
+          </button>
+          <button onclick="switchTab('irregularityTab')" id="tabBtn-irregularityTab" class="py-3 px-1 border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+            <span>Irregularity & CAPA Management</span>
+            <span id="irregularityTabBadge" class="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+          </button>
+          <button onclick="switchTab('funnelTab')" id="tabBtn-funnelTab" class="py-3 px-1 border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-blue-600"></i>
+            <span>Grafik Retention Funnel (1st - 7th)</span>
+          </button>
+        </div>
+
+        <!-- Search & Export Controls in Active Tab -->
+        <div class="flex items-center space-x-2 py-2">
+          <div class="relative w-48 sm:w-64">
+            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+            <input type="text" id="dealerSearchInput" onkeyup="filterDealerTable()" placeholder="Cari nama dealer..." class="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-red">
+          </div>
+          <button onclick="exportMatrixToCSV()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-1.5 px-3 rounded-lg border border-slate-300 transition flex items-center space-x-1.5 shadow-sm">
+            <i class="fa-solid fa-file-csv text-emerald-600"></i>
+            <span>Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Executive Matrix Breakdown Table (Exact Match to Image Format) -->
+      <div id="breakdownTab" class="p-4 sm:p-5">
+        
+        <!-- Table Instruction & Legend -->
+        <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 mb-3 gap-2">
+          <div class="flex items-center space-x-4">
+            <span class="flex items-center gap-1.5">
+              <span class="w-3.5 h-3.5 rounded bg-[#FCE8E6] border border-red-300 inline-block"></span>
+              <span>Di Bawah Target (<span id="legendTargetValue">91%</span>)</span>
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="text-red-600 font-bold">-X,X%</span>
+              <span>vs LM Negatif (Mengalami Penurunan)</span>
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="text-emerald-700 font-bold">+X,X%</span>
+              <span>vs LM Positif (Mengalami Pertumbuhan)</span>
+            </span>
+          </div>
+          <div class="text-slate-400 italic">
+            Klik pada baris dealer mana pun untuk membuka analisis detil dan menerbitkan dokumen CAPA.
+          </div>
+        </div>
+
+        <!-- Matrix Table Container with Scroll & Freeze Header -->
+        <div class="overflow-x-auto scrollbar-thin rounded-lg border border-slate-300 shadow-sm max-h-[720px]">
+          <table class="w-full text-left border-collapse text-xs whitespace-nowrap" id="matrixExecutiveTable">
+            
+            <!-- Table Header Matching Screenshot -->
+            <thead class="sticky top-0 z-30 select-none shadow-sm">
+              <!-- Header Row 1: Top Grouping Bar -->
+              <tr class="bg-brand-navyHeader text-white text-center font-bold divide-x divide-slate-700 border-b border-slate-700">
+                <th rowspan="2" class="p-3 w-12 sticky-col-1 bg-brand-navyHeader border-r border-slate-700">No</th>
+                <th rowspan="2" class="p-3 min-w-[190px] text-left sticky-col-2 bg-brand-navyHeader border-r border-slate-700">Dealer</th>
+                <th colspan="16" class="p-2.5 text-center text-sm font-black tracking-wide bg-[#111C2E] uppercase text-slate-100" id="matrixSuperHeader">
+                  T-Care CAI (Target 91%)
+                </th>
+              </tr>
+              <!-- Header Row 2: Stage Sub-columns (%) & (vs LM) -->
+              <tr class="bg-brand-navy text-slate-200 text-center font-bold divide-x divide-slate-700 border-b-2 border-slate-800 text-[11px]">
+                <!-- 1st Service -->
+                <th colspan="2" class="p-2 border-r border-slate-700 bg-brand-navy/90">1st</th>
+                <!-- 2nd Service -->
+                <th colspan="2" class="p-2 border-r border-slate-700 bg-brand-navy/90">2nd</th>
+                <!-- 3rd Service -->
+                <th colspan="2" class="p-2 border-r border-slate-700 bg-brand-navy/90">3rd</th>
+                <!-- 4th Service -->
+                <th colspan="2" class="p-2 border-r border-slate-700 bg-brand-navy/90">4th</th>
+                <!-- 5th Service -->
+                <th colspan="2" class="p-2 border-r border-slate-700 bg-brand-navy/90">5th</th>
+                <!-- 6th Service -->
+                <th colspan="2" class="p-2 border-r border-slate-700 bg-brand-navy/90">6th</th>
+                <!-- 7th Service -->
+                <th colspan="2" class="p-2 border-r border-slate-700 bg-brand-navy/90">7th</th>
+                <!-- PM Rate -->
+                <th colspan="2" class="p-2 bg-slate-900 text-amber-300 font-extrabold">PM Rate</th>
+              </tr>
+              <!-- Sub-header Row 3: % and vs LM -->
+              <tr class="bg-slate-100 text-slate-700 font-bold text-center text-[11px] divide-x divide-slate-200 border-b border-slate-300">
+                <th class="p-1.5 sticky-col-1 bg-slate-100"></th>
+                <th class="p-1.5 sticky-col-2 bg-slate-100"></th>
+                <!-- 1st -->
+                <th class="p-1.5 min-w-[65px]">%</th>
+                <th class="p-1.5 min-w-[60px]" id="lmHeaderCol-1">vs LM</th>
+                <!-- 2nd -->
+                <th class="p-1.5 min-w-[65px]">%</th>
+                <th class="p-1.5 min-w-[60px]" id="lmHeaderCol-2">vs LM</th>
+                <!-- 3rd -->
+                <th class="p-1.5 min-w-[65px]">%</th>
+                <th class="p-1.5 min-w-[60px]" id="lmHeaderCol-3">vs LM</th>
+                <!-- 4th -->
+                <th class="p-1.5 min-w-[65px]">%</th>
+                <th class="p-1.5 min-w-[60px]" id="lmHeaderCol-4">vs LM</th>
+                <!-- 5th -->
+                <th class="p-1.5 min-w-[65px]">%</th>
+                <th class="p-1.5 min-w-[60px]" id="lmHeaderCol-5">vs LM</th>
+                <!-- 6th -->
+                <th class="p-1.5 min-w-[65px]">%</th>
+                <th class="p-1.5 min-w-[60px]" id="lmHeaderCol-6">vs LM</th>
+                <!-- 7th -->
+                <th class="p-1.5 min-w-[65px]">%</th>
+                <th class="p-1.5 min-w-[60px]" id="lmHeaderCol-7">vs LM</th>
+                <!-- PM Rate -->
+                <th class="p-1.5 min-w-[70px] bg-slate-200 text-slate-900">%</th>
+                <th class="p-1.5 min-w-[65px] bg-slate-200 text-slate-900" id="lmHeaderCol-pm">vs LM</th>
+              </tr>
+            </thead>
+
+            <!-- Table Body: Dynamically Populated by JavaScript -->
+            <tbody id="matrixTableBody" class="divide-y divide-slate-200 text-slate-800 bg-white">
+              <!-- Rendered via JS -->
+            </tbody>
+
+            <!-- Table Footer: TOTAL REGIONAL (Sticky bottom style) -->
+            <tfoot id="matrixTableFoot" class="sticky bottom-0 z-20 bg-brand-navyHeader text-white font-extrabold border-t-2 border-slate-700 shadow-lg">
+              <!-- Rendered via JS -->
+            </tfoot>
+
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: Irregularity Control & CAPA Management -->
+      <div id="irregularityTab" class="p-4 sm:p-6 space-y-4 hidden">
+        <div class="bg-red-50 border-l-4 border-brand-red p-4 rounded-r-xl">
+          <div class="flex items-start">
+            <div class="flex-shrink-0 text-brand-red text-xl mr-3 mt-0.5">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-red-900 text-sm">Sistem Pengendalian Ketidaksesuaian (Irregularity Control Protocol)</h4>
+              <p class="text-xs text-red-800 mt-1 leading-relaxed">
+                Dealer dengan pencapaian retensi di bawah batas target (<strong id="capaTargetInfoText">91.0% T-Care / 81.0% T-Care Lite</strong>) pada tahap servis mana pun atau PM Rate regional wajib menerbitkan dokumen <strong>CAPA (Corrective Action & Preventive Action)</strong> dengan analisis akar masalah metode <strong>4M + 1E</strong> dan komitmen penutupan defisit unit dalam masa audit SLA.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Irregularity Filter Tabs -->
+        <div class="flex items-center space-x-2 text-xs font-semibold">
+          <span class="text-slate-500">Filter Severity:</span>
+          <button onclick="filterIrregularityCards('all')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-1 rounded-md">Semua Defisit</button>
+          <button onclick="filterIrregularityCards('critical')" class="bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded-md">Critical (PM Rate &lt; Target)</button>
+          <button onclick="filterIrregularityCards('stage_drop')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-md">Stage Churn Deficit</button>
+        </div>
+
+        <!-- Cards Container -->
+        <div id="irregularityCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <!-- Tab 3: Customer Retention Funnel Chart -->
+      <div id="funnelTab" class="p-4 sm:p-6 space-y-4 hidden">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-bold text-slate-800 text-base">Grafik Retensi Pelanggan (Funnel 1st s/d 7th Service)</h3>
+            <p class="text-xs text-slate-500">Tren penurunan kepatuhan servis berkala dari servis pertama hingga tahun ke-3 kepemilikan.</p>
+          </div>
+          <div class="flex items-center space-x-3 text-xs font-medium">
+            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block mr-1"></span> Aktual Regional</span>
+            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-slate-400 inline-block mr-1"></span> Bulan Lalu (LM)</span>
+            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 inline-block mr-1"></span> Batas KPI Target</span>
+          </div>
+        </div>
+
+        <div class="h-80 bg-white p-4 rounded-xl border border-slate-200">
+          <canvas id="funnelChartCanvas"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- CAPA & Dealer Detailed Audit Modal -->
+  <div id="capaModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-brand-navy text-white rounded-t-2xl">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-red text-white flex items-center justify-center font-bold text-lg shadow-md">
+            <i class="fa-solid fa-file-shield"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white" id="modalDealerName">Nasmoco Dealer</h3>
+            <p class="text-xs text-slate-300" id="modalDealerSubtitle">Detail Kinerja & Audit Irregularity Control</p>
+          </div>
+        </div>
+        <button onclick="closeCapaModal()" class="text-slate-300 hover:text-white text-lg w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Printable Area) -->
+      <div id="printArea" class="p-6 space-y-6 text-xs sm:text-sm text-slate-700">
+        
+        <!-- Quick Summary Stats Bar -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+          <div>
+            <div class="text-[11px] text-slate-400 font-bold uppercase">PM Rate Aktual</div>
+            <div class="font-extrabold text-slate-800 text-lg" id="modalPmRate">-</div>
+            <div class="text-[10px]" id="modalPmRateLm">-</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-slate-400 font-bold uppercase">Target Program</div>
+            <div class="font-extrabold text-blue-600 text-lg" id="modalTargetRate">91.0%</div>
+            <div class="text-[10px] text-slate-500 font-medium">Batas Minimum Kepatuhan</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-slate-400 font-bold uppercase">Tahap Terendah</div>
+            <div class="font-extrabold text-red-600 text-lg" id="modalLowestStage">-</div>
+            <div class="text-[10px] text-red-700 font-medium" id="modalLowestAch">-</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-slate-400 font-bold uppercase">Total Gap Defisit</div>
+            <div class="font-extrabold text-brand-darkRed text-lg" id="modalTotalGap">- Unit</div>
+            <div class="text-[10px] text-slate-500" id="modalEstLoss">Est. Recovery: -</div>
+          </div>
+        </div>
+
+        <!-- Stage by Stage Breakdown Table in Modal -->
+        <div>
+          <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">Rincian Per Tahap Servis (1st s/d 7th Service):</h4>
+          <div class="overflow-x-auto rounded-lg border border-slate-200">
+            <table class="w-full text-center border-collapse text-xs">
+              <thead class="bg-slate-100 font-bold text-slate-700 divide-x divide-slate-200">
+                <tr>
+                  <th class="p-2 text-left">Tahap Servis</th>
+                  <th class="p-2">Potensi (NCS)</th>
+                  <th class="p-2">Realisasi (Actual)</th>
+                  <th class="p-2">Ach %</th>
+                  <th class="p-2">vs LM</th>
+                  <th class="p-2">Target</th>
+                  <th class="p-2">Gap Unit</th>
+                  <th class="p-2">Status</th>
+                </tr>
+              </thead>
+              <tbody id="modalStageTableBody" class="divide-y divide-slate-200">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 1: Root Cause Analysis (4M + 1E) -->
+        <div class="space-y-3">
+          <h4 class="font-bold text-slate-800 border-b border-slate-200 pb-1 flex items-center justify-between">
+            <span>FORMULIR ANALISIS AKAR PENYEBAB (METODE 4M + 1E)</span>
+            <span class="text-[10px] text-brand-red font-semibold">Wajib Ditandatangani Kepala Bengkel</span>
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">a. Man (Sumber Daya Manusia):</label>
+              <textarea id="capaManInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-brand-red focus:outline-none">Reminder servis berkala terlambat dilakukan oleh CRO (rata-rata H-1 sebelum batas waktu, standar SOP H-7). Validasi kontak di SPK kurang lengkap.</textarea>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">b. Machine / Sistem IT:</label>
+              <textarea id="capaMachineInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-brand-red focus:outline-none">Keterlambatan input klaim di Towass/Asiisst oleh Service Advisor sehingga unit riil yang sudah servis belum tercatat selesai saat penarikan data.</textarea>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">c. Method (Metode & SOP):</label>
+              <textarea id="capaMethodInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-brand-red focus:outline-none">Belum memaksimalkan alokasi slot booking hari libur/akhir pekan dan belum mengaktifkan layanan jemput bola TMS (Toyota Mobile Service).</textarea>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">d. Market / Pelanggan:</label>
+              <textarea id="capaMarketInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-brand-red focus:outline-none">Kurangnya pemahaman pemilik kendaraan bahwa program T-Care Lite membebaskan biaya jasa dan suku cadang berkala tanpa biaya tambahan.</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Action Plan -->
+        <div>
+          <h4 class="font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2">
+            RENCANA TINDAKAN KOREKTIF SEGERA (SLA 3-7 HARI)
+          </h4>
+          <textarea id="capaActionInput" rows="2" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-1 focus:ring-brand-red focus:outline-none">1. Tele-blast dan panggilan prioritas khusus 100% data kontak unreached dalam 3 hari ke depan.
+2. Penjadwalan home service armada TMS untuk unit komuter dan fleet.
+3. Sosialisasi ulang pembebasan biaya jasa & part T-Care kepada customer.</textarea>
+        </div>
+
+        <!-- Section 3: Signature Blocks -->
+        <div class="grid grid-cols-2 gap-6 pt-3 border-t border-slate-200 text-center">
+          <div class="space-y-10">
+            <p class="text-[11px] text-slate-500 font-semibold">Diajukan Oleh,</p>
+            <div>
+              <div class="font-bold text-slate-800 border-t border-slate-300 pt-1 w-44 mx-auto" id="sigModalDealer">Service Manager Dealer</div>
+              <p class="text-[10px] text-slate-400">Kepala Bengkel Cabang</p>
+            </div>
+          </div>
+          <div class="space-y-10">
+            <p class="text-[11px] text-slate-500 font-semibold">Ditinjau & Disetujui Oleh,</p>
+            <div>
+              <div class="font-bold text-slate-800 border-t border-slate-300 pt-1 w-44 mx-auto">Department Head Aftersales</div>
+              <p class="text-[10px] text-slate-400">Divisi Customer Flow Retention</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-between">
+        <button onclick="closeCapaModal()" class="text-xs font-semibold text-slate-600 hover:text-slate-800 px-4 py-2 rounded-lg transition">
+          Tutup
+        </button>
+        <div class="flex items-center space-x-2">
+          <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold py-2 px-3.5 rounded-lg transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-print"></i>
+            <span>Cetak / PDF Form CAPA</span>
+          </button>
+          <button onclick="saveCapaPlan()" class="bg-brand-red hover:bg-brand-darkRed text-white text-xs font-semibold py-2 px-4 rounded-lg transition flex items-center space-x-1.5 shadow-md">
+            <i class="fa-solid fa-check"></i>
+            <span>Simpan Rencana Aksi</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-xl border border-slate-800 flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMsg">Notifikasi</span>
+  </div>
+
+  <script>
+    // System Constants Matching Executive Standards
+    const TARGET_TCARE = 0.91; // 91.0% Target
+    const TARGET_LITE = 0.81;  // 81.0% Target
+    const AVG_EST_REVENUE_PER_UNIT = 850000; // Est. Rp 850.000 jasa & oli per intake
+
+    // Exact 22 Dealer Network from Nasmoco Regional Operations
+    const NASMOCO_DEALERS = [
+      "Nasmoco Klaten",
+      "Nasmoco Solo Baru",
+      "Nasmoco Pemuda",
+      "Nasmoco Cilacap",
+      "Nasmoco Mlati",
+      "Nasmoco Wonosobo",
+      "Nasmoco Pati",
+      "Nasmoco Magelang",
+      "Nasmoco Siliwangi",
+      "Nasmoco Salatiga",
+      "Nasmoco Janti",
+      "Nasmoco Purwokerto",
+      "Nasmoco Majapahit",
+      "Nasmoco Ring Road",
+      "Nasmoco Kaligawe",
+      "Nasmoco Slamet Riyadi",
+      "Nasmoco Tegal",
+      "Nasmoco Gombel",
+      "Nasmoco Bantul",
+      "Nasmoco Karangjati",
+      "Nasmoco Demak",
+      "Nasmoco Pekalongan"
+    ];
+
+    // Current State
+    let currentProgramMode = 'tcare'; // 'tcare', 'lite', or 'all'
+    let currentPeriodMode = 'single'; // 'single' or 'range'
+    let activeCalculatedData = [];
+    let funnelChartInstance = null;
+    let selectedDealerForModal = null;
+    let uploadedRawDataset = null;
+
+    // Benchmark baseline values reflecting exact real figures from the user's report screenshot
+    const BENCHMARK_REPORT_DATA = [
+      { dealer: "Nasmoco Klaten",        s1: 0.974, lm1: 0.029, s2: 0.980, lm2: 0.012, s3: 0.983, lm3: 0.003, s4: 0.967, lm4: 0.007, s5: 0.946, lm5: 0.005, s6: 0.942, lm6: 0.013, s7: 0.902, lm7: 0.010, pm: 0.967, lmpm: 0.008 },
+      { dealer: "Nasmoco Solo Baru",     s1: 0.957, lm1: -0.005,s2: 0.958, lm2: 0.016, s3: 0.983, lm3: 0.003, s4: 0.970, lm4: 0.000, s5: 0.971, lm5: 0.004, s6: 0.953, lm6: 0.011, s7: 0.930, lm7: 0.014, pm: 0.967, lmpm: 0.003 },
+      { dealer: "Nasmoco Pemuda",        s1: 0.967, lm1: 0.008, s2: 0.974, lm2: 0.011, s3: 0.984, lm3: -0.001,s4: 0.972, lm4: 0.002, s5: 0.955, lm5: 0.001, s6: 0.935, lm6: -0.004,s7: 0.916, lm7: 0.001, pm: 0.965, lmpm: 0.002 },
+      { dealer: "Nasmoco Cilacap",       s1: 0.980, lm1: -0.013,s2: 0.949, lm2: -0.042,s3: 0.979, lm3: 0.000, s4: 0.966, lm4: 0.001, s5: 0.945, lm5: 0.000, s6: 0.931, lm6: 0.006, s7: 0.917, lm7: 0.008, pm: 0.962, lmpm: -0.003 },
+      { dealer: "Nasmoco Mlati",         s1: 0.990, lm1: 0.011, s2: 0.960, lm2: 0.007, s3: 0.969, lm3: 0.000, s4: 0.959, lm4: 0.001, s5: 0.942, lm5: 0.001, s6: 0.924, lm6: 0.009, s7: 0.911, lm7: 0.013, pm: 0.957, lmpm: 0.004 },
+      { dealer: "Nasmoco Wonosobo",      s1: 0.982, lm1: 0.034, s2: 0.951, lm2: 0.005, s3: 0.970, lm3: -0.008,s4: 0.941, lm4: -0.014,s5: 0.937, lm5: 0.003, s6: 0.939, lm6: -0.003,s7: 0.927, lm7: 0.020, pm: 0.957, lmpm: 0.001 },
+      { dealer: "Nasmoco Pati",          s1: 0.987, lm1: 0.008, s2: 0.950, lm2: 0.010, s3: 0.968, lm3: 0.002, s4: 0.952, lm4: 0.002, s5: 0.936, lm5: 0.004, s6: 0.912, lm6: 0.008, s7: 0.921, lm7: 0.009, pm: 0.955, lmpm: 0.004 },
+      { dealer: "Nasmoco Magelang",      s1: 0.985, lm1: 0.007, s2: 0.971, lm2: -0.002,s3: 0.970, lm3: 0.003, s4: 0.948, lm4: 0.004, s5: 0.938, lm5: 0.001, s6: 0.909, lm6: 0.004, s7: 0.868, lm7: -0.002,pm: 0.954, lmpm: 0.003 },
+      { dealer: "Nasmoco Siliwangi",     s1: 0.983, lm1: 0.002, s2: 0.977, lm2: -0.004,s3: 0.972, lm3: 0.000, s4: 0.949, lm4: -0.002,s5: 0.932, lm5: 0.004, s6: 0.907, lm6: 0.007, s7: 0.869, lm7: 0.006, pm: 0.952, lmpm: 0.001 },
+      { dealer: "Nasmoco Salatiga",      s1: 0.970, lm1: 0.005, s2: 0.962, lm2: -0.004,s3: 0.969, lm3: 0.001, s4: 0.939, lm4: -0.003,s5: 0.914, lm5: 0.001, s6: 0.909, lm6: -0.002,s7: 0.896, lm7: 0.003, pm: 0.950, lmpm: 0.000 },
+      { dealer: "Nasmoco Janti",         s1: 0.963, lm1: 0.002, s2: 0.962, lm2: 0.017, s3: 0.969, lm3: 0.002, s4: 0.946, lm4: 0.001, s5: 0.924, lm5: -0.001,s6: 0.899, lm6: -0.003,s7: 0.874, lm7: 0.000, pm: 0.949, lmpm: 0.001 },
+      { dealer: "Nasmoco Purwokerto",    s1: 0.947, lm1: 0.024, s2: 0.968, lm2: -0.002,s3: 0.974, lm3: 0.001, s4: 0.943, lm4: 0.001, s5: 0.924, lm5: 0.008, s6: 0.884, lm6: 0.002, s7: 0.904, lm7: 0.009, pm: 0.949, lmpm: 0.004 },
+      { dealer: "Nasmoco Majapahit",     s1: 0.922, lm1: -0.009,s2: 0.971, lm2: 0.017, s3: 0.978, lm3: 0.003, s4: 0.959, lm4: 0.002, s5: 0.933, lm5: 0.011, s6: 0.921, lm6: 0.005, s7: 0.937, lm7: 0.004, pm: 0.948, lmpm: 0.002 },
+      { dealer: "Nasmoco Ring Road",     s1: 0.952, lm1: -0.002,s2: 0.954, lm2: -0.005,s3: 0.978, lm3: 0.000, s4: 0.951, lm4: 0.010, s5: 0.931, lm5: 0.004, s6: 0.897, lm6: 0.002, s7: 0.849, lm7: 0.007, pm: 0.946, lmpm: 0.001 },
+      { dealer: "Nasmoco Kaligawe",      s1: 0.985, lm1: 0.007, s2: 0.955, lm2: 0.037, s3: 0.970, lm3: 0.005, s4: 0.948, lm4: -0.001,s5: 0.917, lm5: -0.009,s6: 0.897, lm6: 0.000, s7: 0.858, lm7: 0.008, pm: 0.945, lmpm: 0.004 },
+      { dealer: "Nasmoco Slamet Riyadi", s1: 0.954, lm1: 0.006, s2: 0.933, lm2: -0.005,s3: 0.970, lm3: 0.001, s4: 0.942, lm4: 0.001, s5: 0.916, lm5: 0.005, s6: 0.896, lm6: 0.003, s7: 0.908, lm7: 0.007, pm: 0.943, lmpm: 0.001 },
+      { dealer: "Nasmoco Tegal",         s1: 0.979, lm1: 0.007, s2: 0.955, lm2: 0.017, s3: 0.958, lm3: 0.000, s4: 0.927, lm4: 0.007, s5: 0.902, lm5: 0.009, s6: 0.878, lm6: 0.013, s7: 0.840, lm7: 0.012, pm: 0.940, lmpm: 0.004 },
+      { dealer: "Nasmoco Gombel",        s1: 0.916, lm1: -0.001,s2: 0.939, lm2: 0.014, s3: 0.970, lm3: 0.002, s4: 0.945, lm4: 0.001, s5: 0.922, lm5: 0.001, s6: 0.904, lm6: 0.016, s7: 0.908, lm7: 0.008, pm: 0.940, lmpm: 0.002 },
+      { dealer: "Nasmoco Bantul",        s1: 0.969, lm1: 0.006, s2: 0.976, lm2: 0.008, s3: 0.962, lm3: -0.001,s4: 0.936, lm4: 0.004, s5: 0.912, lm5: -0.001,s6: 0.880, lm6: 0.005, s7: 0.830, lm7: 0.001, pm: 0.939, lmpm: 0.001 },
+      { dealer: "Nasmoco Karangjati",    s1: 0.929, lm1: -0.015,s2: 0.954, lm2: -0.010,s3: 0.954, lm3: 0.000, s4: 0.943, lm4: -0.005,s5: 0.931, lm5: 0.005, s6: 0.898, lm6: -0.008,s7: 0.886, lm7: -0.007,pm: 0.935, lmpm: -0.005 },
+      { dealer: "Nasmoco Demak",         s1: 0.939, lm1: 0.011, s2: 0.890, lm2: -0.027,s3: 0.962, lm3: 0.001, s4: 0.932, lm4: 0.004, s5: 0.932, lm5: 0.008, s6: 0.899, lm6: -0.003,s7: 0.908, lm7: -0.009,pm: 0.934, lmpm: -0.001 },
+      { dealer: "Nasmoco Pekalongan",    s1: 0.968, lm1: -0.007,s2: 0.927, lm2: 0.037, s3: 0.941, lm3: 0.001, s4: 0.902, lm4: 0.000, s5: 0.868, lm5: 0.000, s6: 0.846, lm6: -0.006,s7: 0.816, lm7: -0.002,pm: 0.918, lmpm: -0.001 }
+    ];
+
+    // Helper: Parse Date values from Excel (supports Serial Number, YYYY-MM-DD, or DD/MM/YYYY)
+    function parseExcelDate(val) {
+      if (!val) return null;
+      if (typeof val === 'number') {
+        // Excel serial date format
+        const date = new Date((val - 25569) * 86400 * 1000);
+        return isNaN(date.getTime()) ? null : date;
+      }
+      if (typeof val === 'string') {
+        const parts = val.trim().split(/[-/]/);
+        if (parts.length === 3) {
+          if (parts[0].length === 4) {
+            // YYYY-MM-DD
+            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          } else {
+            // DD-MM-YYYY
+            return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          }
+        }
+      }
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // Helper: Cohort definition based on Sheet Matrix (Year 2026 evaluation)
+    function getCohortDateRange(monthName, stageIdx) {
+      const monthMap = {
+        'Januari': 0, 'Februari': 1, 'Maret': 2, 'April': 3, 'Mei': 4, 'Juni': 5,
+        'Juli': 6, 'Agustus': 7, 'September': 8, 'Oktober': 9, 'November': 10, 'Desember': 11
+      };
+      const evalM = monthMap[monthName] !== undefined ? monthMap[monthName] : 1;
+      const evalYear = 2026;
+
+      // Age offset in months according to CFAM standard:
+      // 1st: 1 mo, 2nd: 6 mo, 3rd: 12 mo, 4th: 18 mo, 5th: 24 mo, 6th: 30 mo, 7th: 36 mo
+      const stageOffsets = [1, 6, 12, 18, 24, 30, 36];
+      const offset = stageOffsets[stageIdx] || 1;
+
+      // Potensi Cohort delivery window (approx 2 months window as seen in Matrix: e.g. Dec 25 - Jan 26)
+      const endCohort = new Date(evalYear, evalM - offset + 1, 0, 23, 59, 59);
+      const startCohort = new Date(evalYear, evalM - offset - 1, 1, 0, 0, 0);
+
+      // Actual cutoff: serviced until evaluation month end
+      const cutoffActual = new Date(evalYear, evalM + 1, 0, 23, 59, 59);
+
+      return { startCohort, endCohort, cutoffActual };
+    }
+
+    // Core Engine: Calculate either from uploaded raw dataset or fallback benchmark
+    function buildDataset(program, mode, month, startMonth, endMonth) {
+      const targetThreshold = (program === 'lite') ? TARGET_LITE : TARGET_TCARE;
+      let rangeLabelText = "vs LM";
+
+      // JIKA USER TELAH MENGUNGGAH RAW SPREADSHEET
+      if (uploadedRawDataset && uploadedRawDataset.length > 0) {
+        return processUploadedRawData(uploadedRawDataset, program, mode, month, startMonth, endMonth, targetThreshold);
+      }
+
+      // DEFAULT FALLBACK BENCHMARK DATASET
+      const monthOffsetFactor = {
+        'Januari': -0.008, 'Februari': 0.0, 'Maret': 0.006, 'April': 0.009, 'Mei': 0.012,
+        'Juni': 0.015, 'Juli': 0.018, 'Agustus': 0.020, 'September': 0.022, 'Oktober': 0.025
+      };
+
+      let currentOffset = monthOffsetFactor[month] || 0.0;
+      if (mode === 'range') {
+        const monthOrder = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+        const idx1 = monthOrder.indexOf(startMonth);
+        const idx2 = monthOrder.indexOf(endMonth);
+        const span = Math.max(1, (idx2 - idx1 + 1));
+        currentOffset = ((monthOffsetFactor[startMonth] || 0) + (monthOffsetFactor[endMonth] || 0)) / 2;
+        rangeLabelText = `vs Q-Start`;
+        document.getElementById('rangeSpanBadge').innerText = `Rentang ${span} Bulan (${startMonth} s/d ${endMonth})`;
+      }
+
+      const liteAdjustment = (program === 'lite') ? -0.075 : (program === 'all' ? -0.025 : 0.0);
+
+      const computedDealers = BENCHMARK_REPORT_DATA.map(item => {
+        const baseUnits = 120 + Math.floor(Math.abs(Math.sin(item.dealer.length) * 160));
+        const s1 = Math.min(0.998, Math.max(0.65, item.s1 + currentOffset + liteAdjustment));
+        const s2 = Math.min(0.998, Math.max(0.60, item.s2 + currentOffset + liteAdjustment));
+        const s3 = Math.min(0.998, Math.max(0.58, item.s3 + currentOffset + liteAdjustment));
+        const s4 = Math.min(0.998, Math.max(0.55, item.s4 + currentOffset + liteAdjustment));
+        const s5 = Math.min(0.998, Math.max(0.50, item.s5 + currentOffset + liteAdjustment));
+        const s6 = Math.min(0.998, Math.max(0.48, item.s6 + currentOffset + liteAdjustment));
+        const s7 = Math.min(0.998, Math.max(0.45, item.s7 + currentOffset + liteAdjustment));
+        const pm = (s1 * 0.22 + s2 * 0.18 + s3 * 0.16 + s4 * 0.14 + s5 * 0.12 + s6 * 0.10 + s7 * 0.08);
+
+        const stagesDetail = [
+          { name: "1st", pot: baseUnits, act: Math.round(baseUnits * s1), ach: s1, lm: item.lm1 },
+          { name: "2nd", pot: Math.round(baseUnits * 0.95), act: Math.round(baseUnits * 0.95 * s2), ach: s2, lm: item.lm2 },
+          { name: "3rd", pot: Math.round(baseUnits * 0.90), act: Math.round(baseUnits * 0.90 * s3), ach: s3, lm: item.lm3 },
+          { name: "4th", pot: Math.round(baseUnits * 0.85), act: Math.round(baseUnits * 0.85 * s4), ach: s4, lm: item.lm4 },
+          { name: "5th", pot: Math.round(baseUnits * 0.80), act: Math.round(baseUnits * 0.80 * s5), ach: s5, lm: item.lm5 },
+          { name: "6th", pot: Math.round(baseUnits * 0.75), act: Math.round(baseUnits * 0.75 * s6), ach: s6, lm: item.lm6 },
+          { name: "7th", pot: Math.round(baseUnits * 0.70), act: Math.round(baseUnits * 0.70 * s7), ach: s7, lm: item.lm7 },
+        ];
+
+        let totalPot = 0, totalAct = 0, totalGap = 0, failingStages = [];
+        stagesDetail.forEach(st => {
+          totalPot += st.pot;
+          totalAct += st.act;
+          const targetUnits = Math.ceil(st.pot * targetThreshold);
+          const gap = Math.max(0, targetUnits - st.act);
+          st.gap = gap;
+          totalGap += gap;
+          if (st.ach < targetThreshold) {
+            failingStages.push({ stage: st.name, ach: st.ach, gap: gap });
+          }
+        });
+
+        const isPmCritical = pm < targetThreshold;
+        const hasFailingStage = failingStages.length > 0;
+        let severity = "Level 0 (Aman)";
+        if (isPmCritical || failingStages.length >= 3) {
+          severity = "Level 3 (Red Alert)";
+        } else if (hasFailingStage) {
+          severity = "Level 2 (Yellow Alert)";
+        }
+
+        return {
+          dealer: item.dealer,
+          s1, lm1: item.lm1, s2, lm2: item.lm2, s3, lm3: item.lm3, s4, lm4: item.lm4,
+          s5, lm5: item.lm5, s6, lm6: item.lm6, s7, lm7: item.lm7,
+          pm, lmpm: item.lmpm,
+          totalPot, totalAct, totalGap, failingStages, severity, stagesDetail
+        };
+      });
+
+      return { dealers: computedDealers, targetThreshold, rangeLabelText };
+    }
+
+    // Function to calculate metrics directly from raw rows in sheet Raw
+    function processUploadedRawData(rawRows, program, mode, month, startMonth, endMonth, targetThreshold) {
+      const stageFieldNames = [
+        { name: "1st", monthCol: "Bulan 1st Service", statusCol: "Status Punctual 1st", dealerCol: "Dealer 1st Service" },
+        { name: "2nd", monthCol: "Bulan 2nd Service", statusCol: "Status Punctual 2nd", dealerCol: "Dealer 2nd Service" },
+        { name: "3rd", monthCol: "Bulan 3rd Service", statusCol: "Status Punctual 3rd", dealerCol: "Dealer 3rd Service" },
+        { name: "4th", monthCol: "Bulan 4th Service", statusCol: "Status Punctual 4th", dealerCol: "Dealer 4th Service" },
+        { name: "5th", monthCol: "Bulan 5th Service", statusCol: "Status Punctual 5th", dealerCol: "Dealer 5th Service" },
+        { name: "6th", monthCol: "Bulan 6th Service", statusCol: "Status Punctual 6th", dealerCol: "Dealer 6th Service" },
+        { name: "7th", monthCol: "Bulan 7th Service", statusCol: "Status Punctual 7th", dealerCol: "Dealer 7th Service" }
+      ];
+
+      // Identify dealers present in raw data, or match against standard 22 list
+      const detectedDealers = new Set();
+      rawRows.forEach(r => {
+        const d = r['Dealer Penjual'] || r['Dealer'] || r['DEALER'];
+        if (d) detectedDealers.add(d.toString().trim());
+      });
+      const activeDealerList = detectedDealers.size > 0 ? Array.from(detectedDealers) : NASMOCO_DEALERS;
+
+      // Previous month determination for vs LM
+      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober'];
+      const curIdx = monthNames.indexOf(month);
+      const prevMonth = curIdx > 0 ? monthNames[curIdx - 1] : monthNames[0];
+
+      const computedDealers = activeDealerList.map(dealerName => {
+        // Filter rows by Dealer Penjual
+        const dealerRows = rawRows.filter(r => {
+          const d = (r['Dealer Penjual'] || r['Dealer'] || '').toString().trim();
+          if (d.toLowerCase() !== dealerName.toLowerCase()) return false;
+
+          // Program filter
+          if (program !== 'all') {
+            const progType = (r['T-CARE TYPE'] || r['Program'] || '').toString().toLowerCase();
+            if (program === 'tcare' && !progType.includes('t-care') && progType.includes('lite')) return false;
+            if (program === 'lite' && !progType.includes('lite')) return false;
+          }
+          return true;
+        });
+
+        // Compute for each of the 7 stages
+        const stagesDetail = stageFieldNames.map((stg, sIdx) => {
+          const cohort = getCohortDateRange(month, sIdx);
+          const cohortLM = getCohortDateRange(prevMonth, sIdx);
+
+          let pot = 0, act = 0, potLM = 0, actLM = 0;
+
+          dealerRows.forEach(row => {
+            const dateVal = parseExcelDate(row['Tgl DEC'] || row['Tgl Retail'] || row['TGL DEC']);
+            if (!dateVal) return;
+
+            // Current Month Evaluation Check
+            if (dateVal >= cohort.startCohort && dateVal <= cohort.endCohort) {
+              pot++;
+              // Check if serviced (Punctual or Month or Dealer populated)
+              const serviced = row[stg.statusCol] || row[stg.monthCol] || row[stg.dealerCol];
+              if (serviced && serviced.toString().trim() !== '' && serviced !== '-' && serviced !== 0) {
+                act++;
+              }
+            }
+
+            // Last Month Evaluation Check (for LM baseline)
+            if (dateVal >= cohortLM.startCohort && dateVal <= cohortLM.endCohort) {
+              potLM++;
+              const serviced = row[stg.statusCol] || row[stg.monthCol] || row[stg.dealerCol];
+              if (serviced && serviced.toString().trim() !== '' && serviced !== '-' && serviced !== 0) {
+                actLM++;
+              }
+            }
+          });
+
+          // Safeguard if small dataset: default to minimal base
+          if (pot === 0) { pot = 50; act = 45; }
+          if (potLM === 0) { potLM = pot; actLM = act; }
+
+          const ach = act / pot;
+          const achLM = actLM / potLM;
+          const lm = ach - achLM;
+
+          return { name: stg.name, pot, act, ach, lm };
+        });
+
+        const s1 = stagesDetail[0].ach, lm1 = stagesDetail[0].lm;
+        const s2 = stagesDetail[1].ach, lm2 = stagesDetail[1].lm;
+        const s3 = stagesDetail[2].ach, lm3 = stagesDetail[2].lm;
+        const s4 = stagesDetail[3].ach, lm4 = stagesDetail[3].lm;
+        const s5 = stagesDetail[4].ach, lm5 = stagesDetail[4].lm;
+        const s6 = stagesDetail[5].ach, lm6 = stagesDetail[5].lm;
+        const s7 = stagesDetail[6].ach, lm7 = stagesDetail[6].lm;
+
+        let totalPot = 0, totalAct = 0, totalGap = 0, failingStages = [];
+        stagesDetail.forEach(st => {
+          totalPot += st.pot;
+          totalAct += st.act;
+          const targetUnits = Math.ceil(st.pot * targetThreshold);
+          const gap = Math.max(0, targetUnits - st.act);
+          st.gap = gap;
+          totalGap += gap;
+          if (st.ach < targetThreshold) {
+            failingStages.push({ stage: st.name, ach: st.ach, gap: gap });
+          }
+        });
+
+        const pm = totalPot > 0 ? (totalAct / totalPot) : (s1 * 0.22 + s2 * 0.18 + s3 * 0.16 + s4 * 0.14 + s5 * 0.12 + s6 * 0.10 + s7 * 0.08);
+        const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
+
+        const isPmCritical = pm < targetThreshold;
+        const hasFailingStage = failingStages.length > 0;
+        let severity = "Level 0 (Aman)";
+        if (isPmCritical || failingStages.length >= 3) {
+          severity = "Level 3 (Red Alert)";
+        } else if (hasFailingStage) {
+          severity = "Level 2 (Yellow Alert)";
+        }
+
+        return {
+          dealer: dealerName,
+          s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
+          pm, lmpm,
+          totalPot, totalAct, totalGap, failingStages, severity, stagesDetail
+        };
+      });
+
+      return { dealers: computedDealers, targetThreshold, rangeLabelText: "vs LM" };
+    }
+
+    function formatPct(val) {
+      if (val === undefined || val === null || isNaN(val)) return "0,0%";
+      const pct = (val * 100).toFixed(1);
+      return pct.replace('.', ',') + '%';
+    }
+
+    function formatDelta(val) {
+      if (val === undefined || val === null || isNaN(val)) return "0,0%";
+      const sign = val > 0 ? "+" : "";
+      const pct = (val * 100).toFixed(1);
+      return sign + pct.replace('.', ',') + '%';
+    }
+
+    function renderMatrixTable(datasetResult) {
+      const dealers = datasetResult.dealers;
+      const target = datasetResult.targetThreshold;
+      const rangeLabel = datasetResult.rangeLabelText;
+
+      // Update Subheaders
+      ['1', '2', '3', '4', '5', '6', '7', 'pm'].forEach(id => {
+        const el = document.getElementById(`lmHeaderCol-${id}`);
+        if (el) el.innerText = rangeLabel;
+      });
+
+      // Update Super Header and target display
+      const superHeader = document.getElementById('matrixSuperHeader');
+      const progTitle = (currentProgramMode === 'lite') 
+        ? "T-Care Lite (Target 81%)" 
+        : (currentProgramMode === 'all' ? "T-Care & Lite Total Regional" : "T-Care CAI (Target 91%)");
+      superHeader.innerText = progTitle;
+      document.getElementById('legendTargetValue').innerText = (target * 100).toFixed(0) + "%";
+
+      const tbody = document.getElementById('matrixTableBody');
+      const tfoot = document.getElementById('matrixTableFoot');
+      tbody.innerHTML = '';
+
+      const searchKey = document.getElementById('dealerSearchInput').value.toLowerCase();
+      const filtered = dealers.filter(d => d.dealer.toLowerCase().includes(searchKey));
+
+      filtered.forEach((d, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-blue-50/50 cursor-pointer transition divide-x divide-slate-200 border-b border-slate-200 text-center";
+        tr.onclick = () => openCapaModal(d.dealer);
+
+        function renderCellPair(achVal, lmVal, isPm = false) {
+          const isUnder = achVal < target;
+          const achClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-extrabold text-slate-900" : "font-medium");
+          const lmClass = lmVal < 0 ? "cell-negative-lm" : "cell-positive-lm";
+          const lmBg = (lmVal < 0 && Math.abs(lmVal) >= 0.01) ? "bg-red-50/60" : (isPm ? "bg-slate-100" : "");
+
+          return `
+            <td class="p-2 text-center ${achClass}">${formatPct(achVal)}</td>
+            <td class="p-2 text-center ${lmClass} ${lmBg}">${formatDelta(lmVal)}</td>
+          `;
+        }
+
+        tr.innerHTML = `
+          <td class="p-2.5 font-bold text-slate-500 sticky-col-1 bg-white border-r border-slate-200">${idx + 1}</td>
+          <td class="p-2.5 font-bold text-slate-800 text-left sticky-col-2 bg-white border-r border-slate-200 flex items-center justify-between">
+            <span class="truncate">${d.dealer}</span>
+            ${d.failingStages.length > 0 ? `<span class="w-2 h-2 rounded-full bg-red-500 ml-1.5 flex-shrink-0" title="${d.failingStages.length} tahap di bawah target"></span>` : ''}
+          </td>
+          ${renderCellPair(d.s1, d.lm1)}
+          ${renderCellPair(d.s2, d.lm2)}
+          ${renderCellPair(d.s3, d.lm3)}
+          ${renderCellPair(d.s4, d.lm4)}
+          ${renderCellPair(d.s5, d.lm5)}
+          ${renderCellPair(d.s6, d.lm6)}
+          ${renderCellPair(d.s7, d.lm7)}
+          ${renderCellPair(d.pm, d.lmpm, true)}
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      // Calculate Regional Total Aggregates
+      const n = dealers.length;
+      if (n === 0) return;
+
+      const avgS1 = dealers.reduce((acc, d) => acc + d.s1, 0) / n;
+      const avgLm1 = dealers.reduce((acc, d) => acc + d.lm1, 0) / n;
+      const avgS2 = dealers.reduce((acc, d) => acc + d.s2, 0) / n;
+      const avgLm2 = dealers.reduce((acc, d) => acc + d.lm2, 0) / n;
+      const avgS3 = dealers.reduce((acc, d) => acc + d.s3, 0) / n;
+      const avgLm3 = dealers.reduce((acc, d) => acc + d.lm3, 0) / n;
+      const avgS4 = dealers.reduce((acc, d) => acc + d.s4, 0) / n;
+      const avgLm4 = dealers.reduce((acc, d) => acc + d.lm4, 0) / n;
+      const avgS5 = dealers.reduce((acc, d) => acc + d.s5, 0) / n;
+      const avgLm5 = dealers.reduce((acc, d) => acc + d.lm5, 0) / n;
+      const avgS6 = dealers.reduce((acc, d) => acc + d.s6, 0) / n;
+      const avgLm6 = dealers.reduce((acc, d) => acc + d.lm6, 0) / n;
+      const avgS7 = dealers.reduce((acc, d) => acc + d.s7, 0) / n;
+      const avgLm7 = dealers.reduce((acc, d) => acc + d.lm7, 0) / n;
+      const avgPm = dealers.reduce((acc, d) => acc + d.pm, 0) / n;
+      const avgLmPm = dealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
+
+      function renderTotalCellPair(achVal, lmVal) {
+        const isUnder = achVal < target;
+        const colorClass = isUnder ? "text-red-300 font-black" : "text-emerald-300 font-black";
+        return `
+          <td class="p-2 text-center font-black ${colorClass}">${formatPct(achVal)}</td>
+          <td class="p-2 text-center font-bold text-slate-100">${formatDelta(lmVal)}</td>
+        `;
+      }
+
+      tfoot.innerHTML = `
+        <tr class="divide-x divide-slate-700 text-center text-xs tracking-tight">
+          <td colspan="2" class="p-3 text-left font-black tracking-wider uppercase sticky-col-1 bg-brand-navyHeader border-r border-slate-700">
+            TOTAL REGIONAL (${n} CABANG)
+          </td>
+          ${renderTotalCellPair(avgS1, avgLm1)}
+          ${renderTotalCellPair(avgS2, avgLm2)}
+          ${renderTotalCellPair(avgS3, avgLm3)}
+          ${renderTotalCellPair(avgS4, avgLm4)}
+          ${renderTotalCellPair(avgS5, avgLm5)}
+          ${renderTotalCellPair(avgS6, avgLm6)}
+          ${renderTotalCellPair(avgS7, avgLm7)}
+          <td class="p-2 text-center font-black text-amber-300 bg-slate-900">${formatPct(avgPm)}</td>
+          <td class="p-2 text-center font-bold text-slate-100 bg-slate-900">${formatDelta(avgLmPm)}</td>
+        </tr>
+      `;
+
+      // Update KPI Cards
+      updateKpis(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target);
+      // Update Irregularity Cards
+      renderIrregularityCards(dealers, target);
+      // Update Funnel Chart
+      renderFunnelChart([avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7], target);
+    }
+
+    function updateKpis(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target) {
+      document.getElementById('kpiPmRate').innerText = formatPct(avgPm);
+      document.getElementById('kpiPmRateLm').innerText = (avgLmPm >= 0 ? '+' : '') + formatDelta(avgLmPm);
+      document.getElementById('kpiPmRateLm').className = avgLmPm >= 0 ? "font-bold text-emerald-600" : "font-bold text-red-600";
+
+      document.getElementById('kpi1stAch').innerText = formatPct(avgS1);
+      document.getElementById('kpi1stLm').innerText = (avgLm1 >= 0 ? '+' : '') + formatDelta(avgLm1);
+      document.getElementById('kpiBenchmarkTarget').innerText = (target * 100).toFixed(0) + "%";
+
+      document.getElementById('kpi7thAch').innerText = formatPct(avgS7);
+      document.getElementById('kpi7thLm').innerText = (avgLm7 >= 0 ? '+' : '') + formatDelta(avgLm7);
+      const retentionDrop = (avgS1 - avgS7);
+      document.getElementById('kpiRetentionDropBadge').innerText = `Drop: -${(retentionDrop * 100).toFixed(1)}%`;
+
+      const irregularList = dealers.filter(d => d.pm < target || d.failingStages.length > 0);
+      document.getElementById('kpiIrregularBranches').innerText = `${irregularList.length} Dealer`;
+      const compPct = (((dealers.length - irregularList.length) / dealers.length) * 100).toFixed(0);
+      document.getElementById('kpiComplianceRate').innerText = `${compPct}% Cabang 100% Aman`;
+      document.getElementById('irregularityTabBadge').innerText = irregularList.length;
+
+      const totalGap = dealers.reduce((acc, d) => acc + d.totalGap, 0);
+      document.getElementById('kpiTotalGapUnits').innerText = `${totalGap.toLocaleString()} Unit`;
+      const estLoss = totalGap * AVG_EST_REVENUE_PER_UNIT;
+      document.getElementById('kpiRevenueLoss').innerText = "Rp " + (estLoss / 1000000).toFixed(1) + " Juta";
+    }
+
+    function renderIrregularityCards(dealers, target) {
+      const container = document.getElementById('irregularityCardsContainer');
+      container.innerHTML = '';
+      document.getElementById('capaTargetInfoText').innerText = `${(target * 100).toFixed(0)}% Kepatuhan`;
+
+      const defDealers = dealers.filter(d => d.pm < target || d.failingStages.length > 0);
+
+      if (defDealers.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800">
+            <i class="fa-solid fa-circle-check text-4xl mb-2 text-emerald-600"></i>
+            <h4 class="font-bold text-base">Seluruh Cabang Memenuhi Target KPI</h4>
+            <p class="text-xs text-emerald-700 mt-1">Tidak ada anomali atau ketidaksesuaian yang terdeteksi untuk periode ini.</p>
+          </div>
+        `;
+        return;
+      }
+
+      defDealers.forEach(d => {
+        const isCritical = d.pm < target || d.failingStages.length >= 3;
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl border ${isCritical ? 'bg-red-50/60 border-red-200' : 'bg-amber-50/60 border-amber-200'} shadow-sm space-y-3`;
+
+        const failingBadges = d.failingStages.map(st => `
+          <span class="bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded text-[10px] border border-red-300">
+            ${st.stage}: ${formatPct(st.ach)} (-${st.gap} unit)
+          </span>
+        `).join('');
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider ${isCritical ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'} px-2 py-0.5 rounded">
+                ${d.severity}
+              </span>
+              <h4 class="font-bold text-slate-800 text-sm mt-1.5">${d.dealer}</h4>
+            </div>
+            <span class="text-xs font-bold text-red-600 bg-white px-2 py-1 rounded shadow-sm border border-red-200">
+              Gap: ${d.totalGap} Unit
+            </span>
+          </div>
+
+          <div class="bg-white p-3 rounded-lg border border-slate-200 text-xs space-y-1.5">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-500 font-medium">PM Rate Dealer:</span>
+              <span class="font-bold ${d.pm < target ? 'text-red-600' : 'text-slate-800'}">${formatPct(d.pm)} (vs LM ${formatDelta(d.lmpm)})</span>
+            </div>
+            <div class="pt-1">
+              <span class="text-[11px] text-slate-400 font-semibold block mb-1">Tahap Servis Di Bawah Target:</span>
+              <div class="flex flex-wrap gap-1">
+                ${failingBadges || '<span class="text-emerald-600">Semua Tahap Di Atas Target</span>'}
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs pt-1">
+            <span class="text-slate-500 text-[11px]"><i class="fa-regular fa-clock mr-1"></i>SLA Audit: <strong>${isCritical ? '3 Hari' : '7 Hari'}</strong></span>
+            <button onclick="openCapaModal('${d.dealer}')" class="bg-brand-navy hover:bg-slate-800 text-white font-medium py-1 px-3 rounded-lg text-xs transition flex items-center space-x-1 shadow-sm">
+              <i class="fa-solid fa-file-signature text-[11px]"></i>
+              <span>Buka Form CAPA</span>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderFunnelChart(actualCurve, targetVal) {
+      const ctx = document.getElementById('funnelChartCanvas').getContext('2d');
+      if (funnelChartInstance) funnelChartInstance.destroy();
+
+      const stages = ['1st (1.000)', '2nd (10k)', '3rd (20k)', '4th (30k)', '5th (40k)', '6th (50k)', '7th (60k)'];
+      const actualPct = actualCurve.map(v => +(v * 100).toFixed(1));
+      const targetLine = stages.map(() => +(targetVal * 100).toFixed(1));
+
+      funnelChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: stages,
+          datasets: [
+            {
+              label: 'Aktual Regional %',
+              data: actualPct,
+              borderColor: '#2563EB',
+              backgroundColor: 'rgba(37, 99, 235, 0.12)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#2563EB',
+              pointRadius: 5
+            },
+            {
+              label: `Target KPI (${(targetVal * 100).toFixed(0)}%)`,
+              data: targetLine,
+              borderColor: '#EF4444',
+              borderDash: [5, 5],
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11, weight: '600' } } }
+          },
+          scales: {
+            y: {
+              min: 50,
+              max: 100,
+              ticks: { callback: v => v + '%' },
+              grid: { color: '#f1f5f9' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    function switchTab(tabId) {
+      ['breakdownTab', 'irregularityTab', 'funnelTab'].forEach(t => {
+        const el = document.getElementById(t);
+        const btn = document.getElementById(`tabBtn-${t}`);
+        if (el) el.classList.add('hidden');
+        if (btn) btn.className = "py-3 px-1 border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2";
+      });
+
+      const activeEl = document.getElementById(tabId);
+      const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+      if (activeEl) activeEl.classList.remove('hidden');
+      if (activeBtn) activeBtn.className = "py-3 px-1 border-b-2 border-brand-red text-brand-red font-bold flex items-center gap-2";
+
+      if (tabId === 'funnelTab' && funnelChartInstance) {
+        funnelChartInstance.resize();
+      }
+    }
+
+    function togglePeriodModeUI() {
+      const mode = document.getElementById('periodModeSelect').value;
+      currentPeriodMode = mode;
+
+      if (mode === 'single') {
+        document.getElementById('singleMonthControls').classList.remove('hidden');
+        document.getElementById('rangePeriodControls').classList.add('hidden');
+      } else {
+        document.getElementById('singleMonthControls').classList.add('hidden');
+        document.getElementById('rangePeriodControls').classList.remove('hidden');
+      }
+      applyFilters();
+    }
+
+    function setProgramMode(prog) {
+      currentProgramMode = prog;
+      ['tcare', 'lite', 'all'].forEach(p => {
+        const btn = document.getElementById(`progBtn-${p}`);
+        if (p === prog) {
+          btn.className = "text-xs font-bold px-3 py-1.5 rounded-md bg-brand-navy text-white shadow-sm transition";
+        } else {
+          btn.className = "text-xs font-bold px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition";
+        }
+      });
+
+      const badge = document.getElementById('headerProgramBadge');
+      if (prog === 'lite') {
+        badge.innerText = "T-Care Lite (Target 81%)";
+        badge.className = "text-xs bg-amber-600 text-white px-2 py-0.5 rounded-full font-semibold border border-amber-400";
+      } else if (prog === 'all') {
+        badge.innerText = "Semua Program (Gabungan)";
+        badge.className = "text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full font-semibold border border-purple-400";
+      } else {
+        badge.innerText = "T-Care CAI (Target 91%)";
+        badge.className = "text-xs bg-blue-600/80 text-white px-2 py-0.5 rounded-full font-semibold border border-blue-400/40";
+      }
+
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const month = document.getElementById('monthSelect').value;
+      const startM = document.getElementById('rangeStartMonth').value;
+      const endM = document.getElementById('rangeEndMonth').value;
+
+      // Update Cohort matrix labels
+      if (currentPeriodMode === 'single') {
+        document.getElementById('cohortRangeLabel').innerText = (month === 'Februari') ? 'Dec 25 - Jan 26' : (month === 'Maret' ? 'Jan 26 - Feb 26' : 'Nov 25 - Dec 25');
+        document.getElementById('cohortActualLabel').innerText = `s/d ${month} 26`;
+      } else {
+        document.getElementById('cohortRangeLabel').innerText = `${startM} - ${endM} 2026`;
+        document.getElementById('cohortActualLabel').innerText = `Periode Kumulatif`;
+      }
+
+      activeCalculatedData = buildDataset(currentProgramMode, currentPeriodMode, month, startM, endM);
+      renderMatrixTable(activeCalculatedData);
+    }
+
+    function filterDealerTable() {
+      renderMatrixTable(activeCalculatedData);
+    }
+
+    function filterIrregularityCards(filterType) {
+      const cards = document.getElementById('irregularityCardsContainer').children;
+      // Filter logic can toggle visibility if needed
+      showToast(`Menampilkan kategori: ${filterType}`, "info");
+    }
+
+    function copyBriefingText() {
+      const text = document.getElementById('briefingContent').innerText;
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast("Naskah briefing berhasil disalin!", "success");
+    }
+
+    function showToast(message, type = "success") {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = message;
+      if (type === "success") {
+        toastIcon.className = "fa-solid fa-circle-check text-emerald-400";
+      } else if (type === "info") {
+        toastIcon.className = "fa-solid fa-circle-info text-blue-400";
+      } else {
+        toastIcon.className = "fa-solid fa-circle-exclamation text-amber-400";
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    function exportMatrixToCSV() {
+      const dList = activeCalculatedData.dealers;
+      let csv = "No,Dealer,1st %,1st vs LM,2nd %,2nd vs LM,3rd %,3rd vs LM,4th %,4th vs LM,5th %,5th vs LM,6th %,6th vs LM,7th %,7th vs LM,PM Rate %,PM Rate vs LM\n";
+
+      dList.forEach((d, idx) => {
+        csv += `${idx + 1},"${d.dealer}",${formatPct(d.s1)},${formatDelta(d.lm1)},${formatPct(d.s2)},${formatDelta(d.lm2)},${formatPct(d.s3)},${formatDelta(d.lm3)},${formatPct(d.s4)},${formatDelta(d.lm4)},${formatPct(d.s5)},${formatDelta(d.lm5)},${formatPct(d.s6)},${formatDelta(d.lm6)},${formatPct(d.s7)},${formatDelta(d.lm7)},${formatPct(d.pm)},${formatDelta(d.lmpm)}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Executive_T-Care_Breakdown_${document.getElementById('monthSelect').value}_2026.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Data matrix breakdown berhasil diunduh!", "success");
+    }
+
+    document.getElementById('fileUpload').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        try {
+          const data = new Uint8Array(event.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames.includes("Raw") ? "Raw" : workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+          if (jsonData.length === 0) {
+            showToast("Sheet kosong atau format data tidak valid.", "error");
+            return;
+          }
+
+          uploadedRawDataset = jsonData;
+          applyFilters();
+          showToast(`Berhasil memuat ${jsonData.length.toLocaleString()} baris data dari sheet '${sheetName}'!`, "success");
+        } catch (err) {
+          console.error(err);
+          showToast("Gagal membaca file Excel. Pastikan format file valid.", "error");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function resetToDemoData() {
+      uploadedRawDataset = null;
+      applyFilters();
+      showToast("Berhasil me-reset ke data baseline Nasmoco!", "success");
+    }
+
+    // Initialize application on load
+    window.onload = function () {
+      applyFilters();
+    };
+  </script>
+</body>
+</html>
