@@ -493,6 +493,8 @@
           <div class="h-64">
             <canvas id="overviewTrendCanvas"></canvas>
           </div>
+          <!-- 7-Stage Quick Breakdown Pills -->
+          <div id="overviewStagePills" class="grid grid-cols-7 gap-1.5 pt-2 border-t border-slate-100 text-center"></div>
         </div>
 
         <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
@@ -1506,13 +1508,14 @@
             p1st = pVal;
           }
 
-          if (dVal && dVal !== '-' && dVal !== '0') {
-            sDoneMask |= (1 << s);
-          } else if (pVal && pVal !== '-' && pVal !== '0' && !pVal.toLowerCase().startsWith('belum') && !pVal.toLowerCase().startsWith('no')) {
-            sDoneMask |= (1 << s);
-          } else if (mVal && mVal !== '-' && mVal !== '0') {
-            sDoneMask |= (1 << s);
+          if (mVal && mVal !== '-' && mVal !== '0') {
             sYM[s] = parseToYearMonth(mVal);
+          }
+
+          if ((dVal && dVal !== '-' && dVal !== '0') ||
+              (pVal && pVal !== '-' && pVal !== '0' && !pVal.toLowerCase().startsWith('belum') && !pVal.toLowerCase().startsWith('no')) ||
+              (sYM[s] !== 0)) {
+            sDoneMask |= (1 << s);
           }
         }
 
@@ -1675,7 +1678,8 @@
       const month = document.getElementById('monthSelect').value;
       const startM = document.getElementById('rangeStartMonth').value;
       const endM = document.getElementById('rangeEndMonth').value;
-      const mIdx = MONTH_NAMES.indexOf(month) !== -1 ? MONTH_NAMES.indexOf(month) : 8; // default September
+      const evalMonthStr = currentPeriodMode === 'range' ? endM : month;
+      const mIdx = MONTH_NAMES.indexOf(evalMonthStr) !== -1 ? MONTH_NAMES.indexOf(evalMonthStr) : 8; // default September
 
       const rule1st = getMatrixRule(mIdx, 0);
       if (currentPeriodMode === 'single') {
@@ -1683,7 +1687,7 @@
         document.getElementById('cohortActualLabel').innerText = `Masuk: ${ymToString(rule1st.actStartYM)} s/d ${ymToString(rule1st.actEndYM)}`;
       } else {
         document.getElementById('cohortRangeLabel').innerText = `${startM.substring(0, 3)} - ${endM.substring(0, 3)} 2026`;
-        document.getElementById('cohortActualLabel').innerText = `Kumulatif`;
+        document.getElementById('cohortActualLabel').innerText = `Kumulatif s/d ${endM.substring(0, 3)} 26`;
         const span = Math.max(1, MONTH_NAMES.indexOf(endM) - MONTH_NAMES.indexOf(startM) + 1);
         document.getElementById('rangeSpanBadge').innerText = `${span} Bulan`;
       }
@@ -2151,9 +2155,15 @@
       const actualPct = actualCurve.map(v => +(v * 100).toFixed(1));
       const targetLine = stages.map(() => +(targetVal * 100).toFixed(1));
 
+      // Calculate dynamic minimum so values below 60% (like 51.9%) are never cut off
+      const minDataVal = Math.min(...actualPct, targetVal * 100);
+      const yMin = Math.max(0, Math.floor((minDataVal - 10) / 10) * 10);
+
       if (overviewChartInstance) {
+        overviewChartInstance.options.scales.y.min = yMin;
         overviewChartInstance.data.datasets[0].data = actualPct;
         overviewChartInstance.data.datasets[1].data = targetLine;
+        overviewChartInstance.data.datasets[1].label = `Target KPI (${(targetVal * 100).toFixed(0)}%)`;
         overviewChartInstance.update('none'); // Ultra-fast in place update
         return;
       }
@@ -2173,7 +2183,8 @@
               fill: true,
               tension: 0.35,
               pointBackgroundColor: '#1A73E8',
-              pointRadius: 4
+              pointRadius: 5,
+              pointHoverRadius: 7
             },
             {
               label: `Target KPI (${(targetVal * 100).toFixed(0)}%)`,
@@ -2190,9 +2201,16 @@
           responsive: true,
           maintainAspectRatio: false,
           animation: false,
-          plugins: { legend: { display: false } },
+          plugins: { 
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y}%`
+              }
+            }
+          },
           scales: {
-            y: { min: 60, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
+            y: { min: yMin, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
             x: { grid: { display: false } }
           }
         }
@@ -2269,36 +2287,7 @@
       const avgLm6 = dealers.reduce((acc, d) => acc + d.lm6, 0) / n;
       const avgS7 = dealers.reduce((acc, d) => acc + d.s7, 0) / n;
       const avgLm7 = dealers.reduce((acc, d) => acc + d.lm7, 0) / n;
-      const avgPm = dealers.reduce((acc, d) => acc + d.pm, 0) / n;
-      const avgLmPm = dealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
-
-      function totalCell(achVal, lmVal) {
-        const isUnder = achVal < target;
-        const colorClass = isUnder ? "text-red-300 font-black" : "text-emerald-300 font-black";
-        return `
-          <td class="p-1.5 text-center font-black ${colorClass}">${formatPct(achVal)}</td>
-          <td class="p-1.5 text-center font-bold text-slate-100">${formatDelta(lmVal)}</td>
-        `;
-      }
-
-      tfoot.innerHTML = `
-        <tr class="divide-x divide-slate-700 text-center text-xs tracking-tight">
-          <td colspan="2" class="p-2 text-left font-black tracking-wider uppercase sticky-col-1 bg-looker-header border-r border-slate-700 text-[11px]">
-            TOTAL REGIONAL (${n} CABANG)
-          </td>
-          ${totalCell(avgS1, avgLm1)}
-          ${totalCell(avgS2, avgLm2)}
-          ${totalCell(avgS3, avgLm3)}
-          ${totalCell(avgS4, avgLm4)}
-          ${totalCell(avgS5, avgLm5)}
-          ${totalCell(avgS6, avgLm6)}
-          ${totalCell(avgS7, avgLm7)}
-          <td class="p-1.5 text-center font-black text-amber-300 bg-slate-900">${formatPct(avgPm)}</td>
-          <td class="p-1.5 text-center font-bold text-slate-100 bg-slate-900">${formatDelta(avgLmPm)}</td>
-        </tr>
-      `;
-
-      updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target);
+      updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target, [avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7]);
       renderFunnelPage([avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7], target);
       renderModelPage(datasetResult.rawAnalytics, target);
       renderSegmentsPage(datasetResult.rawAnalytics, target);
@@ -2306,17 +2295,17 @@
       renderRawExplorerTable();
     }
 
-    function updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target) {
+    function updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target, stageCurves = []) {
       document.getElementById('kpiPmRate').innerText = formatPct(avgPm);
-      document.getElementById('kpiPmRateLm').innerText = (avgLmPm >= 0 ? '+' : '') + formatDelta(avgLmPm);
+      document.getElementById('kpiPmRateLm').innerText = formatDelta(avgLmPm);
       document.getElementById('kpiPmRateLm').className = avgLmPm >= 0 ? "font-bold text-emerald-600" : "font-bold text-red-600";
 
       document.getElementById('kpi1stAch').innerText = formatPct(avgS1);
-      document.getElementById('kpi1stLm').innerText = (avgLm1 >= 0 ? '+' : '') + formatDelta(avgLm1);
+      document.getElementById('kpi1stLm').innerText = formatDelta(avgLm1);
       document.getElementById('kpiBenchmarkTarget').innerText = (target * 100).toFixed(0) + "%";
 
       document.getElementById('kpi7thAch').innerText = formatPct(avgS7);
-      document.getElementById('kpi7thLm').innerText = (avgLm7 >= 0 ? '+' : '') + formatDelta(avgLm7);
+      document.getElementById('kpi7thLm').innerText = formatDelta(avgLm7);
       const retentionDrop = (avgS1 - avgS7);
       document.getElementById('kpiRetentionDropBadge').innerText = `Drop: -${(retentionDrop * 100).toFixed(1)}%`;
 
@@ -2351,7 +2340,32 @@
         </div>
       `).join('');
 
-      updateOverviewTrendChart([avgS1, dealers.reduce((acc, d) => acc + d.s2, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s3, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s4, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s5, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s6, 0)/dealers.length, avgS7], target);
+      const curves = stageCurves.length === 7 ? stageCurves : [
+        avgS1, 
+        dealers.reduce((acc, d) => acc + d.s2, 0) / dealers.length,
+        dealers.reduce((acc, d) => acc + d.s3, 0) / dealers.length,
+        dealers.reduce((acc, d) => acc + d.s4, 0) / dealers.length,
+        dealers.reduce((acc, d) => acc + d.s5, 0) / dealers.length,
+        dealers.reduce((acc, d) => acc + d.s6, 0) / dealers.length,
+        avgS7
+      ];
+
+      // Render 7-Stage Quick Breakdown Pills
+      const stagePills = document.getElementById('overviewStagePills');
+      if (stagePills) {
+        stagePills.innerHTML = STAGE_NAMES.map((st, i) => {
+          const val = curves[i];
+          const isUnder = val < target;
+          return `
+            <div class="p-1.5 rounded-lg border ${isUnder ? 'bg-red-50/80 border-red-200 text-red-700' : 'bg-emerald-50/80 border-emerald-200 text-emerald-800'} shadow-2xs">
+              <div class="text-[9px] font-bold uppercase text-slate-400">${st}</div>
+              <div class="font-black text-xs">${formatPct(val)}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      updateOverviewTrendChart(curves, target);
     }
 
     function renderFunnelPage(actualCurve, targetVal) {
@@ -2360,7 +2374,11 @@
       const actualPct = actualCurve.map(v => +(v * 100).toFixed(1));
       const targetLine = stages.map(() => +(targetVal * 100).toFixed(1));
 
+      const minDataVal = Math.min(...actualPct, targetVal * 100);
+      const yMin = Math.max(0, Math.floor((minDataVal - 10) / 10) * 10);
+
       if (funnelChartInstance) {
+        funnelChartInstance.options.scales.y.min = yMin;
         funnelChartInstance.data.datasets[0].data = actualPct;
         funnelChartInstance.data.datasets[1].data = targetLine;
         funnelChartInstance.update('none');
@@ -2396,7 +2414,7 @@
             animation: false,
             plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
             scales: {
-              y: { min: 50, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
+              y: { min: yMin, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
               x: { grid: { display: false } }
             }
           }
