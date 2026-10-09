@@ -1492,17 +1492,34 @@
         if (y > 2000 && m >= 0 && m < 12) return y * 12 + m;
       }
 
-      // 3. DD/MM/YYYY or DD-MM-YYYY or DD/MM/YY or DD-MM-YY
-      const slashOrDash = str.indexOf('/') !== -1 ? '/' : (str.indexOf('-') !== -1 ? '-' : '');
-      if (slashOrDash) {
-        const parts = str.split(slashOrDash);
-        if (parts.length >= 3) {
-          let y = parseInt(parts[2], 10);
-          let m = parseInt(parts[1], 10) - 1;
-          if (y < 100) y += 2000;
-          if (y > 2000 && m >= 0 && m < 12) return y * 12 + m;
-        }
-      }
+      // 3. M/D/YYYY atau D/M/YYYY (Smart Auto-Detect US vs ID format)
+          const slashOrDash = str.indexOf('/') !== -1 ? '/' : (str.indexOf('-') !== -1 ? '-' : '');
+          if (slashOrDash) {
+            const parts = str.split(slashOrDash);
+            if (parts.length >= 3) {
+              let y = parseInt(parts[2], 10);
+              if (y < 100) y += 2000;
+              const p0 = parseInt(parts[0], 10);
+              const p1 = parseInt(parts[1], 10);
+
+              let m = -1;
+              // Jika angka kedua > 12, pasti HARI (contoh: 7/27/2022) -> p0 adalah BULAN (Format US)
+              if (p1 > 12) {
+                m = p0 - 1;
+              } 
+              // Jika angka pertama > 12, pasti HARI (contoh: 27/7/2022) -> p1 adalah BULAN (Format ID)
+              else if (p0 > 12) {
+                m = p1 - 1;
+              } 
+              // Jika dua-duanya <= 12 (contoh: 7/2/2022):
+              // Sesuai format spreadsheet Google Sheets Anda (M/D/YYYY), p0 adalah BULAN
+              else {
+                m = p0 - 1;
+              }
+
+              if (y > 2000 && m >= 0 && m < 12) return y * 12 + m;
+            }
+          }
 
       // 4. Month text string (e.g., "September 2026", "Sep 26")
       const sLower = str.toLowerCase();
