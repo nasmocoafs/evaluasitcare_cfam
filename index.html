@@ -1513,7 +1513,7 @@
     let funnelChartInstance = null;
     let recalcTimer = null;
     
-    let currentAttacklistFilter = 'all_unserviced'; // 'all_unserviced', 'this_month', 'm_plus_1', 'm_plus_2', 'overdue', 'all_raw'
+    let currentAttacklistFilter = 'all_active_atk'; // 'all_active_atk', 'this_month', 'm_plus_1', 'm_plus_2', 'overdue', 'expired', 'all_raw'
     let matrixSortState = { field: 'pm', dir: 'desc' }; // 'desc', 'asc', 'none'
     
     let rawNormalizedDataset = null; 
@@ -1679,6 +1679,9 @@
             loyaltyType = 'other_dealer';
           }
         }
+        
+        // Tambahkan definisi isHome1st ini agar tidak memicu ReferenceError:
+        const isHome1st = (loyaltyType === 'same_outlet');
         
         // Punctuality detection: accurately identify "Not Punctual" / "Overdue" vs "Punctual"
         // Deteksi Punctuality Presisi
@@ -3716,7 +3719,7 @@
             'Retail (Pribadi)': { count: 3980, serviced1st: 3780 },
             'Fleet / Perusahaan': { count: 920, serviced1st: 710 }
           },
-          loyalty: { home: 3620, visiting: 1200, punctual: 4100, late: 720 }
+          loyalty: { sameOutlet: 3620, sameDealer: 950, otherDealer: 250, punctual: 4100, late: 720 }
         },
         rawSampleRows: []
       };
