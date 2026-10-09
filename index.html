@@ -47,10 +47,10 @@
     .sticky-col-1 { position: sticky; left: 0; z-index: 25; }
     .sticky-col-2 { position: sticky; left: 38px; z-index: 25; }
 
-    /* Looker Studio benchmark highlight classes */
-    .cell-under-target { background-color: #FCE8E6 !important; color: #B91C1C !important; font-weight: 700 !important; }
-    .cell-negative-lm { color: #DC2626 !important; font-weight: 600; }
-    .cell-positive-lm { color: #15803D !important; font-weight: 500; }
+    /* Looker Studio benchmark highlight classes — High Contrast */
+    .cell-under-target { background-color: #FEE2E2 !important; color: #991B1B !important; font-weight: 800 !important; }
+    .cell-negative-lm { color: #DC2626 !important; font-weight: 700 !important; }
+    .cell-positive-lm { color: #15803D !important; font-weight: 700 !important; }
 
     /* Custom Multi-Select Dropdown styling */
     .ms-dropdown-menu {
@@ -549,7 +549,7 @@
           </div>
         </div>
 
-        <div class="overflow-x-auto scrollbar-thin rounded-lg border border-slate-300 shadow-xs max-h-[720px]">
+        <div class="overflow-x-auto scrollbar-thin rounded-lg border border-slate-300 shadow-xs">
           <table class="w-full text-left border-collapse text-xs whitespace-nowrap" id="matrixExecutiveTable">
             <thead class="sticky top-0 z-30 select-none shadow-xs">
               <tr class="bg-looker-header text-white text-center font-bold divide-x divide-slate-700 border-b border-slate-700">
@@ -594,7 +594,6 @@
               </tr>
             </thead>
             <tbody id="matrixTableBody" class="divide-y divide-slate-200 text-slate-800 bg-white"></tbody>
-            <tfoot id="matrixTableFoot" class="sticky bottom-0 z-20 bg-looker-header text-white font-extrabold border-t-2 border-slate-700 shadow-md"></tfoot>
           </table>
         </div>
       </div>
@@ -1635,8 +1634,8 @@
 
       function getOrAdd(dict, val) {
         let clean = String(val || '').trim();
-        // Sanitize corrupted spreadsheet formulas or blanks
-        if (!clean || clean === '#REF!' || clean === '#N/A' || clean === '#VALUE!' || clean === '-' || clean === '0') {
+        // Filter semua jenis formula rusak atau karakter kosong dari Excel
+        if (!clean || clean.startsWith('#') || clean === '-' || clean === '0' || clean.toLowerCase() === 'null') {
           clean = 'Retail';
         }
         let idx = dict.indexOf(clean);
@@ -1699,15 +1698,20 @@
         const isHome1st = (d1st && d1st.toLowerCase() === dealerStr.toLowerCase());
         
         // Punctuality detection: accurately identify "Not Punctual" / "Overdue" vs "Punctual"
+        // Deteksi Punctuality Presisi
         let isPunctual1st = false;
         let isLate1st = false;
         if (p1st) {
           const pLower = p1st.toLowerCase().trim();
           if (pLower.length > 0 && pLower !== '-' && pLower !== '0') {
-            if (pLower.includes('not') || pLower.includes('late') || pLower.includes('overdue') || pLower.includes('tidak') || pLower.includes('terlambat')) {
+            // Cek kondisi negatif lebih dahulu agar 'not punctual' tidak terdeteksi sebagai punctual
+            if (pLower.includes('not') || pLower.includes('tidak') || pLower.includes('overdue') || pLower.includes('late') || pLower.includes('terlambat')) {
               isLate1st = true;
-            } else if (pLower.startsWith('punc') || pLower === 'on time' || pLower === 'ontime') {
+            } else if (pLower.includes('punc') || pLower.includes('on time') || pLower.includes('ontime') || pLower.includes('tepat')) {
               isPunctual1st = true;
+            } else {
+              // Jika status servis terisi tetapi bukan format on-time, masukkan ke overdue
+              isLate1st = true;
             }
           }
         }
@@ -1991,8 +1995,10 @@
           else if (r.isLate1st) lateCount++;
         }
 
-        // Full vehicle history for Attacklist & Raw table
-        if (rawSampleRows.length < 350) {
+        // Simpan unit yang belum selesai 7th service ke array attacklist (tanpa batas 350)
+        // Batas render tabel dipindahkan ke fungsi render visual agar performa tetap ringan
+        const isCompleted7th = (r.sDoneMask & 127) === 127;
+        if (!isCompleted7th && r.decYM > 0) {
           rawSampleRows.push({
             vin: r.vin, model: modelDict[r.modelIdx], prog: progDict[r.progIdx], decStr: r.decStr,
             decYM: r.decYM, dealer: branchDict[r.dealerIdx], sDoneMask: r.sDoneMask,
