@@ -3418,10 +3418,20 @@
     function openGoogleSheetsModal() { document.getElementById('gsheetsModal').classList.remove('hidden'); }
     function closeGoogleSheetsModal() { document.getElementById('gsheetsModal').classList.add('hidden'); }
 
+    let googleSheetDirectUrl = "";
+
     function saveAndSyncGoogleSheet() {
       const rawVal = document.getElementById('gsheetIdInput').value.trim();
-      const match = rawVal.match(/\/d\/([a-zA-Z0-9-_]+)/);
-      googleSheetId = match ? match[1] : rawVal;
+      
+      // Jika pengguna menempelkan link 'Publikasikan ke web' (mengandung /pub?)
+      if (rawVal.includes('/pub') || rawVal.includes('output=csv')) {
+        googleSheetDirectUrl = rawVal;
+      } else {
+        googleSheetDirectUrl = "";
+        const match = rawVal.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        googleSheetId = match ? match[1] : rawVal;
+      }
+      
       googleSheetTabName = document.getElementById('gsheetTabInput').value.trim() || 'Raw';
       closeGoogleSheetsModal();
       fetchLiveGoogleSheet();
@@ -3492,26 +3502,35 @@
       btn.classList.add('opacity-80', 'pointer-events-none');
       showToast("Menghubungkan ke Google Sheets...", "info");
 
-      const endpoints = [
+      // Susun endpoint prioritas (termasuk link Publish to Web dan bypass GVIZ)
+      const endpoints = [];
+      
+      if (googleSheetDirectUrl) {
+        endpoints.push(googleSheetDirectUrl);
+      }
+      
+      endpoints.push(
         `https://docs.google.com/spreadsheets/d/${googleSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(googleSheetTabName)}`,
         `https://docs.google.com/spreadsheets/d/${googleSheetId}/export?format=csv&sheet=${encodeURIComponent(googleSheetTabName)}`
-      ];
+      );
 
       let success = false;
       let csvContent = "";
 
       for (const url of endpoints) {
         try {
-          const res = await fetch(url);
+          const res = await fetch(url, { cache: 'no-store' });
           if (res.ok) {
-            csvContent = await res.text();
-            if (!csvContent.includes('<!DOCTYPE html>') && csvContent.trim().length > 50) {
+            const txt = await res.text();
+            // Validasi: pastikan respon adalah data CSV murni, bukan halaman login Google HTML
+            if (!txt.includes('<!DOCTYPE html>') && !txt.includes('<html') && txt.trim().length > 50) {
+              csvContent = txt;
               success = true;
               break;
             }
           }
         } catch (e) {
-          console.warn("Sync attempt fallback:", e);
+          console.warn("Fetch fallback:", e);
         }
       }
 
