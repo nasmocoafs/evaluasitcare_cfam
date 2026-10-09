@@ -1187,8 +1187,8 @@
       <div class="p-4 space-y-3 text-xs text-slate-700">
         <div>
           <label class="block font-bold text-slate-800 mb-0.5">Spreadsheet ID atau Full URL:</label>
-          <input type="text" id="gsheetIdInput" value="1swzEkk_K2c_6xoWoKvimHPZLEKXU_VC_Z50yyKE1Il4" class="w-full p-2 rounded-lg border border-slate-300 font-mono text-[11px] focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-          <span class="text-[10px] text-slate-400">ID spreadsheet dari URL Google Drive Anda.</span>
+          <input type="text" id="gsheetIdInput" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vS6iziGeWr2ef85wU5zfWC75uIc_A3BXajUwEkVKANhZaqGZLNdC4wd_VuV2B90NP7rqhqgyG_Y9U-j/pub?gid=1631183000&single=true&output=csv" class="w-full p-2 rounded-lg border border-slate-300 font-mono text-[11px] focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+          <span class="text-[10px] text-slate-400">ID spreadsheet atau tautan Publikasi Web CSV.</span>
         </div>
 
         <div>
@@ -3418,7 +3418,8 @@
     function openGoogleSheetsModal() { document.getElementById('gsheetsModal').classList.remove('hidden'); }
     function closeGoogleSheetsModal() { document.getElementById('gsheetsModal').classList.add('hidden'); }
 
-    let googleSheetDirectUrl = "";
+    // Tautan default Publikasi Web CSV Sheet Raw (gid=1631183000)
+    let googleSheetDirectUrl = localStorage.getItem('tcare_gsheet_url') || "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6iziGeWr2ef85wU5zfWC75uIc_A3BXajUwEkVKANhZaqGZLNdC4wd_VuV2B90NP7rqhqgyG_Y9U-j/pub?gid=1631183000&single=true&output=csv";
 
     function saveAndSyncGoogleSheet() {
       const rawVal = document.getElementById('gsheetIdInput').value.trim();
@@ -3432,11 +3433,14 @@
         googleSheetId = match ? match[1] : rawVal;
       }
       
+      try {
+        localStorage.setItem('tcare_gsheet_url', googleSheetDirectUrl);
+      } catch (e) {}
+
       googleSheetTabName = document.getElementById('gsheetTabInput').value.trim() || 'Raw';
       closeGoogleSheetsModal();
       fetchLiveGoogleSheet();
     }
-
     function openCapaModal(dealerName) {
       if (!activeCalculatedData) return;
       const d = activeCalculatedData.dealers.find(x => x.dealer === dealerName);
@@ -3502,17 +3506,22 @@
       btn.classList.add('opacity-80', 'pointer-events-none');
       showToast("Menghubungkan ke Google Sheets...", "info");
 
-      // Susun endpoint prioritas (termasuk link Publish to Web dan bypass GVIZ)
+      // Susun endpoint multi-tier dengan bypass CORS & GID spesifik tab Raw
       const endpoints = [];
       
+      // 1. Endpoint Google Visualization API resmi via GID (memiliki header Access-Control-Allow-Origin: *)
+      endpoints.push(`https://docs.google.com/spreadsheets/d/1swzEkk_K2c_6xoWoKvimHPZLEKXU_VC_Z50yyKE1Il4/gviz/tq?tqx=out:csv&gid=1631183000`);
+
+      // 2. Tautan Langsung Publikasi Web
       if (googleSheetDirectUrl) {
         endpoints.push(googleSheetDirectUrl);
+        // 3. Fallback jalur CORS Proxy jika browser memblokir pengalihan Google
+        endpoints.push(`https://corsproxy.io/?url=${encodeURIComponent(googleSheetDirectUrl)}`);
+        endpoints.push(`https://api.allorigins.win/raw?url=${encodeURIComponent(googleSheetDirectUrl)}`);
       }
       
-      endpoints.push(
-        `https://docs.google.com/spreadsheets/d/${googleSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(googleSheetTabName)}`,
-        `https://docs.google.com/spreadsheets/d/${googleSheetId}/export?format=csv&sheet=${encodeURIComponent(googleSheetTabName)}`
-      );
+      // 4. Fallback gviz via nama tab
+      endpoints.push(`https://docs.google.com/spreadsheets/d/${googleSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(googleSheetTabName)}`);
 
       let success = false;
       let csvContent = "";
@@ -3530,10 +3539,9 @@
             }
           }
         } catch (e) {
-          console.warn("Fetch fallback:", e);
+          console.warn("Mencoba endpoint cadangan karena CORS:", e);
         }
       }
-
       icon.classList.remove('fa-spin');
       btn.classList.remove('opacity-80', 'pointer-events-none');
       isFetchingSheet = false;
