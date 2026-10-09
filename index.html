@@ -594,6 +594,8 @@
               </tr>
             </thead>
             <tbody id="matrixTableBody" class="divide-y divide-slate-200 text-slate-800 bg-white"></tbody>
+            <!-- Tambahkan kembali elemen tfoot yang hilang di bawah ini -->
+            <tfoot id="matrixTableFoot" class="bg-looker-header text-white font-extrabold border-t-2 border-slate-700 shadow-md"></tfoot>
           </table>
         </div>
       </div>
@@ -2554,20 +2556,23 @@
         `;
       }
 
-      tfoot.innerHTML = `
-        <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700">
-          <td class="p-2 sticky-col-1 bg-slate-900 border-r border-slate-800 text-slate-400 text-[11px] font-bold">∑</td>
-          <td class="p-2 text-left sticky-col-2 bg-slate-900 border-r border-slate-800 text-[11px] font-black uppercase tracking-wider text-amber-300">TOTAL REGIONAL</td>
-          ${tfootCellPair(avgS1, avgLm1)}
-          ${tfootCellPair(avgS2, avgLm2)}
-          ${tfootCellPair(avgS3, avgLm3)}
-          ${tfootCellPair(avgS4, avgLm4)}
-          ${tfootCellPair(avgS5, avgLm5)}
-          ${tfootCellPair(avgS6, avgLm6)}
-          ${tfootCellPair(avgS7, avgLm7)}
-          ${tfootCellPair(avgPm, avgLmPm, true)}
-        </tr>
-      `;
+      // Tambahkan proteksi 'if (tfoot)' agar tidak pernah memicu TypeError null
+      if (tfoot) {
+        tfoot.innerHTML = `
+          <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700">
+            <td class="p-2 sticky-col-1 bg-slate-900 border-r border-slate-800 text-slate-400 text-[11px] font-bold">∑</td>
+            <td class="p-2 text-left sticky-col-2 bg-slate-900 border-r border-slate-800 text-[11px] font-black uppercase tracking-wider text-amber-300">TOTAL REGIONAL</td>
+            ${tfootCellPair(avgS1, avgLm1)}
+            ${tfootCellPair(avgS2, avgLm2)}
+            ${tfootCellPair(avgS3, avgLm3)}
+            ${tfootCellPair(avgS4, avgLm4)}
+            ${tfootCellPair(avgS5, avgLm5)}
+            ${tfootCellPair(avgS6, avgLm6)}
+            ${tfootCellPair(avgS7, avgLm7)}
+            ${tfootCellPair(avgPm, avgLmPm, true)}
+          </tr>
+        `;
+      }
 
       updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target, [avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7]);
       renderFunnelPage([avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7], target);
@@ -3424,17 +3429,15 @@
     function saveAndSyncGoogleSheet() {
       const rawVal = document.getElementById('gsheetIdInput').value.trim();
       
-      // Jika pengguna menempelkan link 'Publikasikan ke web' (mengandung /pub?)
-      if (rawVal.includes('/pub') || rawVal.includes('output=csv')) {
+      if (rawVal.includes('/pub') || rawVal.includes('output=csv') || rawVal.startsWith('http')) {
         googleSheetDirectUrl = rawVal;
-      } else {
-        googleSheetDirectUrl = "";
+      } else if (rawVal) {
         const match = rawVal.match(/\/d\/([a-zA-Z0-9-_]+)/);
         googleSheetId = match ? match[1] : rawVal;
       }
       
       try {
-        localStorage.setItem('tcare_gsheet_url', googleSheetDirectUrl);
+        if (googleSheetDirectUrl) localStorage.setItem('tcare_gsheet_url', googleSheetDirectUrl);
       } catch (e) {}
 
       googleSheetTabName = document.getElementById('gsheetTabInput').value.trim() || 'Raw';
