@@ -169,11 +169,6 @@
             <span>2. Matrix 22 Cabang</span>
           </button>
 
-          <button onclick="switchLookerPage('page-funnel')" id="navBtn-page-funnel" class="looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition">
-            <i class="fa-solid fa-chart-line text-blue-600 text-xs"></i>
-            <span>3. Retention Funnel</span>
-          </button>
-
           <button onclick="switchLookerPage('page-models')" id="navBtn-page-models" class="looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition">
             <i class="fa-solid fa-car-rear text-purple-600 text-xs"></i>
             <span>4. Model Kendaraan</span>
@@ -600,20 +595,7 @@
         </div>
       </div>
     </div>
-
-    <div id="page-funnel" class="view-page space-y-4">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 class="font-bold text-slate-800 text-base">Funnel Retensi Servis Berkala (1st s/d 7th Service)</h3>
-            <p class="text-xs text-slate-500">Analisis drop-off point kepatuhan servis berkala dari 1 bulan hingga 36 bulan.</p>
-          </div>
-          <div class="flex items-center space-x-3 text-xs font-medium">
-            <span class="flex items-center"><span class="w-3 h-3 rounded bg-blue-600 inline-block mr-1.5"></span> Retensi Aktual</span>
-            <span class="flex items-center"><span class="w-3 h-3 rounded bg-red-500 inline-block mr-1.5"></span> Target Benchmark</span>
-          </div>
-        </div>
-
+    
         <div class="h-80 bg-white rounded-lg">
           <canvas id="funnelChartCanvas"></canvas>
         </div>
@@ -870,6 +852,18 @@
               <option value="6">7th Service (60.000 KM)</option>
             </select>
           </div>
+
+          <!-- Priority Matrix Selector -->
+          <div class="flex items-center space-x-1.5 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1">
+            <label class="text-[10px] font-bold uppercase text-slate-500">PRIORITAS:</label>
+            <select id="priorityFilterSelect" onchange="renderRawExplorerTable()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
+              <option value="all" selected>Semua Prioritas</option>
+              <option value="Prio. 1A">Prio. 1A (Hijau Tua)</option>
+              <option value="Prio. 1B">Prio. 1B (Hijau Muda)</option>
+              <option value="Prio. 2">Prio. 2 (Oranye)</option>
+              <option value="Prio. 3">Prio. 3 (Krem)</option>
+            </select>
+          </div>
         </div>
 
         <!-- Table Display with 1st s/d 7th Badges -->
@@ -888,7 +882,7 @@
                 <th colspan="7" class="p-1.5 bg-slate-950 text-amber-300 font-black tracking-wide border-b border-slate-800">
                   Riwayat Servis Berkala Lengkap (History per VIN)
                 </th>
-                <th rowspan="2" class="p-2 min-w-[120px] text-left">Kota / Wilayah</th>
+                <th rowspan="2" class="p-2 min-w-[95px] text-center">Prioritas (SBE)</th>
               </tr>
               <tr class="bg-slate-800 text-slate-200 text-[10px] divide-x divide-slate-700">
                 <th class="p-1 min-w-[38px]">1st</th>
@@ -1320,7 +1314,7 @@
     ];
 
     const LOOKER_PAGES = [
-      'page-overview', 'page-matrix', 'page-funnel', 
+      'page-overview', 'page-matrix', 
       'page-models', 'page-segments', 'page-irregularity', 'page-explorer', 'page-matrix-settings'
     ];
 
@@ -2984,6 +2978,22 @@
       renderRawExplorerTable();
     }
 
+    function determinePriority(sisaSvc, expYear) {
+      if (sisaSvc <= 0) return { label: 'Selesai', badge: 'bg-slate-100 text-slate-500 border-slate-200' };
+      
+      if (expYear <= 2026) {
+        if (sisaSvc <= 2) return { label: 'Prio. 1B', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+        return { label: 'Prio. 2', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
+      } else if (expYear === 2027) {
+        if (sisaSvc <= 2) return { label: 'Prio. 1A', badge: 'bg-emerald-600 text-white border-emerald-700' };
+        if (sisaSvc <= 4) return { label: 'Prio. 1B', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+        return { label: 'Prio. 3', badge: 'bg-amber-50 text-amber-800 border-amber-300' };
+      } else { // 2028 ke atas
+        if (sisaSvc <= 4) return { label: 'Prio. 1A', badge: 'bg-emerald-600 text-white border-emerald-700' };
+        return { label: 'Prio. 1B', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+      }
+    }
+
     function renderRawExplorerTable() {
       const tbody = document.getElementById('rawExplorerTableBody');
       if (!tbody) return;
@@ -2994,6 +3004,7 @@
 
       const searchKey = (document.getElementById('rawTableSearchInput')?.value || '').toLowerCase();
       const stageFilter = document.getElementById('attacklistStageSelect')?.value || 'all';
+      const priorityFilter = document.getElementById('priorityFilterSelect')?.value || 'all';
 
       const stageOffsets = [1, 6, 12, 18, 24, 30, 36];
       let rowsPool = [];
@@ -3047,7 +3058,16 @@
           }
         }
 
-        return { ...r, nextStageIdx, dueYM, atkCategory };
+        // Hitung servis yang sudah dikerjakan
+        let doneCount = 0;
+        for (let s = 0; s < 7; s++) {
+          if ((r.sDoneMask & (1 << s)) !== 0) doneCount++;
+        }
+        const sisaSvc = Math.max(0, 7 - doneCount);
+        const expYear = r.decYM > 0 ? (Math.floor(r.decYM / 12) + 3) : 2026;
+        const prioInfo = determinePriority(sisaSvc, expYear);
+
+        return { ...r, nextStageIdx, dueYM, atkCategory, sisaSvc, expYear, prioInfo };
       });
 
       const revThisMonth = countThisMonth * AVG_EST_REVENUE_PER_UNIT;
@@ -3089,12 +3109,12 @@
         if (currentAttacklistFilter === 'overdue' && u.atkCategory !== 'overdue') return false;
 
         if (stageFilter !== 'all' && u.nextStageIdx !== parseInt(stageFilter, 10)) return false;
+        if (priorityFilter !== 'all' && u.prioInfo.label !== priorityFilter) return false;
 
         if (searchKey) {
           const match = (u.vin && u.vin.toLowerCase().includes(searchKey)) ||
                         (u.model && u.model.toLowerCase().includes(searchKey)) ||
-                        (u.dealer && u.dealer.toLowerCase().includes(searchKey)) ||
-                        (u.kota && u.kota.toLowerCase().includes(searchKey));
+                        (u.dealer && u.dealer.toLowerCase().includes(searchKey));
           if (!match) return false;
         }
         return true;
@@ -3174,7 +3194,11 @@
             <td class="p-2 text-center">${nextStageLabel}</td>
             <td class="p-2 text-center">${atkBadge}</td>
             ${stageHistoryCells}
-            <td class="p-2 font-sans text-slate-500">${u.kota || '-'}</td>
+            <td class="p-2 text-center">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${u.prioInfo.badge}">
+                ${u.prioInfo.label}
+              </span>
+            </td>
           </tr>
         `);
       }
@@ -3220,7 +3244,7 @@
           "No", "No Rangka (VIN)", "Model Kendaraan", "Program", "Dealer Penjual",
           "Tgl DEC", "Target Servis Berikutnya", "Kategori Attacklist",
           "1st Service", "2nd Service", "3rd Service", "4th Service", "5th Service", "6th Service", "7th Service",
-          "Kota / Wilayah"
+          "Prioritas", "Sisa Servis", "Tahun Expired"
         ]
       ];
 
@@ -3259,7 +3283,9 @@
           (r.sDoneMask & 16) ? 'Done' : 'Belum',
           (r.sDoneMask & 32) ? 'Done' : 'Belum',
           (r.sDoneMask & 64) ? 'Done' : 'Belum',
-          r.kota
+          r.prioInfo ? r.prioInfo.label : '-',
+          r.sisaSvc || 0,
+          r.expYear || '-'
         ]);
       });
 
