@@ -117,13 +117,6 @@
             <i class="fa-solid fa-gear"></i>
           </button>
 
-          <!-- Raw Excel Manual Upload -->
-          <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium py-1.5 px-2.5 rounded-lg border border-slate-700 transition flex items-center space-x-1 shadow-sm">
-            <i class="fa-solid fa-file-arrow-up text-emerald-400"></i>
-            <span class="hidden md:inline">Upload Raw</span>
-            <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv" class="hidden">
-          </label>
-
           <!-- Fullscreen Toggle -->
           <button onclick="toggleFullscreen()" title="Mode Layar Penuh" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs p-2 rounded-lg border border-slate-700 transition hidden sm:inline-block">
             <i class="fa-solid fa-expand" id="fsIcon"></i>
@@ -537,13 +530,21 @@
           </div>
 
           <div class="flex items-center space-x-2">
-            <div class="relative w-48">
+            <div class="relative w-44">
               <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
               <input type="text" id="matrixSearchInput" onkeyup="filterMatrixTable()" placeholder="Cari cabang..." class="w-full text-xs pl-8 pr-2.5 py-1 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-looker-accent">
             </div>
-            <button onclick="exportCurrentTableToCSV()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-1 px-2.5 rounded-lg border border-slate-300 transition flex items-center space-x-1">
-              <i class="fa-solid fa-file-csv text-emerald-600"></i>
-              <span>Export CSV</span>
+
+            <!-- Sort by PM Rate Button -->
+            <button onclick="toggleMatrixSort('pm')" id="btnSortPm" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-1 px-2.5 rounded-lg border border-slate-300 transition flex items-center space-x-1.5 shadow-2xs" title="Urutkan cabang berdasarkan PM Rate">
+              <i class="fa-solid fa-arrow-down-wide-short text-blue-600" id="sortPmIcon"></i>
+              <span id="sortPmLabel">PM Rate (Tertinggi)</span>
+            </button>
+
+            <!-- Export to Clean Excel (.xlsx) Button -->
+            <button onclick="exportCurrentTableToExcel()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold py-1 px-2.5 rounded-lg border border-emerald-300 transition flex items-center space-x-1.5 shadow-2xs" title="Ekspor data rapi ke Microsoft Excel (.xlsx)">
+              <i class="fa-solid fa-file-excel text-emerald-600 text-sm"></i>
+              <span>Export Excel</span>
             </button>
           </div>
         </div>
@@ -566,7 +567,10 @@
                 <th colspan="2" class="p-1 border-r border-slate-700">5th</th>
                 <th colspan="2" class="p-1 border-r border-slate-700">6th</th>
                 <th colspan="2" class="p-1 border-r border-slate-700">7th</th>
-                <th colspan="2" class="p-1 bg-slate-950 text-amber-300 font-extrabold">PM Rate</th>
+                <th colspan="2" class="p-1 bg-slate-950 text-amber-300 font-extrabold cursor-pointer hover:bg-slate-800 transition select-none" onclick="toggleMatrixSort('pm')" title="Klik untuk mengurutkan PM Rate">
+                  <span>PM Rate</span>
+                  <i class="fa-solid fa-sort-down ml-1 text-amber-300" id="thSortPmIcon"></i>
+                </th>
               </tr>
               <tr class="bg-slate-100 text-slate-700 font-bold text-center text-[10px] divide-x divide-slate-200 border-b border-slate-300">
                 <th class="p-1 sticky-col-1 bg-slate-100"></th>
@@ -1384,6 +1388,8 @@
     let funnelChartInstance = null;
     let recalcTimer = null;
     
+    let matrixSortState = { field: 'pm', dir: 'desc' }; // 'desc', 'asc', 'none'
+    
     let rawNormalizedDataset = null; 
     let googleSheetId = "1swzEkk_K2c_6xoWoKvimHPZLEKXU_VC_Z50yyKE1Il4";
     let googleSheetTabName = "Raw";
@@ -2150,6 +2156,47 @@
       if (pageId === 'page-matrix-settings') renderMatrixSettingsUI();
     }
 
+    function toggleMatrixSort(field = 'pm') {
+      if (matrixSortState.field !== field) {
+        matrixSortState.field = field;
+        matrixSortState.dir = 'desc';
+      } else {
+        if (matrixSortState.dir === 'desc') {
+          matrixSortState.dir = 'asc';
+        } else if (matrixSortState.dir === 'asc') {
+          matrixSortState.dir = 'none';
+        } else {
+          matrixSortState.dir = 'desc';
+        }
+      }
+      updateSortUI();
+      if (activeCalculatedData) {
+        renderMatrixTable(activeCalculatedData);
+      }
+    }
+
+    function updateSortUI() {
+      const btnIcon = document.getElementById('sortPmIcon');
+      const btnLabel = document.getElementById('sortPmLabel');
+      const thIcon = document.getElementById('thSortPmIcon');
+
+      if (matrixSortState.field === 'pm') {
+        if (matrixSortState.dir === 'desc') {
+          if (btnIcon) btnIcon.className = "fa-solid fa-arrow-down-wide-short text-blue-600";
+          if (btnLabel) btnLabel.innerText = "PM Rate (Tertinggi)";
+          if (thIcon) thIcon.className = "fa-solid fa-sort-down ml-1 text-amber-300";
+        } else if (matrixSortState.dir === 'asc') {
+          if (btnIcon) btnIcon.className = "fa-solid fa-arrow-up-wide-short text-blue-600";
+          if (btnLabel) btnLabel.innerText = "PM Rate (Terendah)";
+          if (thIcon) thIcon.className = "fa-solid fa-sort-up ml-1 text-amber-300";
+        } else {
+          if (btnIcon) btnIcon.className = "fa-solid fa-sort text-slate-400";
+          if (btnLabel) btnLabel.innerText = "PM Rate (Default)";
+          if (thIcon) thIcon.className = "fa-solid fa-sort ml-1 text-slate-400";
+        }
+      }
+    }
+
     function updateOverviewTrendChart(actualCurve, targetVal) {
       const stages = ['1st (1k)', '2nd (10k)', '3rd (20k)', '4th (30k)', '5th (40k)', '6th (50k)', '7th (60k)'];
       const actualPct = actualCurve.map(v => +(v * 100).toFixed(1));
@@ -2235,7 +2282,12 @@
       const tfoot = document.getElementById('matrixTableFoot');
 
       const searchKey = document.getElementById('matrixSearchInput').value.toLowerCase();
-      const filtered = dealers.filter(d => d.dealer.toLowerCase().includes(searchKey));
+      let filtered = dealers.filter(d => d.dealer.toLowerCase().includes(searchKey));
+
+      // Apply Sort by PM Rate or Dealer
+      if (matrixSortState.field === 'pm' && matrixSortState.dir !== 'none') {
+        filtered.sort((a, b) => matrixSortState.dir === 'desc' ? (b.pm - a.pm) : (a.pm - b.pm));
+      }
 
       const rowsBuffer = [];
       filtered.forEach((d, idx) => {
@@ -2713,20 +2765,140 @@
       }
     }
 
-    function exportCurrentTableToCSV() {
-      const dList = activeCalculatedData.dealers;
-      let csv = "No,Dealer,1st %,1st vs LM,2nd %,2nd vs LM,3rd %,3rd vs LM,4th %,4th vs LM,5th %,5th vs LM,6th %,6th vs LM,7th %,7th vs LM,PM Rate %,PM Rate vs LM\n";
-      dList.forEach((d, idx) => {
-        csv += `${idx + 1},"${d.dealer}",${formatPct(d.s1)},${formatDelta(d.lm1)},${formatPct(d.s2)},${formatDelta(d.lm2)},${formatPct(d.s3)},${formatDelta(d.lm3)},${formatPct(d.s4)},${formatDelta(d.lm4)},${formatPct(d.s5)},${formatDelta(d.lm5)},${formatPct(d.s6)},${formatDelta(d.lm6)},${formatPct(d.s7)},${formatDelta(d.lm7)},${formatPct(d.pm)},${formatDelta(d.lmpm)}\n`;
+    function exportCurrentTableToExcel() {
+      if (!activeCalculatedData || !activeCalculatedData.dealers) {
+        showToast("Data belum siap diekspor.", "warning");
+        return;
+      }
+
+      const dealers = [...activeCalculatedData.dealers];
+      if (matrixSortState.field === 'pm' && matrixSortState.dir !== 'none') {
+        dealers.sort((a, b) => matrixSortState.dir === 'desc' ? (b.pm - a.pm) : (a.pm - b.pm));
+      }
+
+      const evalMonth = document.getElementById('monthSelect')?.value || 'September';
+      const mode = currentPeriodMode === 'range' ? 'Rentang Multi-Bulan' : 'Bulanan';
+      const targetPct = (activeCalculatedData.targetThreshold * 100).toFixed(0) + '%';
+      const searchKey = (document.getElementById('matrixSearchInput')?.value || '').trim();
+      const exportDealers = searchKey ? dealers.filter(d => d.dealer.toLowerCase().includes(searchKey.toLowerCase())) : dealers;
+
+      // Construct Structured Array of Arrays (AOA) for Executive Sheet
+      const aoa = [
+        ["TOYOTA AFTERSALES OPERATIONS — EXECUTIVE REPORT (CFAM MATRIX)"],
+        ["MONITORING RETENSI BERKALA T-CARE & T-CARE LITE — NASMOCO REGIONAL"],
+        [`Periode: ${evalMonth} 2026 (${mode})`, `Target KPI: ${targetPct}`, `Waktu Ekspor: ${new Date().toLocaleString('id-ID')}`],
+        [], // Blank separator row
+        [
+          "No", "Dealer Penjual",
+          "1st Service (1.000 KM)", "",
+          "2nd Service (10.000 KM)", "",
+          "3rd Service (20.000 KM)", "",
+          "4th Service (30.000 KM)", "",
+          "5th Service (40.000 KM)", "",
+          "6th Service (50.000 KM)", "",
+          "7th Service (60.000 KM)", "",
+          "Consolidated PM Rate", ""
+        ],
+        [
+          "", "",
+          "% Ach", "vs LM",
+          "% Ach", "vs LM",
+          "% Ach", "vs LM",
+          "% Ach", "vs LM",
+          "% Ach", "vs LM",
+          "% Ach", "vs LM",
+          "% Ach", "vs LM",
+          "% Ach", "vs LM"
+        ]
+      ];
+
+      exportDealers.forEach((d, idx) => {
+        aoa.push([
+          idx + 1,
+          d.dealer,
+          formatPct(d.s1), formatDelta(d.lm1),
+          formatPct(d.s2), formatDelta(d.lm2),
+          formatPct(d.s3), formatDelta(d.lm3),
+          formatPct(d.s4), formatDelta(d.lm4),
+          formatPct(d.s5), formatDelta(d.lm5),
+          formatPct(d.s6), formatDelta(d.lm6),
+          formatPct(d.s7), formatDelta(d.lm7),
+          formatPct(d.pm), formatDelta(d.lmpm)
+        ]);
       });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `Looker_T-Care_Executive_Report_${document.getElementById('monthSelect').value}_2026.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast("Data matrix berhasil diekspor ke format CSV!", "success");
+
+      // Append TOTAL REGIONAL summary row
+      const n = exportDealers.length;
+      if (n > 0) {
+        const avgS1 = exportDealers.reduce((acc, d) => acc + d.s1, 0) / n;
+        const avgLm1 = exportDealers.reduce((acc, d) => acc + d.lm1, 0) / n;
+        const avgS2 = exportDealers.reduce((acc, d) => acc + d.s2, 0) / n;
+        const avgLm2 = exportDealers.reduce((acc, d) => acc + d.lm2, 0) / n;
+        const avgS3 = exportDealers.reduce((acc, d) => acc + d.s3, 0) / n;
+        const avgLm3 = exportDealers.reduce((acc, d) => acc + d.lm3, 0) / n;
+        const avgS4 = exportDealers.reduce((acc, d) => acc + d.s4, 0) / n;
+        const avgLm4 = exportDealers.reduce((acc, d) => acc + d.lm4, 0) / n;
+        const avgS5 = exportDealers.reduce((acc, d) => acc + d.s5, 0) / n;
+        const avgLm5 = exportDealers.reduce((acc, d) => acc + d.lm5, 0) / n;
+        const avgS6 = exportDealers.reduce((acc, d) => acc + d.s6, 0) / n;
+        const avgLm6 = exportDealers.reduce((acc, d) => acc + d.lm6, 0) / n;
+        const avgS7 = exportDealers.reduce((acc, d) => acc + d.s7, 0) / n;
+        const avgLm7 = exportDealers.reduce((acc, d) => acc + d.lm7, 0) / n;
+        const avgPm = exportDealers.reduce((acc, d) => acc + d.pm, 0) / n;
+        const avgLmPm = exportDealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
+
+        aoa.push([
+          "",
+          "TOTAL REGIONAL",
+          formatPct(avgS1), formatDelta(avgLm1),
+          formatPct(avgS2), formatDelta(avgLm2),
+          formatPct(avgS3), formatDelta(avgLm3),
+          formatPct(avgS4), formatDelta(avgLm4),
+          formatPct(avgS5), formatDelta(avgLm5),
+          formatPct(avgS6), formatDelta(avgLm6),
+          formatPct(avgS7), formatDelta(avgLm7),
+          formatPct(avgPm), formatDelta(avgLmPm)
+        ]);
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // Define optimal column widths for clean readability
+      ws['!cols'] = [
+        { wch: 6 },   // No
+        { wch: 28 },  // Dealer
+        { wch: 11 }, { wch: 10 }, // 1st
+        { wch: 11 }, { wch: 10 }, // 2nd
+        { wch: 11 }, { wch: 10 }, // 3rd
+        { wch: 11 }, { wch: 10 }, // 4th
+        { wch: 11 }, { wch: 10 }, // 5th
+        { wch: 11 }, { wch: 10 }, // 6th
+        { wch: 11 }, { wch: 10 }, // 7th
+        { wch: 13 }, { wch: 12 }  // PM Rate
+      ];
+
+      // Merge header cells professionally
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 17 } }, // Main Title
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 17 } }, // Sub Title
+        { s: { r: 4, c: 0 }, e: { r: 5, c: 0 } },  // No
+        { s: { r: 4, c: 1 }, e: { r: 5, c: 1 } },  // Dealer Penjual
+        { s: { r: 4, c: 2 }, e: { r: 4, c: 3 } },  // 1st Service
+        { s: { r: 4, c: 4 }, e: { r: 4, c: 5 } },  // 2nd Service
+        { s: { r: 4, c: 6 }, e: { r: 4, c: 7 } },  // 3rd Service
+        { s: { r: 4, c: 8 }, e: { r: 4, c: 9 } },  // 4th Service
+        { s: { r: 4, c: 10 }, e: { r: 4, c: 11 } }, // 5th Service
+        { s: { r: 4, c: 12 }, e: { r: 4, c: 13 } }, // 6th Service
+        { s: { r: 4, c: 14 }, e: { r: 4, c: 15 } }, // 7th Service
+        { s: { r: 4, c: 16 }, e: { r: 4, c: 17 } }  // PM Rate
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Matrix 22 Cabang");
+
+      const fileName = `Toyota_T-Care_Executive_Report_${evalMonth}_2026.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      showToast("File Excel (.xlsx) rapi berhasil diunduh!", "success");
     }
 
     function showToast(message, type = "success") {
@@ -2868,40 +3040,6 @@
       showToast("Spreadsheet butuh izin 'Siapa saja yang memiliki link'. Membuka panduan...", "warning");
       openGoogleSheetsModal();
     }
-
-    document.getElementById('fileUpload').addEventListener('change', function (e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        try {
-          const data = new Uint8Array(event.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheetName = workbook.SheetNames.includes("Raw") ? "Raw" : workbook.SheetNames[0];
-          const sheet = workbook.Sheets[sheetName];
-          const rawTable = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-          if (!rawTable || rawTable.length < 2) {
-            showToast("Sheet kosong atau format data tidak valid.", "error");
-            return;
-          }
-
-          rawNormalizedDataset = ingestAndNormalizeTable(rawTable);
-
-          document.getElementById('syncStatusIndicator').className = "w-2 h-2 rounded-full bg-blue-400";
-          document.getElementById('syncStatusText').innerHTML = `Memuat file lokal: <strong>${file.name}</strong> (${(rawTable.length - 1).toLocaleString()} unit)`;
-          document.getElementById('lastSyncTimestamp').innerText = `| Baru saja diunggah`;
-
-          fastRecalculate();
-          showToast(`Berhasil memuat ${(rawTable.length - 1).toLocaleString()} data dari sheet '${sheetName}'!`, "success");
-        } catch (err) {
-          console.error(err);
-          showToast("Gagal membaca file Excel. Pastikan format file valid.", "error");
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    });
 
     // Baseline synthetic generator
     function generateSyntheticBaseline(targetThreshold) {
