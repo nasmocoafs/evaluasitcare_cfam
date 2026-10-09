@@ -1690,9 +1690,14 @@
             sYM[s] = parseToYearMonth(mVal);
           }
 
-          if ((dVal && dVal !== '-' && dVal !== '0') ||
-              (pVal && pVal !== '-' && pVal !== '0' && !pVal.toLowerCase().startsWith('belum') && !pVal.toLowerCase().startsWith('no')) ||
-              (sYM[s] !== 0)) {
+          // Unit dianggap ACTUAL jika kolom dealer terisi, bulan servis terisi,
+          // atau status punctual terisi ('Punctual' MAUPUN 'Not Punctual')
+          const isPuncFilled = pVal && pVal !== '-' && pVal !== '0' && 
+                               !pVal.toLowerCase().includes('belum') && 
+                               !pVal.toLowerCase().includes('tidak') &&
+                               pVal.toLowerCase() !== 'no';
+
+          if ((dVal && dVal !== '-' && dVal !== '0') || isPuncFilled || (sYM[s] !== 0)) {
             sDoneMask |= (1 << s);
           }
         }
@@ -2018,25 +2023,25 @@
         const sYM = r.sYM;
 
         for (let s = 0; s < 7; s++) {
-          // Current Month: Potensi (Tgl DEC)
+          // Current Month: Unit masuk Potensi jika Tgl DEC dalam rentang kohort
           if (dec >= cN_potStart[s] && dec <= cN_potEnd[s]) {
             dPotNow[dBase + s]++;
-            // Actual (Bulan Masuk Servis)
+            // Unit dihitung Actual jika servis telah selesai pada/sebelum cut-off evaluasi
             if ((sMask & (1 << s)) !== 0) {
               const sm = sYM[s];
-              if (sm === 0 || (sm >= cN_actStart[s] && sm <= cN_actEnd[s])) {
+              // Lolos jika tanggal servis <= batas cut-off bulan evaluasi (atau tidak ada batasan tanggal mundur)
+              if (sm === 0 || sm <= cN_actEnd[s]) {
                 dActNow[dBase + s]++;
               }
             }
           }
 
-          // Previous Month: Potensi (Tgl DEC)
+          // Previous Month: Evaluasi bulan sebelumnya (M-1)
           if (dec >= cP_potStart[s] && dec <= cP_potEnd[s]) {
             dPotPrev[dBase + s]++;
-            // Actual (Bulan Masuk Servis)
             if ((sMask & (1 << s)) !== 0) {
               const sm = sYM[s];
-              if (sm === 0 || (sm >= cP_actStart[s] && sm <= cP_actEnd[s])) {
+              if (sm === 0 || sm <= cP_actEnd[s]) {
                 dActPrev[dBase + s]++;
               }
             }
