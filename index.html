@@ -52,6 +52,13 @@
     .cell-negative-lm { color: #DC2626 !important; font-weight: 600; }
     .cell-positive-lm { color: #15803D !important; font-weight: 500; }
 
+    /* Custom Multi-Select Dropdown styling */
+    .ms-dropdown-menu {
+      max-height: 280px;
+      overflow-y: auto;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
     /* Transitions for page views */
     .view-page { display: none; }
     .view-page.active-page { display: block; animation: fadeIn 0.18s ease-in-out; }
@@ -132,18 +139,19 @@
     </div>
   </header>
 
+  <!-- Live Sync Status Banner -->
   <div id="liveSyncStatusBanner" class="bg-slate-900 border-b border-slate-800 px-3 sm:px-6 py-1 text-[11px] text-slate-300">
     <div class="max-w-[1850px] mx-auto flex items-center justify-between">
       <div class="flex items-center space-x-2 truncate">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="syncStatusIndicator"></span>
         <span id="syncStatusText" class="truncate font-medium">
-          Terhubung ke Google Sheet: <strong>Matrix TCARE CFAM</strong> (ID: 1swz...Il4)
+          Menghubungkan ke Google Sheet: <strong>Matrix TCARE CFAM</strong> (ID: 1swz...Il4)
         </span>
         <span class="text-slate-400 hidden sm:inline" id="lastSyncTimestamp">| Siap Sinkronisasi</span>
       </div>
       <div class="flex items-center space-x-3 text-[10px] text-slate-400 font-mono">
-        <span>Target: T-Care 91% | Lite 81%</span>
-        <span class="hidden lg:inline bg-slate-800 px-2 py-0.5 rounded text-slate-300 font-sans">Looker Engine v3.1</span>
+        <span id="activeTargetRuleLabel">Target: T-Care 91% | Lite 81%</span>
+        <span class="hidden lg:inline bg-slate-800 px-2 py-0.5 rounded text-slate-300 font-sans">Looker Engine v4.0 Pro</span>
       </div>
     </div>
   </div>
@@ -207,50 +215,62 @@
     </div>
   </nav>
 
-  <section class="bg-white border-b border-slate-200 px-3 sm:px-6 py-2 shadow-xs">
+  <section class="bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 shadow-xs relative z-20">
     <div class="max-w-[1850px] mx-auto">
       <div class="flex flex-wrap items-center justify-between gap-2.5">
         
-        <!-- Controls cluster -->
+        <!-- Controls cluster with Multi-Selects -->
         <div class="flex flex-wrap items-center gap-2 text-xs">
           
-          <!-- Program Dropdown (Dynamically populated from Column N unique values) -->
-          <div class="flex items-center space-x-1 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1">
-            <label class="text-[10px] font-bold uppercase text-slate-400">Program:</label>
-            <select id="programFilterSelect" onchange="onProgramFilterChange()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
-              <!-- Dynamically populated from Column N (T-CARE TYPE) -->
-            </select>
+          <!-- MULTI-SELECT: Program (Column N unique values) -->
+          <div class="relative">
+            <button type="button" onclick="toggleMultiSelectMenu('msProgramMenu')" id="msProgramBtn" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs flex items-center space-x-1.5 hover:bg-slate-100 transition shadow-2xs">
+              <span class="text-[10px] font-bold uppercase text-slate-400">PROGRAM:</span>
+              <span id="msProgramLabel" class="truncate max-w-[140px] text-blue-700">Semua Program</span>
+              <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+            </button>
+            <div id="msProgramMenu" class="hidden absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl p-2.5 z-50 ms-dropdown-menu">
+              <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-1.5 text-[11px]">
+                <button type="button" onclick="selectAllMultiOptions('program', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
+                <button type="button" onclick="selectAllMultiOptions('program', false)" class="text-slate-500 hover:underline">Reset</button>
+              </div>
+              <div id="msProgramOptionsList" class="space-y-1 text-xs max-h-48 overflow-y-auto scrollbar-thin">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
           </div>
 
           <!-- Evaluation Mode Dropdown -->
           <div class="flex items-center space-x-1 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1">
-            <label class="text-[10px] font-bold uppercase text-slate-400">Mode:</label>
+            <label class="text-[10px] font-bold uppercase text-slate-400">MODE:</label>
             <select id="periodModeSelect" onchange="togglePeriodModeUI()" class="bg-transparent font-semibold text-slate-800 text-xs focus:outline-none cursor-pointer">
               <option value="single" selected>Bulan Evaluasi vs LM</option>
               <option value="range">Rentang Multi-Bulan</option>
             </select>
           </div>
 
-          <!-- Single Month Selector -->
+          <!-- Single Month Selector (Jan s/d Des 2026, default September 2026) -->
           <div id="singleMonthControls" class="flex items-center space-x-1 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1">
-            <label class="text-[10px] font-bold uppercase text-slate-400">Bulan:</label>
+            <label class="text-[10px] font-bold uppercase text-slate-400">BULAN:</label>
             <select id="monthSelect" onchange="applyFilters()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
               <option value="Januari">Januari 2026</option>
-              <option value="Februari" selected>Februari 2026</option>
+              <option value="Februari">Februari 2026</option>
               <option value="Maret">Maret 2026</option>
               <option value="April">April 2026</option>
               <option value="Mei">Mei 2026</option>
               <option value="Juni">Juni 2026</option>
               <option value="Juli">Juli 2026</option>
               <option value="Agustus">Agustus 2026</option>
-              <option value="September">September 2026</option>
+              <option value="September" selected>September 2026</option>
               <option value="Oktober">Oktober 2026</option>
+              <option value="November">November 2026</option>
+              <option value="Desember">Desember 2026</option>
             </select>
           </div>
 
-          <!-- Multi-Month Range Selector (Hidden initially) -->
+          <!-- Multi-Month Range Selector (Jan s/d Des 2026) -->
           <div id="rangePeriodControls" class="hidden flex items-center space-x-1 bg-red-50/70 border border-red-200 rounded-lg px-2 py-1">
-            <label class="text-[10px] font-bold text-looker-accent uppercase">Rentang:</label>
+            <label class="text-[10px] font-bold text-looker-accent uppercase">RENTANG:</label>
             <select id="rangeStartMonth" onchange="applyFilters()" class="bg-white border border-slate-300 rounded text-xs px-1 py-0.5">
               <option value="Januari" selected>Jan 2026</option>
               <option value="Februari">Feb 2026</option>
@@ -258,38 +278,85 @@
               <option value="April">Apr 2026</option>
               <option value="Mei">Mei 2026</option>
               <option value="Juni">Jun 2026</option>
+              <option value="Juli">Jul 2026</option>
+              <option value="Agustus">Agu 2026</option>
+              <option value="September">Sep 2026</option>
+              <option value="Oktober">Okt 2026</option>
+              <option value="November">Nov 2026</option>
+              <option value="Desember">Des 2026</option>
             </select>
             <span class="text-slate-400 text-xs">s/d</span>
             <select id="rangeEndMonth" onchange="applyFilters()" class="bg-white border border-slate-300 rounded text-xs px-1 py-0.5">
               <option value="Januari">Jan 2026</option>
               <option value="Februari">Feb 2026</option>
-              <option value="Maret" selected>Mar 2026</option>
+              <option value="Maret">Mar 2026</option>
               <option value="April">Apr 2026</option>
               <option value="Mei">Mei 2026</option>
               <option value="Juni">Jun 2026</option>
+              <option value="Juli">Jul 2026</option>
+              <option value="Agustus">Agu 2026</option>
+              <option value="September" selected>Sep 2026</option>
+              <option value="Oktober">Okt 2026</option>
+              <option value="November">Nov 2026</option>
+              <option value="Desember">Des 2026</option>
             </select>
             <span class="text-[10px] font-bold text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 ml-1" id="rangeSpanBadge">
-              3 Bulan
+              9 Bulan
             </span>
           </div>
 
-          <!-- Branch Filter Dropdown -->
-          <div class="flex items-center space-x-1 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1">
-            <label class="text-[10px] font-bold uppercase text-slate-400">Cabang:</label>
-            <select id="branchFilterSelect" onchange="applyFilters()" class="bg-transparent font-semibold text-slate-800 text-xs focus:outline-none cursor-pointer max-w-[150px]">
-              <option value="ALL" selected>Semua 22 Cabang</option>
-              <!-- Filled dynamically by JS -->
-            </select>
+          <!-- MULTI-SELECT: Cabang (Dealer Penjual unique values) -->
+          <div class="relative">
+            <button type="button" onclick="toggleMultiSelectMenu('msBranchMenu')" id="msBranchBtn" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs flex items-center space-x-1.5 hover:bg-slate-100 transition shadow-2xs">
+              <span class="text-[10px] font-bold uppercase text-slate-400">CABANG:</span>
+              <span id="msBranchLabel" class="truncate max-w-[130px]">Semua Cabang</span>
+              <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+            </button>
+            <div id="msBranchMenu" class="hidden absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl p-2.5 z-50 ms-dropdown-menu">
+              <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-1.5 text-[11px]">
+                <button type="button" onclick="selectAllMultiOptions('branch', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
+                <button type="button" onclick="selectAllMultiOptions('branch', false)" class="text-slate-500 hover:underline">Reset</button>
+              </div>
+              <div id="msBranchOptionsList" class="space-y-1 text-xs max-h-48 overflow-y-auto scrollbar-thin">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
           </div>
 
-          <!-- Customer Type Filter -->
-          <div class="flex items-center space-x-1 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1">
-            <label class="text-[10px] font-bold uppercase text-slate-400">Cust:</label>
-            <select id="customerFilterSelect" onchange="applyFilters()" class="bg-transparent font-semibold text-slate-800 text-xs focus:outline-none cursor-pointer">
-              <option value="ALL" selected>Semua Tipe</option>
-              <option value="retail">Retail (Pribadi)</option>
-              <option value="fleet">Fleet (Perusahaan)</option>
-            </select>
+          <!-- MULTI-SELECT: Model Kendaraan unique values -->
+          <div class="relative">
+            <button type="button" onclick="toggleMultiSelectMenu('msModelMenu')" id="msModelBtn" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs flex items-center space-x-1.5 hover:bg-slate-100 transition shadow-2xs">
+              <span class="text-[10px] font-bold uppercase text-slate-400">MODEL:</span>
+              <span id="msModelLabel" class="truncate max-w-[110px]">Semua Model</span>
+              <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+            </button>
+            <div id="msModelMenu" class="hidden absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl p-2.5 z-50 ms-dropdown-menu">
+              <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-1.5 text-[11px]">
+                <button type="button" onclick="selectAllMultiOptions('model', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
+                <button type="button" onclick="selectAllMultiOptions('model', false)" class="text-slate-500 hover:underline">Reset</button>
+              </div>
+              <div id="msModelOptionsList" class="space-y-1 text-xs max-h-48 overflow-y-auto scrollbar-thin">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- MULTI-SELECT: Customer Type unique values -->
+          <div class="relative">
+            <button type="button" onclick="toggleMultiSelectMenu('msCustMenu')" id="msCustBtn" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs flex items-center space-x-1.5 hover:bg-slate-100 transition shadow-2xs">
+              <span class="text-[10px] font-bold uppercase text-slate-400">CUST:</span>
+              <span id="msCustLabel" class="truncate max-w-[100px]">Semua Tipe</span>
+              <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+            </button>
+            <div id="msCustMenu" class="hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl p-2.5 z-50 ms-dropdown-menu">
+              <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-1.5 text-[11px]">
+                <button type="button" onclick="selectAllMultiOptions('cust', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
+                <button type="button" onclick="selectAllMultiOptions('cust', false)" class="text-slate-500 hover:underline">Reset</button>
+              </div>
+              <div id="msCustOptionsList" class="space-y-1 text-xs max-h-48 overflow-y-auto scrollbar-thin">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
           </div>
 
         </div>
@@ -298,7 +365,7 @@
         <div class="flex items-center space-x-2 text-xs">
           <div class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 flex items-center space-x-1.5 text-[11px] font-medium">
             <i class="fa-regular fa-calendar-check text-looker-accent"></i>
-            <span>Kohort: <strong id="cohortRangeLabel">Dec 25 - Jan 26</strong> | Cut-off: <strong id="cohortActualLabel">s/d Feb 26</strong></span>
+            <span>Kohort 1st: <strong id="cohortRangeLabel">Dec 25 - Aug 26</strong> | Cut-off: <strong id="cohortActualLabel">s/d Sep 26</strong></span>
           </div>
           <button onclick="window.print()" title="Cetak / Simpan PDF" class="bg-slate-800 hover:bg-slate-700 text-white font-medium py-1 px-2.5 rounded-lg text-xs transition">
             <i class="fa-solid fa-print"></i>
@@ -373,7 +440,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">CABANG DEFISIT KPI</p>
-              <h3 class="text-2xl font-black text-red-600 mt-0.5" id="kpiIrregularBranches">11 Cabang</h3>
+              <h3 class="text-2xl font-black text-red-600 mt-0.5" id="kpiIrregularBranches">0 Cabang</h3>
             </div>
             <div class="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center font-bold text-sm">
               <i class="fa-solid fa-triangle-exclamation"></i>
@@ -381,7 +448,7 @@
           </div>
           <div class="flex items-center justify-between text-[11px] pt-1.5 mt-1 border-t border-slate-100">
             <span class="text-slate-500">Kepatuhan Total:</span>
-            <span id="kpiComplianceRate" class="font-bold text-slate-800">50% Aman</span>
+            <span id="kpiComplianceRate" class="font-bold text-slate-800">100% Aman</span>
           </div>
         </div>
 
@@ -390,7 +457,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL GAP DEFISIT</p>
-              <h3 class="text-2xl font-black text-slate-800 mt-0.5" id="kpiTotalGapUnits">142 Unit</h3>
+              <h3 class="text-2xl font-black text-slate-800 mt-0.5" id="kpiTotalGapUnits">0 Unit</h3>
             </div>
             <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">
               <i class="fa-solid fa-arrow-trend-down"></i>
@@ -398,7 +465,7 @@
           </div>
           <div class="flex items-center justify-between text-[11px] pt-1.5 mt-1 border-t border-slate-100">
             <span class="text-slate-500">Est. Revenue Risk:</span>
-            <span id="kpiRevenueLoss" class="font-bold text-looker-accent">Rp 120.7 Jt</span>
+            <span id="kpiRevenueLoss" class="font-bold text-looker-accent">Rp 0 Jt</span>
           </div>
         </div>
 
@@ -427,7 +494,7 @@
         <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
           <div>
             <h3 class="font-bold text-slate-800 text-sm">Top & Bottom Cabang (PM Rate)</h3>
-            <p class="text-xs text-slate-500">Pemeringkatan performa operasional 22 cabang.</p>
+            <p class="text-xs text-slate-500">Pemeringkatan performa operasional cabang.</p>
           </div>
 
           <div class="space-y-2 text-xs">
@@ -542,7 +609,6 @@
 
     <!-- ================= PAGE 3: RETENTION FUNNEL ================= -->
     <div id="page-funnel" class="view-page space-y-4">
-      
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -578,17 +644,15 @@
           </table>
         </div>
       </div>
-
     </div>
 
     <!-- ================= PAGE 4: MODEL KENDARAAN ================= -->
     <div id="page-models" class="view-page space-y-4">
-      
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="font-bold text-slate-800 text-base">Analisis Retensi Model Kendaraan</h3>
-            <p class="text-xs text-slate-500">Menganalisis kolom <code class="font-mono text-indigo-700">Model Kendaraan</code> dan <code class="font-mono text-indigo-700">T-CARE TYPE</code> dari data raw.</p>
+            <p class="text-xs text-slate-500">Menganalisis kolom <code class="font-mono text-indigo-700">Model Kendaraan</code> dan <code class="font-mono text-indigo-700">T-CARE TYPE</code> dari data raw yang diunggah.</p>
           </div>
         </div>
 
@@ -613,12 +677,10 @@
           </table>
         </div>
       </div>
-
     </div>
 
     <!-- ================= PAGE 5: CUSTOMER SEGMENT & LOYALTY ================= -->
     <div id="page-segments" class="view-page space-y-4">
-      
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         <!-- Box 1: Retail vs Fleet Distribution -->
@@ -659,12 +721,10 @@
           <!-- Populated by JS -->
         </div>
       </div>
-
     </div>
 
     <!-- ================= PAGE 6: IRREGULARITY CONTROL & CAPA ================= -->
     <div id="page-irregularity" class="view-page space-y-4">
-      
       <div class="bg-red-50 border-l-4 border-looker-accent p-3.5 rounded-r-xl text-xs">
         <div class="flex items-start">
           <i class="fa-solid fa-triangle-exclamation text-looker-accent text-lg mr-2.5 mt-0.5"></i>
@@ -689,12 +749,10 @@
       <div id="irregularityCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
         <!-- Populated via JS -->
       </div>
-
     </div>
 
     <!-- ================= PAGE 7: RAW TRANSACTION EXPLORER ================= -->
     <div id="page-explorer" class="view-page space-y-4">
-      
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -731,15 +789,12 @@
           <span>Menampilkan sampel transaksi data sheet Raw</span>
         </div>
       </div>
-
     </div>
 
   </main>
 
   <div id="capaModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 hidden backdrop-blur-xs">
     <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
-      
-      <!-- Modal Header -->
       <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-looker-header text-white rounded-t-2xl">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-lg bg-looker-accent text-white flex items-center justify-center font-bold text-base shadow">
@@ -755,10 +810,7 @@
         </button>
       </div>
 
-      <!-- Printable Area -->
       <div id="printArea" class="p-5 space-y-4 text-xs text-slate-700">
-        
-        <!-- Summary Stats -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
           <div>
             <div class="text-[10px] text-slate-400 font-bold uppercase">PM Rate Aktual</div>
@@ -782,7 +834,6 @@
           </div>
         </div>
 
-        <!-- Detail Per Tahap -->
         <div>
           <h4 class="font-bold text-slate-800 text-[11px] uppercase tracking-wider mb-1.5">Rincian Servis 1st s/d 7th:</h4>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
@@ -806,7 +857,6 @@
           </div>
         </div>
 
-        <!-- 4M + 1E Root Cause Analysis -->
         <div class="space-y-2">
           <h4 class="font-bold text-slate-800 border-b border-slate-200 pb-1 flex items-center justify-between text-xs">
             <span>FORMULIR ANALISIS AKAR PENYEBAB (4M + 1E)</span>
@@ -815,34 +865,32 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
             <div>
               <label class="block font-semibold text-slate-700 mb-0.5">a. Man (Sumber Daya Manusia):</label>
-              <textarea id="capaManInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-looker-accent focus:outline-none">Reminder servis oleh CRO terlambat (rata-rata H-1, standar H-7). Call attempt hanya 1x tanpa follow-up WhatsApp terstruktur.</textarea>
+              <textarea id="capaManInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-looker-accent focus:outline-none">Reminder servis oleh CRO terlambat. Call attempt hanya 1x tanpa follow-up WhatsApp terstruktur.</textarea>
             </div>
             <div>
               <label class="block font-semibold text-slate-700 mb-0.5">b. Machine / Sistem:</label>
-              <textarea id="capaMachineInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-looker-accent focus:outline-none">Keterlambatan input klaim di Towass/Asiisst oleh Service Advisor sehingga unit riil yang telah servis belum tercatat selesai saat cut-off data.</textarea>
+              <textarea id="capaMachineInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-looker-accent focus:outline-none">Keterlambatan input klaim di Towass/Asiisst oleh Service Advisor sehingga unit riil belum tercatat selesai saat cut-off data.</textarea>
             </div>
             <div>
               <label class="block font-semibold text-slate-700 mb-0.5">c. Method (SOP & Alur):</label>
-              <textarea id="capaMethodInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-looker-accent focus:outline-none">Belum memaksimalkan alokasi slot booking hari libur/akhir pekan dan belum mengaktifkan armada servis kunjung Toyota Mobile Service (TMS).</textarea>
+              <textarea id="capaMethodInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-looker-accent focus:outline-none">Belum memaksimalkan alokasi slot booking akhir pekan dan belum mengaktifkan armada servis kunjung Toyota Mobile Service (TMS).</textarea>
             </div>
             <div>
               <label class="block font-semibold text-slate-700 mb-0.5">d. Market & Pelanggan:</label>
-              <textarea id="capaMarketInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-looker-accent focus:outline-none">Pemilik kendaraan mengira T-Care hanya gratis servis pertama (1.000 KM), kurang teredukasi bahwa benefit gratis jasa/part berlaku s/d 7th service.</textarea>
+              <textarea id="capaMarketInput" rows="2" class="w-full p-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-looker-accent focus:outline-none">Pemilik kendaraan mengira T-Care hanya gratis servis pertama (1.000 KM), kurang teredukasi benefit gratis jasa/part s/d 7th service.</textarea>
             </div>
           </div>
         </div>
 
-        <!-- Action Plan -->
         <div>
           <h4 class="font-bold text-slate-800 border-b border-slate-200 pb-1 mb-1 text-xs">
             RENCANA TINDAKAN KOREKTIF SEGERA (SLA 3-7 HARI)
           </h4>
-          <textarea id="capaActionInput" rows="2" class="w-full text-xs p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-looker-accent focus:outline-none">1. Tele-blast dan kunjungan prioritas terhadap seluruh data kontak unreached dalam 3 hari ke depan.
+          <textarea id="capaActionInput" rows="2" class="w-full text-xs p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-looker-accent focus:outline-none">1. Tele-blast dan kunjungan prioritas terhadap seluruh kontak unreached dalam 3 hari ke depan.
 2. Penjadwalan home service armada TMS untuk unit komuter dan armada fleet.
 3. Sosialisasi ulang pembebasan biaya jasa & spare part T-Care kepada customer.</textarea>
         </div>
 
-        <!-- Signatures for print audit -->
         <div class="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 text-center">
           <div class="space-y-8">
             <p class="text-[10px] text-slate-500 font-semibold">Diajukan Oleh,</p>
@@ -859,14 +907,10 @@
             </div>
           </div>
         </div>
-
       </div>
 
-      <!-- Modal Footer -->
       <div class="p-3 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-between">
-        <button onclick="closeCapaModal()" class="text-xs font-semibold text-slate-600 hover:text-slate-800 px-3 py-1.5 rounded-lg transition">
-          Tutup
-        </button>
+        <button onclick="closeCapaModal()" class="text-xs font-semibold text-slate-600 hover:text-slate-800 px-3 py-1.5 rounded-lg transition">Tutup</button>
         <div class="flex items-center space-x-2">
           <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition flex items-center space-x-1">
             <i class="fa-solid fa-print"></i>
@@ -878,7 +922,6 @@
           </button>
         </div>
       </div>
-
     </div>
   </div>
 
@@ -919,9 +962,7 @@
       </div>
 
       <div class="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-        <button onclick="closeGoogleSheetsModal()" class="text-xs font-semibold text-slate-600 hover:text-slate-800 px-3 py-1">
-          Batal
-        </button>
+        <button onclick="closeGoogleSheetsModal()" class="text-xs font-semibold text-slate-600 hover:text-slate-800 px-3 py-1">Batal</button>
         <button onclick="saveAndSyncGoogleSheet()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition flex items-center space-x-1.5 shadow">
           <i class="fa-solid fa-arrows-rotate"></i>
           <span>Simpan & Tarik Data</span>
@@ -942,7 +983,7 @@
     const TARGET_LITE = 0.81;  // 81.0% Target
     const AVG_EST_REVENUE_PER_UNIT = 850000; // Est Rp 850.000 per unit intake
 
-    // Official 22 Nasmoco Branch Network
+    // Official 22 Nasmoco Branch Network Baseline
     const NASMOCO_DEALERS = [
       "Nasmoco Klaten", "Nasmoco Solo Baru", "Nasmoco Pemuda", "Nasmoco Cilacap",
       "Nasmoco Mlati", "Nasmoco Wonosobo", "Nasmoco Pati", "Nasmoco Magelang",
@@ -952,19 +993,31 @@
       "Nasmoco Demak", "Nasmoco Pekalongan"
     ];
 
+    const MONTH_NAMES = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
     // Looker Studio Page Index
     const LOOKER_PAGES = [
       'page-overview', 'page-matrix', 'page-funnel', 
       'page-models', 'page-segments', 'page-irregularity', 'page-explorer'
     ];
 
-    // State Variables
+    // Multi-Select Filter State Objects
+    const filterState = {
+      programs: new Set(),
+      branches: new Set(),
+      models: new Set(),
+      custTypes: new Set(),
+      allPrograms: [],
+      allBranches: [],
+      allModels: [],
+      allCustTypes: []
+    };
+
     let currentLookerPageIndex = 0;
-    let currentProgramMode = 'all'; // dynamically populated from Column N
     let currentPeriodMode = 'single'; // 'single', 'range'
-    let currentBranchFilter = 'ALL';
-    let currentCustomerFilter = 'ALL';
-    
     let activeCalculatedData = null;
     let overviewChartInstance = null;
     let funnelChartInstance = null;
@@ -973,91 +1026,155 @@
     let googleSheetTabName = "Raw";
     let isFetchingSheet = false;
 
-    // Exact benchmark matrix data mirroring official report
-    const BENCHMARK_REPORT_DATA = [
-      { dealer: "Nasmoco Klaten",        s1: 0.974, lm1: 0.029, s2: 0.980, lm2: 0.012, s3: 0.983, lm3: 0.003, s4: 0.967, lm4: 0.007, s5: 0.946, lm5: 0.005, s6: 0.942, lm6: 0.013, s7: 0.902, lm7: 0.010, pm: 0.967, lmpm: 0.008 },
-      { dealer: "Nasmoco Solo Baru",     s1: 0.957, lm1: -0.005,s2: 0.958, lm2: 0.016, s3: 0.983, lm3: 0.003, s4: 0.970, lm4: 0.000, s5: 0.971, lm5: 0.004, s6: 0.953, lm6: 0.011, s7: 0.930, lm7: 0.014, pm: 0.967, lmpm: 0.003 },
-      { dealer: "Nasmoco Pemuda",        s1: 0.967, lm1: 0.008, s2: 0.974, lm2: 0.011, s3: 0.984, lm3: -0.001,s4: 0.972, lm4: 0.002, s5: 0.955, lm5: 0.001, s6: 0.935, lm6: -0.004,s7: 0.916, lm7: 0.001, pm: 0.965, lmpm: 0.002 },
-      { dealer: "Nasmoco Cilacap",       s1: 0.980, lm1: -0.013,s2: 0.949, lm2: -0.042,s3: 0.979, lm3: 0.000, s4: 0.966, lm4: 0.001, s5: 0.945, lm5: 0.000, s6: 0.931, lm6: 0.006, s7: 0.917, lm7: 0.008, pm: 0.962, lmpm: -0.003 },
-      { dealer: "Nasmoco Mlati",         s1: 0.990, lm1: 0.011, s2: 0.960, lm2: 0.007, s3: 0.969, lm3: 0.000, s4: 0.959, lm4: 0.001, s5: 0.942, lm5: 0.001, s6: 0.924, lm6: 0.009, s7: 0.911, lm7: 0.013, pm: 0.957, lmpm: 0.004 },
-      { dealer: "Nasmoco Wonosobo",      s1: 0.982, lm1: 0.034, s2: 0.951, lm2: 0.005, s3: 0.970, lm3: -0.008,s4: 0.941, lm4: -0.014,s5: 0.937, lm5: 0.003, s6: 0.939, lm6: -0.003,s7: 0.927, lm7: 0.020, pm: 0.957, lmpm: 0.001 },
-      { dealer: "Nasmoco Pati",          s1: 0.987, lm1: 0.008, s2: 0.950, lm2: 0.010, s3: 0.968, lm3: 0.002, s4: 0.952, lm4: 0.002, s5: 0.936, lm5: 0.004, s6: 0.912, lm6: 0.008, s7: 0.921, lm7: 0.009, pm: 0.955, lmpm: 0.004 },
-      { dealer: "Nasmoco Magelang",      s1: 0.985, lm1: 0.007, s2: 0.971, lm2: -0.002,s3: 0.970, lm3: 0.003, s4: 0.948, lm4: 0.004, s5: 0.938, lm5: 0.001, s6: 0.909, lm6: 0.004, s7: 0.868, lm7: -0.002,pm: 0.954, lmpm: 0.003 },
-      { dealer: "Nasmoco Siliwangi",     s1: 0.983, lm1: 0.002, s2: 0.977, lm2: -0.004,s3: 0.972, lm3: 0.000, s4: 0.949, lm4: -0.002,s5: 0.932, lm5: 0.004, s6: 0.907, lm6: 0.007, s7: 0.869, lm7: 0.006, pm: 0.952, lmpm: 0.001 },
-      { dealer: "Nasmoco Salatiga",      s1: 0.970, lm1: 0.005, s2: 0.962, lm2: -0.004,s3: 0.969, lm3: 0.001, s4: 0.939, lm4: -0.003,s5: 0.914, lm5: 0.001, s6: 0.909, lm6: -0.002,s7: 0.896, lm7: 0.003, pm: 0.950, lmpm: 0.000 },
-      { dealer: "Nasmoco Janti",         s1: 0.963, lm1: 0.002, s2: 0.962, lm2: 0.017, s3: 0.969, lm3: 0.002, s4: 0.946, lm4: 0.001, s5: 0.924, lm5: -0.001,s6: 0.899, lm6: -0.003,s7: 0.874, lm7: 0.000, pm: 0.949, lmpm: 0.001 },
-      { dealer: "Nasmoco Purwokerto",    s1: 0.947, lm1: 0.024, s2: 0.968, lm2: -0.002,s3: 0.974, lm3: 0.001, s4: 0.943, lm4: 0.001, s5: 0.924, lm5: 0.008, s6: 0.884, lm6: 0.002, s7: 0.904, lm7: 0.009, pm: 0.949, lmpm: 0.004 },
-      { dealer: "Nasmoco Majapahit",     s1: 0.922, lm1: -0.009,s2: 0.971, lm2: 0.017, s3: 0.978, lm3: 0.003, s4: 0.959, lm4: 0.002, s5: 0.933, lm5: 0.011, s6: 0.921, lm6: 0.005, s7: 0.937, lm7: 0.004, pm: 0.948, lmpm: 0.002 },
-      { dealer: "Nasmoco Ring Road",     s1: 0.952, lm1: -0.002,s2: 0.954, lm2: -0.005,s3: 0.978, lm3: 0.000, s4: 0.951, lm4: 0.010, s5: 0.931, lm5: 0.004, s6: 0.897, lm6: 0.002, s7: 0.849, lm7: 0.007, pm: 0.946, lmpm: 0.001 },
-      { dealer: "Nasmoco Kaligawe",      s1: 0.985, lm1: 0.007, s2: 0.955, lm2: 0.037, s3: 0.970, lm3: 0.005, s4: 0.948, lm4: -0.001,s5: 0.917, lm5: -0.009,s6: 0.897, lm6: 0.000, s7: 0.858, lm7: 0.008, pm: 0.945, lmpm: 0.004 },
-      { dealer: "Nasmoco Slamet Riyadi", s1: 0.954, lm1: 0.006, s2: 0.933, lm2: -0.005,s3: 0.970, lm3: 0.001, s4: 0.942, lm4: 0.001, s5: 0.916, lm5: 0.005, s6: 0.896, lm6: 0.003, s7: 0.908, lm7: 0.007, pm: 0.943, lmpm: 0.001 },
-      { dealer: "Nasmoco Tegal",         s1: 0.979, lm1: 0.007, s2: 0.955, lm2: 0.017, s3: 0.958, lm3: 0.000, s4: 0.927, lm4: 0.007, s5: 0.902, lm5: 0.009, s6: 0.878, lm6: 0.013, s7: 0.840, lm7: 0.012, pm: 0.940, lmpm: 0.004 },
-      { dealer: "Nasmoco Gombel",        s1: 0.916, lm1: -0.001,s2: 0.939, lm2: 0.014, s3: 0.970, lm3: 0.002, s4: 0.945, lm4: 0.001, s5: 0.922, lm5: 0.001, s6: 0.904, lm6: 0.016, s7: 0.908, lm7: 0.008, pm: 0.940, lmpm: 0.002 },
-      { dealer: "Nasmoco Bantul",        s1: 0.969, lm1: 0.006, s2: 0.976, lm2: 0.008, s3: 0.962, lm3: -0.001,s4: 0.936, lm4: 0.004, s5: 0.912, lm5: -0.001,s6: 0.880, lm6: 0.005, s7: 0.830, lm7: 0.001, pm: 0.939, lmpm: 0.001 },
-      { dealer: "Nasmoco Karangjati",    s1: 0.929, lm1: -0.015,s2: 0.954, lm2: -0.010,s3: 0.954, lm3: 0.000, s4: 0.943, lm4: -0.005,s5: 0.931, lm5: 0.005, s6: 0.898, lm6: -0.008,s7: 0.886, lm7: -0.007,pm: 0.935, lmpm: -0.005 },
-      { dealer: "Nasmoco Demak",         s1: 0.939, lm1: 0.011, s2: 0.890, lm2: -0.027,s3: 0.962, lm3: 0.001, s4: 0.932, lm4: 0.004, s5: 0.932, lm5: 0.008, s6: 0.899, lm6: -0.003,s7: 0.908, lm7: -0.009,pm: 0.934, lmpm: -0.001 },
-      { dealer: "Nasmoco Pekalongan",    s1: 0.968, lm1: -0.007,s2: 0.927, lm2: 0.037, s3: 0.941, lm3: 0.001, s4: 0.902, lm4: 0.000, s5: 0.868, lm5: 0.000, s6: 0.846, lm6: -0.006,s7: 0.816, lm7: -0.002,pm: 0.918, lmpm: -0.001 }
-    ];
-
-    function switchLookerPage(pageId) {
-      const idx = LOOKER_PAGES.indexOf(pageId);
-      if (idx !== -1) currentLookerPageIndex = idx;
-
-      LOOKER_PAGES.forEach(pid => {
-        const el = document.getElementById(pid);
-        const btn = document.getElementById(`navBtn-${pid}`);
-        if (el) el.classList.remove('active-page');
-        if (btn) {
-          btn.className = "looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition text-xs font-semibold";
+    // Helper to safely get value from row with case & whitespace resilience
+    function getRowVal(row, ...keys) {
+      if (!row) return '';
+      for (const k of keys) {
+        if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
+          return String(row[k]).trim();
         }
-      });
-
-      const activeEl = document.getElementById(pageId);
-      const activeBtn = document.getElementById(`navBtn-${pageId}`);
-      if (activeEl) activeEl.classList.add('active-page');
-      if (activeBtn) {
-        activeBtn.className = "looker-nav-btn py-2 px-3 rounded-lg bg-slate-900 text-white font-bold flex items-center space-x-1.5 transition text-xs shadow-xs";
+        const cleanedTarget = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+        for (const rk of Object.keys(row)) {
+          if (rk.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanedTarget) {
+            const v = row[rk];
+            if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+          }
+        }
       }
-
-      document.getElementById('lookerPageIndicator').innerText = `Halaman ${currentLookerPageIndex + 1} dari ${LOOKER_PAGES.length}`;
-
-      // Refresh Chart renders on page display
-      if (pageId === 'page-overview' && overviewChartInstance) overviewChartInstance.resize();
-      if (pageId === 'page-funnel' && funnelChartInstance) funnelChartInstance.resize();
+      return '';
     }
 
-    function navigatePageStep(direction) {
-      let nextIndex = currentLookerPageIndex + direction;
-      if (nextIndex < 0) nextIndex = LOOKER_PAGES.length - 1;
-      if (nextIndex >= LOOKER_PAGES.length) nextIndex = 0;
-      switchLookerPage(LOOKER_PAGES[nextIndex]);
-    }
-
-    function parseExcelDate(val) {
+    // Robust date parser solving the 2-digit year bug
+    function parseRobustDate(val) {
       if (!val) return null;
+      if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+      
+      // Excel serial date number
       if (typeof val === 'number') {
-        const d = new Date((val - 25569) * 86400 * 1000);
+        const d = new Date(Math.round((val - 25569) * 86400 * 1000));
         return isNaN(d.getTime()) ? null : d;
       }
-      if (typeof val === 'string') {
-        const p = val.trim().split(/[-/]/);
-        if (p.length === 3) {
-          if (p[0].length === 4) return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
-          return new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
-        }
+
+      const str = String(val).trim();
+      if (!str || str === '-' || str === '0') return null;
+
+      // Check numeric string Excel serial (e.g. "45900")
+      if (/^\d{5}$/.test(str)) {
+        const num = parseInt(str, 10);
+        const d = new Date(Math.round((num - 25569) * 86400 * 1000));
+        return isNaN(d.getTime()) ? null : d;
       }
-      const d = new Date(val);
-      return isNaN(d.getTime()) ? null : d;
+
+      // Format YYYY-MM-DD
+      const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+      if (isoMatch) {
+        return new Date(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10));
+      }
+
+      // Format DD-MM-YYYY or DD/MM/YY
+      const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+      if (dmyMatch) {
+        let year = parseInt(dmyMatch[3], 10);
+        if (year < 100) year += 2000; // Critical 2-digit fix: '26' -> 2026
+        const month = parseInt(dmyMatch[2], 10) - 1;
+        const day = parseInt(dmyMatch[1], 10);
+        return new Date(year, month, day);
+      }
+
+      // Check month names (e.g. "15 Jan 2026", "15-Dec-25", "Januari 2026")
+      const monthMap = {
+        'jan': 0, 'januari': 0, 'feb': 1, 'februari': 1, 'mar': 2, 'maret': 2,
+        'apr': 3, 'april': 3, 'mei': 4, 'may': 4, 'jun': 5, 'juni': 5,
+        'jul': 6, 'juli': 6, 'agu': 7, 'ags': 7, 'agustus': 7, 'aug': 7,
+        'sep': 8, 'september': 8, 'okt': 9, 'oktober': 9, 'oct': 9,
+        'nov': 10, 'november': 10, 'des': 11, 'desember': 11, 'dec': 11
+      };
+
+      const parts = str.split(/[\s,.-]+/);
+      if (parts.length >= 2) {
+        let day = 1, month = -1, year = 2026;
+        parts.forEach(p => {
+          const lp = p.toLowerCase();
+          if (monthMap[lp] !== undefined) month = monthMap[lp];
+          else if (/^\d{4}$/.test(p)) year = parseInt(p, 10);
+          else if (/^\d{2}$/.test(p) && parseInt(p, 10) <= 31 && day === 1) day = parseInt(p, 10);
+          else if (/^\d{2}$/.test(p) && parseInt(p, 10) >= 20 && parseInt(p, 10) <= 35) year = 2000 + parseInt(p, 10);
+        });
+        if (month !== -1) return new Date(year, month, day);
+      }
+
+      const standardParsed = new Date(str);
+      return isNaN(standardParsed.getTime()) ? null : standardParsed;
     }
 
-    function getCohortRange(monthName, stageIdx) {
-      const monthMap = { 'Januari': 0, 'Februari': 1, 'Maret': 2, 'April': 3, 'Mei': 4, 'Juni': 5, 'Juli': 6, 'Agustus': 7, 'September': 8, 'Oktober': 9 };
-      const evalM = monthMap[monthName] !== undefined ? monthMap[monthName] : 1;
-      const stageOffsets = [1, 6, 12, 18, 24, 30, 36];
-      const offset = stageOffsets[stageIdx] || 1;
-      const endCohort = new Date(2026, evalM - offset + 1, 0, 23, 59, 59);
-      const startCohort = new Date(2026, evalM - offset - 1, 1, 0, 0, 0);
+    /**
+     * Exact cumulative CFAM cohort logic based on Sheet Matrix:
+     * Evaluates month index m (0 = Jan 2026 ... 8 = Sep 2026 ... 11 = Des 2026)
+     */
+    function getCohortMatrixRange(m, stageIdx) {
+      let startCohort, endCohort;
+      switch (stageIdx) {
+        case 0: // 1st Service: Starts Dec 1, 2025 up to end of (m - 1) 2026
+          startCohort = new Date(2025, 11, 1, 0, 0, 0);
+          endCohort = new Date(2026, m, 0, 23, 59, 59);
+          break;
+        case 1: // 2nd Service (6 Bulan): Starts Jul 1, 2025 up to end of (m - 5)
+          startCohort = new Date(2025, 6, 1, 0, 0, 0);
+          endCohort = new Date(2026, m - 5, 0, 23, 59, 59);
+          break;
+        case 2: // 3rd Service (12 Bulan): Starts Jan 1, 2025
+          startCohort = new Date(2025, 0, 1, 0, 0, 0);
+          endCohort = new Date(2025, m + 1, 0, 23, 59, 59);
+          break;
+        case 3: // 4th Service (18 Bulan): Starts Jul 1, 2024
+          startCohort = new Date(2024, 6, 1, 0, 0, 0);
+          endCohort = new Date(2024, 7 + m, 0, 23, 59, 59);
+          break;
+        case 4: // 5th Service (24 Bulan): Starts Jan 1, 2024
+          startCohort = new Date(2024, 0, 1, 0, 0, 0);
+          endCohort = new Date(2024, 1 + m, 0, 23, 59, 59);
+          break;
+        case 5: // 6th Service (30 Bulan): Starts Jul 1, 2023
+          startCohort = new Date(2023, 6, 1, 0, 0, 0);
+          endCohort = new Date(2023, 7 + m, 0, 23, 59, 59);
+          break;
+        case 6: // 7th Service (36 Bulan): Starts Jan 1, 2023
+          startCohort = new Date(2023, 0, 1, 0, 0, 0);
+          endCohort = new Date(2023, 1 + m, 0, 23, 59, 59);
+          break;
+        default:
+          startCohort = new Date(2025, 11, 1, 0, 0, 0);
+          endCohort = new Date(2026, m, 0, 23, 59, 59);
+      }
       return { startCohort, endCohort };
+    }
+
+    function checkServiceCompleted(row, stageIdx, cutoffDate) {
+      const idxNames = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th'];
+      const stName = idxNames[stageIdx];
+      
+      const dServ = getRowVal(row, `Dealer ${stName} Service`, `Dealer ${stName}`, `DEALER ${stName}`);
+      const statusP = getRowVal(row, `Status Punctual ${stName}`, `Status ${stName}`, `STATUS PUNCTUAL ${stName}`).toLowerCase();
+      const mServ = getRowVal(row, `Bulan ${stName} Service`, `Bulan ${stName}`, `BULAN ${stName}`);
+
+      // If dealer recorded the service intake
+      if (dServ && dServ !== '-' && dServ !== '0') return true;
+
+      // If punctual status indicates serviced (Punctual, Late, On Time, Done, Overdue)
+      if (statusP && statusP !== '-' && statusP !== '0' && !statusP.startsWith('belum') && !statusP.startsWith('no')) {
+        return true;
+      }
+
+      // If service month is recorded
+      if (mServ && mServ !== '-' && mServ !== '0') {
+        const sDate = parseRobustDate(mServ);
+        if (sDate && cutoffDate) {
+          return sDate <= cutoffDate;
+        }
+        return true;
+      }
+
+      return false;
     }
 
     function formatPct(val) {
@@ -1071,163 +1188,302 @@
       return sign + (val * 100).toFixed(1).replace('.', ',') + '%';
     }
 
-    // Helper to safely extract Column N ('T-CARE TYPE') regardless of casing
-    function getColumnNValue(row) {
-      if (!row) return '';
-      if (row['T-CARE TYPE'] !== undefined && row['T-CARE TYPE'] !== null) return row['T-CARE TYPE'];
-      if (row['T-Care Type'] !== undefined && row['T-Care Type'] !== null) return row['T-Care Type'];
-      if (row['t-care type'] !== undefined && row['t-care type'] !== null) return row['t-care type'];
-      const key = Object.keys(row).find(k => k.trim().toUpperCase() === 'T-CARE TYPE' || k.trim().toUpperCase() === 'T-CARE');
-      if (key && row[key] !== undefined && row[key] !== null) return row[key];
-      return row['Program'] || '';
+    // Multi-Select UI Management
+    function toggleMultiSelectMenu(menuId) {
+      const menu = document.getElementById(menuId);
+      const isHidden = menu.classList.contains('hidden');
+      closeAllMultiSelectMenus();
+      if (isHidden) menu.classList.remove('hidden');
     }
 
-    function buildDataset(program, mode, month, startMonth, endMonth, branchFilter, customerFilter) {
-      const isLite = program.toLowerCase().includes('lite');
-      const targetThreshold = isLite ? TARGET_LITE : TARGET_TCARE;
+    function closeAllMultiSelectMenus() {
+      ['msProgramMenu', 'msBranchMenu', 'msModelMenu', 'msCustMenu'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+    }
+
+    window.addEventListener('click', function(e) {
+      if (!e.target.closest('#msProgramBtn') && !e.target.closest('#msProgramMenu') &&
+          !e.target.closest('#msBranchBtn') && !e.target.closest('#msBranchMenu') &&
+          !e.target.closest('#msModelBtn') && !e.target.closest('#msModelMenu') &&
+          !e.target.closest('#msCustBtn') && !e.target.closest('#msCustMenu')) {
+        closeAllMultiSelectMenus();
+      }
+    });
+
+    function renderMultiSelectCheckboxes(type) {
+      let listEl, items, selectedSet, labelEl, labelPrefix;
+      if (type === 'program') {
+        listEl = document.getElementById('msProgramOptionsList');
+        items = filterState.allPrograms;
+        selectedSet = filterState.programs;
+        labelEl = document.getElementById('msProgramLabel');
+        labelPrefix = 'Program';
+      } else if (type === 'branch') {
+        listEl = document.getElementById('msBranchOptionsList');
+        items = filterState.allBranches;
+        selectedSet = filterState.branches;
+        labelEl = document.getElementById('msBranchLabel');
+        labelPrefix = 'Cabang';
+      } else if (type === 'model') {
+        listEl = document.getElementById('msModelOptionsList');
+        items = filterState.allModels;
+        selectedSet = filterState.models;
+        labelEl = document.getElementById('msModelLabel');
+        labelPrefix = 'Model';
+      } else if (type === 'cust') {
+        listEl = document.getElementById('msCustOptionsList');
+        items = filterState.allCustTypes;
+        selectedSet = filterState.custTypes;
+        labelEl = document.getElementById('msCustLabel');
+        labelPrefix = 'Cust';
+      }
+
+      listEl.innerHTML = '';
+      items.forEach(val => {
+        const isChecked = selectedSet.has(val);
+        const itemDiv = document.createElement('label');
+        itemDiv.className = "flex items-center space-x-2 py-1 px-1.5 hover:bg-slate-50 rounded cursor-pointer select-none text-[11px] text-slate-700";
+        itemDiv.innerHTML = `
+          <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="onMultiSelectToggle('${type}', '${val.replace(/'/g, "\\'")}', this.checked)" class="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5">
+          <span class="truncate">${val}</span>
+        `;
+        listEl.appendChild(itemDiv);
+      });
+
+      // Update button label
+      if (selectedSet.size === 0) {
+        labelEl.innerText = "Kosong (0)";
+      } else if (selectedSet.size === items.length) {
+        labelEl.innerText = `Semua ${labelPrefix} (${items.length})`;
+      } else if (selectedSet.size === 1) {
+        labelEl.innerText = Array.from(selectedSet)[0];
+      } else {
+        labelEl.innerText = `${selectedSet.size} ${labelPrefix} Terpilih`;
+      }
+
+      updateTargetRuleDisplay();
+    }
+
+    function onMultiSelectToggle(type, value, isChecked) {
+      const set = (type === 'program') ? filterState.programs :
+                  (type === 'branch') ? filterState.branches :
+                  (type === 'model') ? filterState.models : filterState.custTypes;
+
+      if (isChecked) set.add(value);
+      else set.delete(value);
+
+      renderMultiSelectCheckboxes(type);
+      applyFilters();
+    }
+
+    function selectAllMultiOptions(type, selectAll) {
+      let items, set;
+      if (type === 'program') { items = filterState.allPrograms; set = filterState.programs; }
+      else if (type === 'branch') { items = filterState.allBranches; set = filterState.branches; }
+      else if (type === 'model') { items = filterState.allModels; set = filterState.models; }
+      else if (type === 'cust') { items = filterState.allCustTypes; set = filterState.custTypes; }
+
+      set.clear();
+      if (selectAll) items.forEach(it => set.add(it));
+
+      renderMultiSelectCheckboxes(type);
+      applyFilters();
+    }
+
+    function updateTargetRuleDisplay() {
+      const badge = document.getElementById('activeProgramHeaderBadge');
+      const targetRule = document.getElementById('activeTargetRuleLabel');
+      const progSet = filterState.programs;
+
+      if (progSet.size === 0) {
+        badge.innerText = "Tidak Ada Program";
+        badge.className = "text-[10px] bg-slate-600 text-white px-2 py-0.5 rounded-full font-semibold";
+        return;
+      }
+
+      const allAreLite = Array.from(progSet).every(p => p.toLowerCase().includes('lite'));
+      const hasLite = Array.from(progSet).some(p => p.toLowerCase().includes('lite'));
+
+      if (allAreLite) {
+        badge.innerText = `Program Lite (81%)`;
+        badge.className = "text-[10px] bg-amber-600 text-white px-2 py-0.5 rounded-full font-semibold border border-amber-400";
+        if (targetRule) targetRule.innerText = "Target KPI: 81.0% (T-Care Lite)";
+      } else if (!hasLite) {
+        badge.innerText = `Program Standard (91%)`;
+        badge.className = "text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-semibold border border-blue-400";
+        if (targetRule) targetRule.innerText = "Target KPI: 91.0% (T-Care CAI)";
+      } else {
+        badge.innerText = `Kombinasi Program (91%)`;
+        badge.className = "text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-semibold border border-purple-400";
+        if (targetRule) targetRule.innerText = "Target: T-Care 91% | Lite 81%";
+      }
+    }
+
+    function extractUniqueValuesFromSheet(rows) {
+      const progSet = new Set();
+      const branchSet = new Set();
+      const modelSet = new Set();
+      const custSet = new Set();
+
+      rows.forEach(r => {
+        // Pre-parse and cache row attributes for 60fps filtering performance
+        if (!r._preprocessed) {
+          r._decDate = parseRobustDate(getRowVal(r, 'Tgl DEC', 'Tgl Retail', 'TGL DEC'));
+          r._dealer = getRowVal(r, 'Dealer Penjual', 'Dealer', 'DEALER');
+          r._program = getRowVal(r, 'T-CARE TYPE', 'T-Care Type', 'Program');
+          r._model = getRowVal(r, 'Model Kendaraan', 'Model');
+          r._custType = getRowVal(r, 'Type Customer', 'Tipe Customer');
+          r._kota = getRowVal(r, 'Kota');
+          r._preprocessed = true;
+        }
+
+        if (r._program) progSet.add(r._program);
+        if (r._dealer) branchSet.add(r._dealer);
+        if (r._model) modelSet.add(r._model);
+        if (r._custType) custSet.add(r._custType);
+      });
+
+      filterState.allPrograms = Array.from(progSet).sort();
+      filterState.allBranches = Array.from(branchSet).sort();
+      filterState.allModels = Array.from(modelSet).sort();
+      filterState.allCustTypes = Array.from(custSet).sort();
+
+      // Populate selected sets initially
+      filterState.programs = new Set(filterState.allPrograms);
+      filterState.branches = new Set(filterState.allBranches);
+      filterState.models = new Set(filterState.allModels);
+      filterState.custTypes = new Set(filterState.allCustTypes);
+
+      renderMultiSelectCheckboxes('program');
+      renderMultiSelectCheckboxes('branch');
+      renderMultiSelectCheckboxes('model');
+      renderMultiSelectCheckboxes('cust');
+    }
+
+    function buildDataset(month, startMonth, endMonth, mode) {
+      const evalMonthIndex = MONTH_NAMES.indexOf(month) !== -1 ? MONTH_NAMES.indexOf(month) : 8; // Default to Sept (8)
+      const prevMonthIndex = evalMonthIndex > 0 ? evalMonthIndex - 1 : 0;
+      
+      const allAreLite = filterState.programs.size > 0 && Array.from(filterState.programs).every(p => p.toLowerCase().includes('lite'));
+      const targetThreshold = allAreLite ? TARGET_LITE : TARGET_TCARE;
       let rangeLabelText = "vs LM";
 
       if (uploadedRawDataset && uploadedRawDataset.length > 0) {
-        return processUploadedRawData(uploadedRawDataset, program, mode, month, startMonth, endMonth, branchFilter, customerFilter, targetThreshold);
+        return processActualRawData(uploadedRawDataset, evalMonthIndex, prevMonthIndex, targetThreshold);
       }
 
-      // Benchmark baseline calculation
-      const monthOffsetFactor = {
-        'Januari': -0.008, 'Februari': 0.0, 'Maret': 0.006, 'April': 0.009, 'Mei': 0.012,
-        'Juni': 0.015, 'Juli': 0.018, 'Agustus': 0.020, 'September': 0.022, 'Oktober': 0.025
-      };
-
-      let currentOffset = monthOffsetFactor[month] || 0.0;
-      if (mode === 'range') {
-        const monthOrder = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
-        const span = Math.max(1, (monthOrder.indexOf(endMonth) - monthOrder.indexOf(startMonth) + 1));
-        currentOffset = ((monthOffsetFactor[startMonth] || 0) + (monthOffsetFactor[endMonth] || 0)) / 2;
-        rangeLabelText = `vs Q-Start`;
-        document.getElementById('rangeSpanBadge').innerText = `${span} Bulan`;
-      }
-
-      const liteAdjustment = isLite ? -0.075 : (program === 'all' ? -0.025 : 0.0);
-
-      let dealersToProcess = BENCHMARK_REPORT_DATA;
-      if (branchFilter !== 'ALL') {
-        dealersToProcess = dealersToProcess.filter(d => d.dealer === branchFilter);
-      }
-
-      const computedDealers = dealersToProcess.map(item => {
-        const baseUnits = 120 + Math.floor(Math.abs(Math.sin(item.dealer.length) * 160));
-        const s1 = Math.min(0.998, Math.max(0.65, item.s1 + currentOffset + liteAdjustment));
-        const s2 = Math.min(0.998, Math.max(0.60, item.s2 + currentOffset + liteAdjustment));
-        const s3 = Math.min(0.998, Math.max(0.58, item.s3 + currentOffset + liteAdjustment));
-        const s4 = Math.min(0.998, Math.max(0.55, item.s4 + currentOffset + liteAdjustment));
-        const s5 = Math.min(0.998, Math.max(0.50, item.s5 + currentOffset + liteAdjustment));
-        const s6 = Math.min(0.998, Math.max(0.48, item.s6 + currentOffset + liteAdjustment));
-        const s7 = Math.min(0.998, Math.max(0.45, item.s7 + currentOffset + liteAdjustment));
-        const pm = (s1 * 0.22 + s2 * 0.18 + s3 * 0.16 + s4 * 0.14 + s5 * 0.12 + s6 * 0.10 + s7 * 0.08);
+      // Baseline Nasmoco Demo Data calculation
+      const dealersToProcess = NASMOCO_DEALERS.map(dName => {
+        const s1 = 0.965, lm1 = 0.008;
+        const s2 = 0.958, lm2 = 0.012;
+        const s3 = 0.970, lm3 = 0.002;
+        const s4 = 0.948, lm4 = 0.004;
+        const s5 = 0.928, lm5 = 0.003;
+        const s6 = 0.906, lm6 = 0.005;
+        const s7 = 0.887, lm7 = 0.007;
+        const pm = (s1 + s2 + s3 + s4 + s5 + s6 + s7) / 7;
+        const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
+        const baseUnits = 140;
 
         const stagesDetail = [
-          { name: "1st", pot: baseUnits, act: Math.round(baseUnits * s1), ach: s1, lm: item.lm1 },
-          { name: "2nd", pot: Math.round(baseUnits * 0.95), act: Math.round(baseUnits * 0.95 * s2), ach: s2, lm: item.lm2 },
-          { name: "3rd", pot: Math.round(baseUnits * 0.90), act: Math.round(baseUnits * 0.90 * s3), ach: s3, lm: item.lm3 },
-          { name: "4th", pot: Math.round(baseUnits * 0.85), act: Math.round(baseUnits * 0.85 * s4), ach: s4, lm: item.lm4 },
-          { name: "5th", pot: Math.round(baseUnits * 0.80), act: Math.round(baseUnits * 0.80 * s5), ach: s5, lm: item.lm5 },
-          { name: "6th", pot: Math.round(baseUnits * 0.75), act: Math.round(baseUnits * 0.75 * s6), ach: s6, lm: item.lm6 },
-          { name: "7th", pot: Math.round(baseUnits * 0.70), act: Math.round(baseUnits * 0.70 * s7), ach: s7, lm: item.lm7 },
+          { name: "1st", pot: baseUnits, act: Math.round(baseUnits * s1), ach: s1, lm: lm1, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s1)) },
+          { name: "2nd", pot: baseUnits, act: Math.round(baseUnits * s2), ach: s2, lm: lm2, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s2)) },
+          { name: "3rd", pot: baseUnits, act: Math.round(baseUnits * s3), ach: s3, lm: lm3, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s3)) },
+          { name: "4th", pot: baseUnits, act: Math.round(baseUnits * s4), ach: s4, lm: lm4, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s4)) },
+          { name: "5th", pot: baseUnits, act: Math.round(baseUnits * s5), ach: s5, lm: lm5, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s5)) },
+          { name: "6th", pot: baseUnits, act: Math.round(baseUnits * s6), ach: s6, lm: lm6, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s6)) },
+          { name: "7th", pot: baseUnits, act: Math.round(baseUnits * s7), ach: s7, lm: lm7, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s7)) },
         ];
 
         let totalPot = 0, totalAct = 0, totalGap = 0, failingStages = [];
         stagesDetail.forEach(st => {
-          totalPot += st.pot; totalAct += st.act;
-          const targetUnits = Math.ceil(st.pot * targetThreshold);
-          const gap = Math.max(0, targetUnits - st.act);
-          st.gap = gap; totalGap += gap;
-          if (st.ach < targetThreshold) failingStages.push({ stage: st.name, ach: st.ach, gap });
+          totalPot += st.pot; totalAct += st.act; totalGap += st.gap;
+          if (st.ach < targetThreshold) failingStages.push({ stage: st.name, ach: st.ach, gap: st.gap });
         });
 
-        const severity = (pm < targetThreshold || failingStages.length >= 3) ? "Level 3 (Red Alert)" : (failingStages.length > 0 ? "Level 2 (Yellow Alert)" : "Level 0 (Aman)");
-
         return {
-          dealer: item.dealer,
-          s1, lm1: item.lm1, s2, lm2: item.lm2, s3, lm3: item.lm3, s4, lm4: item.lm4,
-          s5, lm5: item.lm5, s6, lm6: item.lm6, s7, lm7: item.lm7,
-          pm, lmpm: item.lmpm,
-          totalPot, totalAct, totalGap, failingStages, severity, stagesDetail
+          dealer: dName,
+          s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
+          pm, lmpm, totalPot, totalAct, totalGap, failingStages,
+          severity: (pm < targetThreshold || failingStages.length >= 3) ? "Level 3 (Red Alert)" : (failingStages.length > 0 ? "Level 2 (Yellow Alert)" : "Level 0 (Aman)"),
+          stagesDetail
         };
       });
 
-      return { dealers: computedDealers, targetThreshold, rangeLabelText, rawAnalytics: generateSyntheticAnalytics(), rawSampleRows: [] };
+      return { dealers: dealersToProcess, targetThreshold, rangeLabelText: "vs LM", rawAnalytics: generateSyntheticAnalytics(), rawSampleRows: [] };
     }
 
-    function processUploadedRawData(rawRows, program, mode, month, startMonth, endMonth, branchFilter, customerFilter, targetThreshold) {
-      const stageCols = [
-        { name: "1st", monthCol: "Bulan 1st Service", statusCol: "Status Punctual 1st", dealerCol: "Dealer 1st Service" },
-        { name: "2nd", monthCol: "Bulan 2nd Service", statusCol: "Status Punctual 2nd", dealerCol: "Dealer 2nd Service" },
-        { name: "3rd", monthCol: "Bulan 3rd Service", statusCol: "Status Punctual 3rd", dealerCol: "Dealer 3rd Service" },
-        { name: "4th", monthCol: "Bulan 4th Service", statusCol: "Status Punctual 4th", dealerCol: "Dealer 4th Service" },
-        { name: "5th", monthCol: "Bulan 5th Service", statusCol: "Status Punctual 5th", dealerCol: "Dealer 5th Service" },
-        { name: "6th", monthCol: "Bulan 6th Service", statusCol: "Status Punctual 6th", dealerCol: "Dealer 6th Service" },
-        { name: "7th", monthCol: "Bulan 7th Service", statusCol: "Status Punctual 7th", dealerCol: "Dealer 7th Service" }
-      ];
+    function processActualRawData(rows, evalM, prevM, targetThreshold) {
+      const activeDealers = Array.from(filterState.branches);
+      const activePrograms = filterState.programs;
+      const activeModels = filterState.models;
+      const activeCusts = filterState.custTypes;
 
-      const detectedDealers = new Set();
-      rawRows.forEach(r => {
-        const d = r['Dealer Penjual'] || r['Dealer'] || r['DEALER'];
-        if (d) detectedDealers.add(d.toString().trim());
+      const evalCutoff = new Date(2026, evalM + 1, 0, 23, 59, 59);
+      const prevCutoff = new Date(2026, prevM + 1, 0, 23, 59, 59);
+
+      // Pre-filter by global dimension filters (Program, Model, Cust Type)
+      const filteredRows = rows.filter(r => {
+        if (activePrograms.size > 0 && !activePrograms.has(r._program)) return false;
+        if (activeModels.size > 0 && !activeModels.has(r._model)) return false;
+        if (activeCusts.size > 0 && !activeCusts.has(r._custType)) return false;
+        return true;
       });
-      let activeDealerList = detectedDealers.size > 0 ? Array.from(detectedDealers) : NASMOCO_DEALERS;
-      if (branchFilter !== 'ALL') activeDealerList = activeDealerList.filter(d => d === branchFilter);
 
-      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober'];
-      const curIdx = monthNames.indexOf(month);
-      const prevMonth = curIdx > 0 ? monthNames[curIdx - 1] : monthNames[0];
+      // Compute statistics per dealer
+      const computedDealers = activeDealers.map(dealerName => {
+        const dealerRows = filteredRows.filter(r => r._dealer === dealerName);
+        const stagesDetail = [];
 
-      const computedDealers = activeDealerList.map(dealerName => {
-        const dealerRows = rawRows.filter(r => {
-          const d = (r['Dealer Penjual'] || r['Dealer'] || '').toString().trim();
-          if (d.toLowerCase() !== dealerName.toLowerCase()) return false;
-          
-          if (program !== 'all') {
-            const progType = getColumnNValue(r).toString().trim();
-            if (progType.toLowerCase() !== program.toLowerCase()) return false;
-          }
+        for (let sIdx = 0; sIdx < 7; sIdx++) {
+          const cohortNow = getCohortMatrixRange(evalM, sIdx);
+          const cohortPrev = getCohortMatrixRange(prevM, sIdx);
 
-          if (customerFilter !== 'ALL') {
-            const cType = (r['Type Customer'] || '').toString().toLowerCase();
-            if (customerFilter === 'retail' && cType.includes('fleet')) return false;
-            if (customerFilter === 'fleet' && !cType.includes('fleet')) return false;
-          }
+          let potNow = 0, actNow = 0;
+          let potPrev = 0, actPrev = 0;
 
-          return true;
-        });
+          dealerRows.forEach(r => {
+            const dec = r._decDate;
+            if (!dec) return;
 
-        const stagesDetail = stageCols.map((stg, sIdx) => {
-          const cohort = getCohortRange(month, sIdx);
-          const cohortLM = getCohortRange(prevMonth, sIdx);
-          let pot = 0, act = 0, potLM = 0, actLM = 0;
-
-          dealerRows.forEach(row => {
-            const dateVal = parseExcelDate(row['Tgl DEC'] || row['Tgl Retail'] || row['TGL DEC']);
-            if (!dateVal) return;
-
-            if (dateVal >= cohort.startCohort && dateVal <= cohort.endCohort) {
-              pot++;
-              const serviced = row[stg.statusCol] || row[stg.monthCol] || row[stg.dealerCol];
-              if (serviced && serviced.toString().trim() !== '' && serviced !== '-' && serviced !== 0) act++;
+            // Current Month Cohort Check
+            if (dec >= cohortNow.startCohort && dec <= cohortNow.endCohort) {
+              potNow++;
+              if (checkServiceCompleted(r, sIdx, evalCutoff)) actNow++;
             }
 
-            if (dateVal >= cohortLM.startCohort && dateVal <= cohortLM.endCohort) {
-              potLM++;
-              const serviced = row[stg.statusCol] || row[stg.monthCol] || row[stg.dealerCol];
-              if (serviced && serviced.toString().trim() !== '' && serviced !== '-' && serviced !== 0) actLM++;
+            // Previous Month Cohort Check
+            if (dec >= cohortPrev.startCohort && dec <= cohortPrev.endCohort) {
+              potPrev++;
+              if (checkServiceCompleted(r, sIdx, prevCutoff)) actPrev++;
             }
           });
 
-          if (pot === 0) { pot = 50; act = 45; }
-          if (potLM === 0) { potLM = pot; actLM = act; }
+          const achNow = potNow > 0 ? (actNow / potNow) : 1.0;
+          const achPrev = potPrev > 0 ? (actPrev / potPrev) : achNow;
+          const deltaLm = achNow - achPrev;
+          const gap = Math.max(0, Math.ceil(potNow * targetThreshold) - actNow);
 
-          const ach = act / pot;
-          const achLM = actLM / potLM;
-          const lm = ach - achLM;
-          return { name: stg.name, pot, act, ach, lm };
+          stagesDetail.push({
+            name: `${sIdx + 1}st`,
+            pot: potNow,
+            act: actNow,
+            ach: achNow,
+            lm: deltaLm,
+            gap: gap
+          });
+        }
+
+        let totalPot = 0, totalAct = 0, totalGap = 0, failingStages = [];
+        stagesDetail.forEach(st => {
+          totalPot += st.pot;
+          totalAct += st.act;
+          totalGap += st.gap;
+          if (st.ach < targetThreshold && st.pot > 0) {
+            failingStages.push({ stage: st.name, ach: st.ach, gap: st.gap });
+          }
         });
 
         const s1 = stagesDetail[0].ach, lm1 = stagesDetail[0].lm;
@@ -1237,15 +1493,6 @@
         const s5 = stagesDetail[4].ach, lm5 = stagesDetail[4].lm;
         const s6 = stagesDetail[5].ach, lm6 = stagesDetail[5].lm;
         const s7 = stagesDetail[6].ach, lm7 = stagesDetail[6].lm;
-
-        let totalPot = 0, totalAct = 0, totalGap = 0, failingStages = [];
-        stagesDetail.forEach(st => {
-          totalPot += st.pot; totalAct += st.act;
-          const targetUnits = Math.ceil(st.pot * targetThreshold);
-          const gap = Math.max(0, targetUnits - st.act);
-          st.gap = gap; totalGap += gap;
-          if (st.ach < targetThreshold) failingStages.push({ stage: st.name, ach: st.ach, gap });
-        });
 
         const pm = totalPot > 0 ? (totalAct / totalPot) : (s1 * 0.22 + s2 * 0.18 + s3 * 0.16 + s4 * 0.14 + s5 * 0.12 + s6 * 0.10 + s7 * 0.08);
         const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
@@ -1259,37 +1506,43 @@
         };
       });
 
-      const rawAnalytics = extractRawAnalytics(rawRows, targetThreshold);
+      const rawAnalytics = extractDeepAnalytics(filteredRows, targetThreshold, evalCutoff);
 
-      return { dealers: computedDealers, targetThreshold, rangeLabelText: "vs LM", rawAnalytics, rawSampleRows: rawRows.slice(0, 100) };
+      return {
+        dealers: computedDealers,
+        targetThreshold,
+        rangeLabelText: "vs LM",
+        rawAnalytics,
+        rawSampleRows: filteredRows.slice(0, 100)
+      };
     }
 
-    function extractRawAnalytics(rows, target) {
+    function extractDeepAnalytics(rows, target, cutoff) {
       const models = {}, customers = {}, loyalty = { home: 0, visiting: 0, punctual: 0, late: 0 };
 
       rows.forEach(r => {
-        // Model
-        const m = (r['Model Kendaraan'] || 'Lainnya').toString().trim();
+        const m = r._model || 'Lainnya';
         if (!models[m]) models[m] = { count: 0, serviced1st: 0, tcare: 0, lite: 0 };
         models[m].count++;
-        const pType = getColumnNValue(r).toString().toLowerCase();
-        if (pType.includes('lite')) models[m].lite++; else models[m].tcare++;
-        if (r['Status Punctual 1st'] || r['Bulan 1st Service']) models[m].serviced1st++;
+        if (r._program && r._program.toLowerCase().includes('lite')) models[m].lite++;
+        else models[m].tcare++;
+        if (checkServiceCompleted(r, 0, cutoff)) models[m].serviced1st++;
 
-        // Customer Type
-        const c = (r['Type Customer'] || 'Retail (Individual)').toString().trim();
+        const c = r._custType || 'Retail (Individual)';
         if (!customers[c]) customers[c] = { count: 0, serviced1st: 0 };
         customers[c].count++;
-        if (r['Status Punctual 1st'] || r['Bulan 1st Service']) customers[c].serviced1st++;
+        if (checkServiceCompleted(r, 0, cutoff)) customers[c].serviced1st++;
 
-        // Loyalty / Home vs Visiting
-        const sellDealer = (r['Dealer Penjual'] || '').toString().trim().toLowerCase();
-        const servDealer = (r['Dealer 1st Service'] || '').toString().trim().toLowerCase();
+        const sellDealer = (r._dealer || '').toLowerCase();
+        const servDealer = getRowVal(r, 'Dealer 1st Service', 'Dealer 1st').toLowerCase();
         if (servDealer) {
-          if (sellDealer === servDealer) loyalty.home++; else loyalty.visiting++;
+          if (sellDealer === servDealer) loyalty.home++;
+          else loyalty.visiting++;
         }
-        const punc = (r['Status Punctual 1st'] || '').toString().toLowerCase();
-        if (punc.includes('on') || punc.includes('punctual')) loyalty.punctual++; else if (punc) loyalty.late++;
+
+        const punc = getRowVal(r, 'Status Punctual 1st', 'Status 1st').toLowerCase();
+        if (punc.includes('on') || punc.includes('punc')) loyalty.punctual++;
+        else if (punc) loyalty.late++;
       });
 
       return { models, customers, loyalty };
@@ -1304,16 +1557,186 @@
           'Agya': { count: 680, serviced1st: 564, tcare: 0, lite: 680 },
           'Veloz': { count: 540, serviced1st: 520, tcare: 540, lite: 0 },
           'Fortuner': { count: 430, serviced1st: 421, tcare: 430, lite: 0 },
-          'Yaris Cross': { count: 390, serviced1st: 378, tcare: 390, lite: 0 },
-          'Hilux': { count: 280, serviced1st: 245, tcare: 280, lite: 0 }
+          'Yaris Cross': { count: 390, serviced1st: 378, tcare: 390, lite: 0 }
         },
         customers: {
           'Retail (Pribadi)': { count: 3980, serviced1st: 3780 },
-          'Fleet / Perusahaan': { count: 920, serviced1st: 710 },
-          'Rental / Komersial': { count: 440, serviced1st: 330 }
+          'Fleet / Perusahaan': { count: 920, serviced1st: 710 }
         },
         loyalty: { home: 3620, visiting: 1200, punctual: 4100, late: 720 }
       };
+    }
+
+    function switchLookerPage(pageId) {
+      const idx = LOOKER_PAGES.indexOf(pageId);
+      if (idx !== -1) currentLookerPageIndex = idx;
+
+      LOOKER_PAGES.forEach(pid => {
+        const el = document.getElementById(pid);
+        const btn = document.getElementById(`navBtn-${pid}`);
+        if (el) el.classList.remove('active-page');
+        if (btn) btn.className = "looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition text-xs font-semibold";
+      });
+
+      const activeEl = document.getElementById(pageId);
+      const activeBtn = document.getElementById(`navBtn-${pageId}`);
+      if (activeEl) activeEl.classList.add('active-page');
+      if (activeBtn) activeBtn.className = "looker-nav-btn py-2 px-3 rounded-lg bg-slate-900 text-white font-bold flex items-center space-x-1.5 transition text-xs shadow-xs";
+
+      document.getElementById('lookerPageIndicator').innerText = `Halaman ${currentLookerPageIndex + 1} dari ${LOOKER_PAGES.length}`;
+
+      if (pageId === 'page-overview' && overviewChartInstance) overviewChartInstance.resize();
+      if (pageId === 'page-funnel' && funnelChartInstance) funnelChartInstance.resize();
+    }
+
+    function navigatePageStep(direction) {
+      let nextIndex = currentLookerPageIndex + direction;
+      if (nextIndex < 0) nextIndex = LOOKER_PAGES.length - 1;
+      if (nextIndex >= LOOKER_PAGES.length) nextIndex = 0;
+      switchLookerPage(LOOKER_PAGES[nextIndex]);
+    }
+
+    function togglePeriodModeUI() {
+      currentPeriodMode = document.getElementById('periodModeSelect').value;
+      if (currentPeriodMode === 'single') {
+        document.getElementById('singleMonthControls').classList.remove('hidden');
+        document.getElementById('rangePeriodControls').classList.add('hidden');
+      } else {
+        document.getElementById('singleMonthControls').classList.add('hidden');
+        document.getElementById('rangePeriodControls').classList.remove('hidden');
+      }
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const month = document.getElementById('monthSelect').value;
+      const startM = document.getElementById('rangeStartMonth').value;
+      const endM = document.getElementById('rangeEndMonth').value;
+      const mIdx = MONTH_NAMES.indexOf(month);
+
+      if (currentPeriodMode === 'single') {
+        const prevMName = mIdx > 0 ? MONTH_NAMES[mIdx - 1].substring(0, 3) : 'Dec';
+        document.getElementById('cohortRangeLabel').innerText = `Dec 25 - ${prevMName} 26`;
+        document.getElementById('cohortActualLabel').innerText = `s/d ${month.substring(0, 3)} 26`;
+      } else {
+        document.getElementById('cohortRangeLabel').innerText = `${startM.substring(0, 3)} - ${endM.substring(0, 3)} 2026`;
+        document.getElementById('cohortActualLabel').innerText = `Kumulatif`;
+        const span = Math.max(1, MONTH_NAMES.indexOf(endM) - MONTH_NAMES.indexOf(startM) + 1);
+        document.getElementById('rangeSpanBadge').innerText = `${span} Bulan`;
+      }
+
+      activeCalculatedData = buildDataset(month, startM, endM, currentPeriodMode);
+      renderMatrixTable(activeCalculatedData);
+    }
+
+    function renderMatrixTable(datasetResult) {
+      const dealers = datasetResult.dealers;
+      const target = datasetResult.targetThreshold;
+      const rangeLabel = datasetResult.rangeLabelText;
+
+      ['1', '2', '3', '4', '5', '6', '7', 'pm'].forEach(id => {
+        const el = document.getElementById(`lmHeaderCol-${id}`);
+        if (el) el.innerText = rangeLabel;
+      });
+
+      const progTitle = `T-Care Matrix (${(target * 100).toFixed(0)}% Target)`;
+      document.getElementById('matrixSuperHeader').innerText = progTitle;
+      document.getElementById('matrixLegendTargetValue').innerText = (target * 100).toFixed(0) + "%";
+
+      const tbody = document.getElementById('matrixTableBody');
+      const tfoot = document.getElementById('matrixTableFoot');
+      tbody.innerHTML = '';
+
+      const searchKey = document.getElementById('matrixSearchInput').value.toLowerCase();
+      const filtered = dealers.filter(d => d.dealer.toLowerCase().includes(searchKey));
+
+      filtered.forEach((d, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-blue-50/50 cursor-pointer transition divide-x divide-slate-200 border-b border-slate-200 text-center";
+        tr.onclick = () => openCapaModal(d.dealer);
+
+        function renderCellPair(achVal, lmVal, isPm = false) {
+          const isUnder = achVal < target;
+          const achClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-black text-slate-900" : "font-medium");
+          const lmClass = lmVal < 0 ? "cell-negative-lm" : "cell-positive-lm";
+          const lmBg = (lmVal < 0 && Math.abs(lmVal) >= 0.01) ? "bg-red-50/50" : (isPm ? "bg-slate-100" : "");
+
+          return `
+            <td class="p-1.5 text-center ${achClass}">${formatPct(achVal)}</td>
+            <td class="p-1.5 text-center ${lmClass} ${lmBg}">${formatDelta(lmVal)}</td>
+          `;
+        }
+
+        tr.innerHTML = `
+          <td class="p-2 font-bold text-slate-500 sticky-col-1 bg-white border-r border-slate-200">${idx + 1}</td>
+          <td class="p-2 font-bold text-slate-800 text-left sticky-col-2 bg-white border-r border-slate-200 flex items-center justify-between">
+            <span class="truncate">${d.dealer}</span>
+            ${d.failingStages.length > 0 ? `<span class="w-2 h-2 rounded-full bg-red-500 ml-1 flex-shrink-0" title="${d.failingStages.length} tahap defisit"></span>` : ''}
+          </td>
+          ${renderCellPair(d.s1, d.lm1)}
+          ${renderCellPair(d.s2, d.lm2)}
+          ${renderCellPair(d.s3, d.lm3)}
+          ${renderCellPair(d.s4, d.lm4)}
+          ${renderCellPair(d.s5, d.lm5)}
+          ${renderCellPair(d.s6, d.lm6)}
+          ${renderCellPair(d.s7, d.lm7)}
+          ${renderCellPair(d.pm, d.lmpm, true)}
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const n = dealers.length;
+      if (n === 0) return;
+
+      const avgS1 = dealers.reduce((acc, d) => acc + d.s1, 0) / n;
+      const avgLm1 = dealers.reduce((acc, d) => acc + d.lm1, 0) / n;
+      const avgS2 = dealers.reduce((acc, d) => acc + d.s2, 0) / n;
+      const avgLm2 = dealers.reduce((acc, d) => acc + d.lm2, 0) / n;
+      const avgS3 = dealers.reduce((acc, d) => acc + d.s3, 0) / n;
+      const avgLm3 = dealers.reduce((acc, d) => acc + d.lm3, 0) / n;
+      const avgS4 = dealers.reduce((acc, d) => acc + d.s4, 0) / n;
+      const avgLm4 = dealers.reduce((acc, d) => acc + d.lm4, 0) / n;
+      const avgS5 = dealers.reduce((acc, d) => acc + d.s5, 0) / n;
+      const avgLm5 = dealers.reduce((acc, d) => acc + d.lm5, 0) / n;
+      const avgS6 = dealers.reduce((acc, d) => acc + d.s6, 0) / n;
+      const avgLm6 = dealers.reduce((acc, d) => acc + d.lm6, 0) / n;
+      const avgS7 = dealers.reduce((acc, d) => acc + d.s7, 0) / n;
+      const avgLm7 = dealers.reduce((acc, d) => acc + d.lm7, 0) / n;
+      const avgPm = dealers.reduce((acc, d) => acc + d.pm, 0) / n;
+      const avgLmPm = dealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
+
+      function renderTotalCellPair(achVal, lmVal) {
+        const isUnder = achVal < target;
+        const colorClass = isUnder ? "text-red-300 font-black" : "text-emerald-300 font-black";
+        return `
+          <td class="p-1.5 text-center font-black ${colorClass}">${formatPct(achVal)}</td>
+          <td class="p-1.5 text-center font-bold text-slate-100">${formatDelta(lmVal)}</td>
+        `;
+      }
+
+      tfoot.innerHTML = `
+        <tr class="divide-x divide-slate-700 text-center text-xs tracking-tight">
+          <td colspan="2" class="p-2.5 text-left font-black tracking-wider uppercase sticky-col-1 bg-looker-header border-r border-slate-700">
+            TOTAL REGIONAL (${n} CABANG)
+          </td>
+          ${renderTotalCellPair(avgS1, avgLm1)}
+          ${renderTotalCellPair(avgS2, avgLm2)}
+          ${renderTotalCellPair(avgS3, avgLm3)}
+          ${renderTotalCellPair(avgS4, avgLm4)}
+          ${renderTotalCellPair(avgS5, avgLm5)}
+          ${renderTotalCellPair(avgS6, avgLm6)}
+          ${renderTotalCellPair(avgS7, avgLm7)}
+          <td class="p-1.5 text-center font-black text-amber-300 bg-slate-900">${formatPct(avgPm)}</td>
+          <td class="p-1.5 text-center font-bold text-slate-100 bg-slate-900">${formatDelta(avgLmPm)}</td>
+        </tr>
+      `;
+
+      updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target);
+      renderFunnelPage([avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7], target);
+      renderModelPage(datasetResult.rawAnalytics, target);
+      renderSegmentsPage(datasetResult.rawAnalytics, target);
+      renderIrregularityCards(dealers, target);
+      renderRawExplorerTable();
     }
 
     function updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target) {
@@ -1341,7 +1764,6 @@
       const estLoss = totalGap * AVG_EST_REVENUE_PER_UNIT;
       document.getElementById('kpiRevenueLoss').innerText = "Rp " + (estLoss / 1000000).toFixed(1) + " Jt";
 
-      // Leaderboard: Top 3 & Bottom 3
       const sorted = [...dealers].sort((a, b) => b.pm - a.pm);
       const top3 = sorted.slice(0, 3);
       const bottom3 = sorted.slice(-3).reverse();
@@ -1362,7 +1784,6 @@
         </div>
       `).join('');
 
-      // Overview Trend Line
       renderOverviewTrendChart([avgS1, dealers.reduce((acc, d) => acc + d.s2, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s3, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s4, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s5, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s6, 0)/dealers.length, avgS7], target);
     }
 
@@ -1411,125 +1832,6 @@
           }
         }
       });
-    }
-
-    function renderMatrixTable(datasetResult) {
-      const dealers = datasetResult.dealers;
-      const target = datasetResult.targetThreshold;
-      const rangeLabel = datasetResult.rangeLabelText;
-
-      ['1', '2', '3', '4', '5', '6', '7', 'pm'].forEach(id => {
-        const el = document.getElementById(`lmHeaderCol-${id}`);
-        if (el) el.innerText = rangeLabel;
-      });
-
-      const progTitle = (currentProgramMode === 'all')
-        ? "Semua Program (Konsolidasi Regional)"
-        : `${currentProgramMode} (Target ${(target * 100).toFixed(0)}%)`;
-      document.getElementById('matrixSuperHeader').innerText = progTitle;
-      document.getElementById('matrixLegendTargetValue').innerText = (target * 100).toFixed(0) + "%";
-
-      const tbody = document.getElementById('matrixTableBody');
-      const tfoot = document.getElementById('matrixTableFoot');
-      tbody.innerHTML = '';
-
-      const searchKey = document.getElementById('matrixSearchInput').value.toLowerCase();
-      const filtered = dealers.filter(d => d.dealer.toLowerCase().includes(searchKey));
-
-      filtered.forEach((d, idx) => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-blue-50/50 cursor-pointer transition divide-x divide-slate-200 border-b border-slate-200 text-center";
-        tr.onclick = () => openCapaModal(d.dealer);
-
-        function renderCellPair(achVal, lmVal, isPm = false) {
-          const isUnder = achVal < target;
-          const achClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-black text-slate-900" : "font-medium");
-          const lmClass = lmVal < 0 ? "cell-negative-lm" : "cell-positive-lm";
-          const lmBg = (lmVal < 0 && Math.abs(lmVal) >= 0.01) ? "bg-red-50/50" : (isPm ? "bg-slate-100" : "");
-
-          return `
-            <td class="p-1.5 text-center ${achClass}">${formatPct(achVal)}</td>
-            <td class="p-1.5 text-center ${lmClass} ${lmBg}">${formatDelta(lmVal)}</td>
-          `;
-        }
-
-        tr.innerHTML = `
-          <td class="p-2 font-bold text-slate-500 sticky-col-1 bg-white border-r border-slate-200">${idx + 1}</td>
-          <td class="p-2 font-bold text-slate-800 text-left sticky-col-2 bg-white border-r border-slate-200 flex items-center justify-between">
-            <span class="truncate">${d.dealer}</span>
-            ${d.failingStages.length > 0 ? `<span class="w-2 h-2 rounded-full bg-red-500 ml-1 flex-shrink-0" title="${d.failingStages.length} tahap defisit"></span>` : ''}
-          </td>
-          ${renderCellPair(d.s1, d.lm1)}
-          ${renderCellPair(d.s2, d.lm2)}
-          ${renderCellPair(d.s3, d.lm3)}
-          ${renderCellPair(d.s4, d.lm4)}
-          ${renderCellPair(d.s5, d.lm5)}
-          ${renderCellPair(d.s6, d.lm6)}
-          ${renderCellPair(d.s7, d.lm7)}
-          ${renderCellPair(d.pm, d.lmpm, true)}
-        `;
-        tbody.appendChild(tr);
-      });
-
-      // Regional Total Aggregates
-      const n = dealers.length;
-      if (n === 0) return;
-
-      const avgS1 = dealers.reduce((acc, d) => acc + d.s1, 0) / n;
-      const avgLm1 = dealers.reduce((acc, d) => acc + d.lm1, 0) / n;
-      const avgS2 = dealers.reduce((acc, d) => acc + d.s2, 0) / n;
-      const avgLm2 = dealers.reduce((acc, d) => acc + d.lm2, 0) / n;
-      const avgS3 = dealers.reduce((acc, d) => acc + d.s3, 0) / n;
-      const avgLm3 = dealers.reduce((acc, d) => acc + d.lm3, 0) / n;
-      const avgS4 = dealers.reduce((acc, d) => acc + d.s4, 0) / n;
-      const avgLm4 = dealers.reduce((acc, d) => acc + d.lm4, 0) / n;
-      const avgS5 = dealers.reduce((acc, d) => acc + d.s5, 0) / n;
-      const avgLm5 = dealers.reduce((acc, d) => acc + d.lm5, 0) / n;
-      const avgS6 = dealers.reduce((acc, d) => acc + d.s6, 0) / n;
-      const avgLm6 = dealers.reduce((acc, d) => acc + d.lm6, 0) / n;
-      const avgS7 = dealers.reduce((acc, d) => acc + d.s7, 0) / n;
-      const avgLm7 = dealers.reduce((acc, d) => acc + d.lm7, 0) / n;
-      const avgPm = dealers.reduce((acc, d) => acc + d.pm, 0) / n;
-      const avgLmPm = dealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
-
-      function renderTotalCellPair(achVal, lmVal) {
-        const isUnder = achVal < target;
-        const colorClass = isUnder ? "text-red-300 font-black" : "text-emerald-300 font-black";
-        return `
-          <td class="p-1.5 text-center font-black ${colorClass}">${formatPct(achVal)}</td>
-          <td class="p-1.5 text-center font-bold text-slate-100">${formatDelta(lmVal)}</td>
-        `;
-      }
-
-      tfoot.innerHTML = `
-        <tr class="divide-x divide-slate-700 text-center text-xs tracking-tight">
-          <td colspan="2" class="p-2.5 text-left font-black tracking-wider uppercase sticky-col-1 bg-looker-header border-r border-slate-700">
-            TOTAL REGIONAL (${n} CABANG)
-          </td>
-          ${renderTotalCellPair(avgS1, avgLm1)}
-          ${renderTotalCellPair(avgS2, avgLm2)}
-          ${renderTotalCellPair(avgS3, avgLm3)}
-          ${renderTotalCellPair(avgS4, avgLm4)}
-          ${renderTotalCellPair(avgS5, avgLm5)}
-          ${renderTotalCellPair(avgS6, avgLm6)}
-          ${renderTotalCellPair(avgS7, avgLm7)}
-          <td class="p-1.5 text-center font-black text-amber-300 bg-slate-900">${formatPct(avgPm)}</td>
-          <td class="p-1.5 text-center font-bold text-slate-100 bg-slate-900">${formatDelta(avgLmPm)}</td>
-        </tr>
-      `;
-
-      // Update Overview Page KPIs & Leaderboards
-      updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target);
-      // Update Funnel Page
-      renderFunnelPage([avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7], target);
-      // Update Model Analysis Page
-      renderModelPage(datasetResult.rawAnalytics, target);
-      // Update Segments & Loyalty Page
-      renderSegmentsPage(datasetResult.rawAnalytics, target);
-      // Update Irregularity Cards Page
-      renderIrregularityCards(dealers, target);
-      // Update Raw Explorer Sample Rows
-      renderRawExplorerTable();
     }
 
     function renderFunnelPage(actualCurve, targetVal) {
@@ -1608,7 +1910,7 @@
 
       Object.keys(analytics.models).forEach(model => {
         const m = analytics.models[model];
-        const ach = m.serviced1st / m.count;
+        const ach = m.count > 0 ? (m.serviced1st / m.count) : 1.0;
         const isUnder = ach < target;
         const gap = Math.max(0, Math.ceil(m.count * target) - m.serviced1st);
         const prog = m.lite > m.tcare ? '<span class="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded text-[10px] border border-amber-200">T-Care Lite</span>' : '<span class="text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded text-[10px] border border-blue-200">T-Care Reguler</span>';
@@ -1635,12 +1937,11 @@
     function renderSegmentsPage(analytics, target) {
       if (!analytics) return;
 
-      // Customer Types
       const cCont = document.getElementById('customerTypeSegmentCards');
       cCont.innerHTML = '';
       Object.keys(analytics.customers).forEach(cName => {
         const c = analytics.customers[cName];
-        const ach = c.serviced1st / c.count;
+        const ach = c.count > 0 ? (c.serviced1st / c.count) : 1.0;
         cCont.innerHTML += `
           <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1.5 text-xs">
             <div class="flex justify-between font-bold">
@@ -1658,7 +1959,6 @@
         `;
       });
 
-      // Dealer Loyalty (Home vs Visiting)
       const lCont = document.getElementById('dealerLoyaltyCards');
       const l = analytics.loyalty;
       const totalServ = (l.home + l.visiting) || 1;
@@ -1682,7 +1982,6 @@
         </div>
       `;
 
-      // Punctuality Audit
       const pCont = document.getElementById('punctualityAuditContainer');
       const totalPunc = (l.punctual + l.late) || 1;
       const puncPct = (l.punctual / totalPunc * 100).toFixed(1);
@@ -1782,13 +2081,10 @@
       if (activeCalculatedData && activeCalculatedData.rawSampleRows && activeCalculatedData.rawSampleRows.length > 0) {
         rowsToDisplay = activeCalculatedData.rawSampleRows;
       } else {
-        // Fallback synthetic transactions
         rowsToDisplay = [
           { 'No Rangka': 'MHFAB1BA5P00192', 'Model Kendaraan': 'Innova Zenix', 'T-CARE TYPE': 'T-Care', 'Tgl DEC': '15/01/2026', 'Dealer Penjual': 'Nasmoco Klaten', 'Bulan 1st Service': 'Feb 2026', 'Status Punctual 1st': 'Punctual', 'Dealer 1st Service': 'Nasmoco Klaten', 'Kota': 'Kab. Klaten' },
           { 'No Rangka': 'MHFAB1BA5P00284', 'Model Kendaraan': 'Avanza 1.5 G', 'T-CARE TYPE': 'T-Care', 'Tgl DEC': '22/12/2025', 'Dealer Penjual': 'Nasmoco Pemuda', 'Bulan 1st Service': 'Jan 2026', 'Status Punctual 1st': 'Punctual', 'Dealer 1st Service': 'Nasmoco Pemuda', 'Kota': 'Kota Semarang' },
-          { 'No Rangka': 'MHFAB1BA5P00319', 'Model Kendaraan': 'Calya 1.2 G', 'T-CARE TYPE': 'T-Care Lite', 'Tgl DEC': '05/01/2026', 'Dealer Penjual': 'Nasmoco Solo Baru', 'Bulan 1st Service': '-', 'Status Punctual 1st': 'Overdue', 'Dealer 1st Service': '-', 'Kota': 'Kab. Sukoharjo' },
-          { 'No Rangka': 'MHFAB1BA5P00452', 'Model Kendaraan': 'Agya 1.2 GR', 'T-CARE TYPE': 'T-Care Lite', 'Tgl DEC': '12/01/2026', 'Dealer Penjual': 'Nasmoco Mlati', 'Bulan 1st Service': 'Feb 2026', 'Status Punctual 1st': 'Punctual', 'Dealer 1st Service': 'Nasmoco Mlati', 'Kota': 'Kab. Sleman' },
-          { 'No Rangka': 'MHFAB1BA5P00581', 'Model Kendaraan': 'Fortuner 2.8 GR', 'T-CARE TYPE': 'T-Care', 'Tgl DEC': '18/12/2025', 'Dealer Penjual': 'Nasmoco Cilacap', 'Bulan 1st Service': 'Jan 2026', 'Status Punctual 1st': 'Punctual', 'Dealer 1st Service': 'Nasmoco Cilacap', 'Kota': 'Kab. Cilacap' }
+          { 'No Rangka': 'MHFAB1BA5P00319', 'Model Kendaraan': 'Calya 1.2 G', 'T-CARE TYPE': 'T-Care Lite', 'Tgl DEC': '05/01/2026', 'Dealer Penjual': 'Nasmoco Solo Baru', 'Bulan 1st Service': '-', 'Status Punctual 1st': 'Overdue', 'Dealer 1st Service': '-', 'Kota': 'Kab. Sukoharjo' }
         ];
       }
 
@@ -1800,25 +2096,75 @@
       filtered.slice(0, 30).forEach(r => {
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 transition font-mono">
-            <td class="p-2 font-bold text-slate-800">${r['No Rangka'] || '-'}</td>
-            <td class="p-2 font-sans font-semibold">${r['Model Kendaraan'] || '-'}</td>
-            <td class="p-2 font-sans">${r['T-CARE TYPE'] || '-'}</td>
-            <td class="p-2">${r['Tgl DEC'] || '-'}</td>
-            <td class="p-2 font-sans font-medium text-slate-700">${r['Dealer Penjual'] || '-'}</td>
-            <td class="p-2">${r['Bulan 1st Service'] || '-'}</td>
+            <td class="p-2 font-bold text-slate-800">${getRowVal(r, 'No Rangka', 'VIN') || '-'}</td>
+            <td class="p-2 font-sans font-semibold">${r._model || getRowVal(r, 'Model Kendaraan') || '-'}</td>
+            <td class="p-2 font-sans">${r._program || getRowVal(r, 'T-CARE TYPE') || '-'}</td>
+            <td class="p-2">${getRowVal(r, 'Tgl DEC', 'Tgl Retail') || '-'}</td>
+            <td class="p-2 font-sans font-medium text-slate-700">${r._dealer || getRowVal(r, 'Dealer Penjual') || '-'}</td>
+            <td class="p-2">${getRowVal(r, 'Bulan 1st Service') || '-'}</td>
             <td class="p-2 font-sans">
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${(r['Status Punctual 1st'] || '').toLowerCase().includes('punc') ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
-                ${r['Status Punctual 1st'] || 'Belum'}
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${(getRowVal(r, 'Status Punctual 1st')).toLowerCase().includes('punc') ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+                ${getRowVal(r, 'Status Punctual 1st') || 'Belum'}
               </span>
             </td>
-            <td class="p-2 font-sans">${r['Dealer 1st Service'] || '-'}</td>
-            <td class="p-2 font-sans text-slate-500">${r['Kota'] || '-'}</td>
+            <td class="p-2 font-sans">${getRowVal(r, 'Dealer 1st Service') || '-'}</td>
+            <td class="p-2 font-sans text-slate-500">${r._kota || getRowVal(r, 'Kota') || '-'}</td>
           </tr>
         `;
       });
 
       const counter = document.getElementById('rawExplorerCounter');
       if (counter) counter.innerText = `Menampilkan ${Math.min(filtered.length, 30)} dari ${filtered.length} baris unit data Raw.`;
+    }
+
+    function filterMatrixTable() {
+      renderMatrixTable(activeCalculatedData);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        document.getElementById('fsIcon').className = "fa-solid fa-compress";
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        document.getElementById('fsIcon').className = "fa-solid fa-expand";
+      }
+    }
+
+    function exportCurrentTableToCSV() {
+      const dList = activeCalculatedData.dealers;
+      let csv = "No,Dealer,1st %,1st vs LM,2nd %,2nd vs LM,3rd %,3rd vs LM,4th %,4th vs LM,5th %,5th vs LM,6th %,6th vs LM,7th %,7th vs LM,PM Rate %,PM Rate vs LM\n";
+      dList.forEach((d, idx) => {
+        csv += `${idx + 1},"${d.dealer}",${formatPct(d.s1)},${formatDelta(d.lm1)},${formatPct(d.s2)},${formatDelta(d.lm2)},${formatPct(d.s3)},${formatDelta(d.lm3)},${formatPct(d.s4)},${formatDelta(d.lm4)},${formatPct(d.s5)},${formatDelta(d.lm5)},${formatPct(d.s6)},${formatDelta(d.lm6)},${formatPct(d.s7)},${formatDelta(d.lm7)},${formatPct(d.pm)},${formatDelta(d.lmpm)}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `Looker_T-Care_Executive_Report_${document.getElementById('monthSelect').value}_2026.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Data matrix berhasil diekspor ke format CSV!", "success");
+    }
+
+    function showToast(message, type = "success") {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = message;
+      document.getElementById('toastIcon').className = type === 'success' ? "fa-solid fa-circle-check text-emerald-400" : (type === 'info' ? "fa-solid fa-circle-info text-blue-400" : "fa-solid fa-circle-exclamation text-amber-400");
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3500);
+    }
+
+    function openGoogleSheetsModal() { document.getElementById('gsheetsModal').classList.remove('hidden'); }
+    function closeGoogleSheetsModal() { document.getElementById('gsheetsModal').classList.add('hidden'); }
+
+    function saveAndSyncGoogleSheet() {
+      const rawVal = document.getElementById('gsheetIdInput').value.trim();
+      const match = rawVal.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      googleSheetId = match ? match[1] : rawVal;
+      googleSheetTabName = document.getElementById('gsheetTabInput').value.trim() || 'Raw';
+      closeGoogleSheetsModal();
+      fetchLiveGoogleSheet();
     }
 
     function openCapaModal(dealerName) {
@@ -1875,189 +2221,6 @@
       showToast("Rencana Tindakan Korektif (CAPA) tersimpan ke log audit!", "success");
     }
 
-    // Extracts all unique values from Column N ('T-CARE TYPE')
-    function populateProgramDropdown(rows = null) {
-      const select = document.getElementById('programFilterSelect');
-      const prevVal = select.value;
-      const progMap = new Map(); // case-insensitive deduplication: lower -> clean text
-
-      if (rows && rows.length > 0) {
-        rows.forEach(r => {
-          const val = getColumnNValue(r);
-          if (val !== undefined && val !== null) {
-            const clean = val.toString().trim();
-            if (clean !== '' && clean !== '-' && clean !== '0') {
-              const lower = clean.toLowerCase();
-              if (!progMap.has(lower)) {
-                progMap.set(lower, clean);
-              }
-            }
-          }
-        });
-      }
-
-      // Fallback defaults if no raw data has been uploaded yet
-      if (progMap.size === 0) {
-        progMap.set('t-care', 'T-Care');
-        progMap.set('t-care lite', 'T-Care Lite');
-      }
-
-      const progList = Array.from(progMap.values()).sort();
-
-      let optionsHtml = `<option value="all">Semua Program (Gabungan)</option>`;
-      progList.forEach(prog => {
-        const isLite = prog.toLowerCase().includes('lite');
-        const targetPercent = isLite ? '81%' : '91%';
-        optionsHtml += `<option value="${prog}">${prog} (${targetPercent})</option>`;
-      });
-
-      select.innerHTML = optionsHtml;
-
-      // Retain previously selected value or default to first non-lite T-Care program
-      if (prevVal && (prevVal === 'all' || progList.some(p => p.toLowerCase() === prevVal.toLowerCase()))) {
-        const matched = progList.find(p => p.toLowerCase() === prevVal.toLowerCase());
-        select.value = matched || prevVal;
-      } else {
-        const defaultProg = progList.find(p => p.toLowerCase().includes('t-care') && !p.toLowerCase().includes('lite')) || progList[0];
-        select.value = defaultProg;
-      }
-
-      currentProgramMode = select.value;
-      updateProgramBadgeAndHeader();
-    }
-
-    function updateProgramBadgeAndHeader() {
-      const badge = document.getElementById('activeProgramHeaderBadge');
-      if (!badge) return;
-      const isLite = currentProgramMode.toLowerCase().includes('lite');
-      const isAll = currentProgramMode === 'all';
-
-      if (isAll) {
-        badge.innerText = "Semua Program (Gabungan)";
-        badge.className = "text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-semibold border border-purple-400";
-      } else if (isLite) {
-        badge.innerText = `${currentProgramMode} (81%)`;
-        badge.className = "text-[10px] bg-amber-600 text-white px-2 py-0.5 rounded-full font-semibold border border-amber-400";
-      } else {
-        badge.innerText = `${currentProgramMode} (91%)`;
-        badge.className = "text-[10px] bg-blue-600/90 text-white px-2 py-0.5 rounded-full font-semibold border border-blue-400/30";
-      }
-    }
-
-    function populateBranchDropdown(rows = null) {
-      const select = document.getElementById('branchFilterSelect');
-      const prevVal = select.value;
-      let branchList = NASMOCO_DEALERS;
-
-      if (rows && rows.length > 0) {
-        const detected = new Set();
-        rows.forEach(r => {
-          const d = r['Dealer Penjual'] || r['Dealer'] || r['DEALER'];
-          if (d) {
-            const cleanD = d.toString().trim();
-            if (cleanD !== '' && cleanD !== '-') detected.add(cleanD);
-          }
-        });
-        if (detected.size > 0) branchList = Array.from(detected).sort();
-      }
-
-      select.innerHTML = '<option value="ALL" selected>Semua 22 Cabang</option>';
-      branchList.forEach(d => {
-        select.innerHTML += `<option value="${d}">${d}</option>`;
-      });
-
-      if (prevVal && (prevVal === 'ALL' || branchList.includes(prevVal))) {
-        select.value = prevVal;
-      }
-    }
-
-    function onProgramFilterChange() {
-      currentProgramMode = document.getElementById('programFilterSelect').value;
-      updateProgramBadgeAndHeader();
-      applyFilters();
-    }
-
-    function togglePeriodModeUI() {
-      currentPeriodMode = document.getElementById('periodModeSelect').value;
-      if (currentPeriodMode === 'single') {
-        document.getElementById('singleMonthControls').classList.remove('hidden');
-        document.getElementById('rangePeriodControls').classList.add('hidden');
-      } else {
-        document.getElementById('singleMonthControls').classList.add('hidden');
-        document.getElementById('rangePeriodControls').classList.remove('hidden');
-      }
-      applyFilters();
-    }
-
-    function applyFilters() {
-      const month = document.getElementById('monthSelect').value;
-      const startM = document.getElementById('rangeStartMonth').value;
-      const endM = document.getElementById('rangeEndMonth').value;
-      currentBranchFilter = document.getElementById('branchFilterSelect').value;
-      currentCustomerFilter = document.getElementById('customerFilterSelect').value;
-
-      if (currentPeriodMode === 'single') {
-        document.getElementById('cohortRangeLabel').innerText = (month === 'Februari') ? 'Dec 25 - Jan 26' : (month === 'Maret' ? 'Jan 26 - Feb 26' : 'Nov 25 - Dec 25');
-        document.getElementById('cohortActualLabel').innerText = `s/d ${month} 26`;
-      } else {
-        document.getElementById('cohortRangeLabel').innerText = `${startM} - ${endM} 2026`;
-        document.getElementById('cohortActualLabel').innerText = `Kumulatif`;
-      }
-
-      activeCalculatedData = buildDataset(currentProgramMode, currentPeriodMode, month, startM, endM, currentBranchFilter, currentCustomerFilter);
-      renderMatrixTable(activeCalculatedData);
-    }
-
-    function filterMatrixTable() {
-      renderMatrixTable(activeCalculatedData);
-    }
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-        document.getElementById('fsIcon').className = "fa-solid fa-compress";
-      } else {
-        if (document.exitFullscreen) document.exitFullscreen();
-        document.getElementById('fsIcon').className = "fa-solid fa-expand";
-      }
-    }
-
-    function exportCurrentTableToCSV() {
-      const dList = activeCalculatedData.dealers;
-      let csv = "No,Dealer,1st %,1st vs LM,2nd %,2nd vs LM,3rd %,3rd vs LM,4th %,4th vs LM,5th %,5th vs LM,6th %,6th vs LM,7th %,7th vs LM,PM Rate %,PM Rate vs LM\n";
-      dList.forEach((d, idx) => {
-        csv += `${idx + 1},"${d.dealer}",${formatPct(d.s1)},${formatDelta(d.lm1)},${formatPct(d.s2)},${formatDelta(d.lm2)},${formatPct(d.s3)},${formatDelta(d.lm3)},${formatPct(d.s4)},${formatDelta(d.lm4)},${formatPct(d.s5)},${formatDelta(d.lm5)},${formatPct(d.s6)},${formatDelta(d.lm6)},${formatPct(d.s7)},${formatDelta(d.lm7)},${formatPct(d.pm)},${formatDelta(d.lmpm)}\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `Looker_T-Care_Executive_Report_${document.getElementById('monthSelect').value}_2026.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast("Data matrix berhasil diekspor ke format CSV!", "success");
-    }
-
-    function showToast(message, type = "success") {
-      const toast = document.getElementById('toast');
-      document.getElementById('toastMsg').innerText = message;
-      document.getElementById('toastIcon').className = type === 'success' ? "fa-solid fa-circle-check text-emerald-400" : (type === 'info' ? "fa-solid fa-circle-info text-blue-400" : "fa-solid fa-circle-exclamation text-amber-400");
-      toast.classList.remove('translate-y-20', 'opacity-0');
-      setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3500);
-    }
-
-    function openGoogleSheetsModal() { document.getElementById('gsheetsModal').classList.remove('hidden'); }
-    function closeGoogleSheetsModal() { document.getElementById('gsheetsModal').classList.add('hidden'); }
-
-    function saveAndSyncGoogleSheet() {
-      const rawVal = document.getElementById('gsheetIdInput').value.trim();
-      const match = rawVal.match(/\/d\/([a-zA-Z0-9-_]+)/);
-      googleSheetId = match ? match[1] : rawVal;
-      googleSheetTabName = document.getElementById('gsheetTabInput').value.trim() || 'Raw';
-      closeGoogleSheetsModal();
-      fetchLiveGoogleSheet();
-    }
-
     async function fetchLiveGoogleSheet() {
       if (isFetchingSheet) return;
       isFetchingSheet = true;
@@ -2110,8 +2273,7 @@
             const now = new Date();
             const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-            populateProgramDropdown(uploadedRawDataset);
-            populateBranchDropdown(uploadedRawDataset);
+            extractUniqueValuesFromSheet(uploadedRawDataset);
 
             statusIndicator.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
             statusText.innerHTML = `Terhubung ke Google Sheets: <strong>${googleSheetTabName}</strong> (${jsonData.length.toLocaleString()} unit)`;
@@ -2127,7 +2289,7 @@
       }
 
       statusIndicator.className = "w-2 h-2 rounded-full bg-amber-400";
-      statusText.innerHTML = `Akses online terbatas. Menampilkan data benchmark eksekutif.`;
+      statusText.innerHTML = `Akses online terbatas. Menampilkan data baseline Nasmoco.`;
       showToast("Spreadsheet butuh izin 'Siapa saja yang memiliki link'. Membuka panduan...", "warning");
       openGoogleSheetsModal();
     }
@@ -2151,8 +2313,7 @@
           }
 
           uploadedRawDataset = jsonData;
-          populateProgramDropdown(uploadedRawDataset);
-          populateBranchDropdown(uploadedRawDataset);
+          extractUniqueValuesFromSheet(uploadedRawDataset);
 
           document.getElementById('syncStatusIndicator').className = "w-2 h-2 rounded-full bg-blue-400";
           document.getElementById('syncStatusText').innerHTML = `Memuat file lokal: <strong>${file.name}</strong> (${jsonData.length.toLocaleString()} unit)`;
@@ -2170,8 +2331,21 @@
 
     function resetToDemoData() {
       uploadedRawDataset = null;
-      populateProgramDropdown();
-      populateBranchDropdown();
+      filterState.allPrograms = ['T-Care', 'T-Care Lite'];
+      filterState.allBranches = NASMOCO_DEALERS;
+      filterState.allModels = ['Innova Zenix', 'Avanza', 'Calya', 'Agya', 'Veloz', 'Fortuner', 'Yaris Cross'];
+      filterState.allCustTypes = ['Retail (Individual)', 'Fleet / Perusahaan'];
+
+      filterState.programs = new Set(filterState.allPrograms);
+      filterState.branches = new Set(filterState.allBranches);
+      filterState.models = new Set(filterState.allModels);
+      filterState.custTypes = new Set(filterState.allCustTypes);
+
+      renderMultiSelectCheckboxes('program');
+      renderMultiSelectCheckboxes('branch');
+      renderMultiSelectCheckboxes('model');
+      renderMultiSelectCheckboxes('cust');
+
       document.getElementById('syncStatusIndicator').className = "w-2 h-2 rounded-full bg-slate-400";
       document.getElementById('syncStatusText').innerHTML = `Mode Demo Benchmark (22 Cabang Nasmoco)`;
       document.getElementById('lastSyncTimestamp').innerText = `| Data Standar`;
@@ -2180,9 +2354,7 @@
     }
 
     window.onload = function () {
-      populateProgramDropdown();
-      populateBranchDropdown();
-      applyFilters();
+      resetToDemoData();
       setTimeout(() => {
         fetchLiveGoogleSheet();
       }, 500);
