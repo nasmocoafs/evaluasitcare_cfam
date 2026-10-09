@@ -1299,8 +1299,6 @@
       const rule = getMatrixRule(m, stageIdx);
       return { startYM: rule.potStartYM, endYM: rule.potEndYM };
     }
-      return { startYM, endYM };
-    }
 
     function parseToYearMonth(val) {
       if (!val) return 0;
@@ -2097,6 +2095,34 @@
       tbody.innerHTML = rows.join('');
     }
 
+    function togglePeriodModeUI() {
+      const mode = document.getElementById('periodModeSelect').value;
+      currentPeriodMode = mode;
+      const singleEl = document.getElementById('singleMonthControls');
+      const rangeEl = document.getElementById('rangePeriodControls');
+      if (mode === 'single') {
+        singleEl.classList.remove('hidden');
+        rangeEl.classList.add('hidden');
+      } else {
+        singleEl.classList.add('hidden');
+        rangeEl.classList.remove('hidden');
+      }
+      fastRecalculate();
+    }
+
+    function filterIrregularityView(filterType) {
+      if (!activeCalculatedData) return;
+      const target = activeCalculatedData.targetThreshold;
+      const dealers = activeCalculatedData.dealers;
+      if (filterType === 'critical') {
+        renderIrregularityCards(dealers.filter(d => d.pm < target || d.failingStages.length >= 3), target);
+      } else if (filterType === 'stage') {
+        renderIrregularityCards(dealers.filter(d => d.pm >= target && d.failingStages.length > 0), target);
+      } else {
+        renderIrregularityCards(dealers, target);
+      }
+    }
+
     function switchLookerPage(pageId) {
       const idx = LOOKER_PAGES.indexOf(pageId);
       if (idx !== -1) currentLookerPageIndex = idx;
@@ -2118,199 +2144,6 @@
       if (pageId === 'page-overview' && overviewChartInstance) overviewChartInstance.resize();
       if (pageId === 'page-funnel' && funnelChartInstance) funnelChartInstance.resize();
       if (pageId === 'page-matrix-settings') renderMatrixSettingsUI();
-    }
-
-      const { records, branchDict, progDict, modelDict, custDict } = rawNormalizedDataset;
-
-      const activeBranchesMask = new Uint8Array(branchDict.length);
-      branchDict.forEach((b, idx) => { if (filterState.branches.has(b)) activeBranchesMask[idx] = 1; });
-
-      const activeProgsMask = new Uint8Array(progDict.length);
-      progDict.forEach((p, idx) => { if (filterState.programs.has(p)) activeProgsMask[idx] = 1; });
-
-      const activeModelsMask = new Uint8Array(modelDict.length);
-      modelDict.forEach((m, idx) => { if (filterState.models.has(m)) activeModelsMask[idx] = 1; });
-
-      const activeCustsMask = new Uint8Array(custDict.length);
-      custDict.forEach((c, idx) => { if (filterState.custTypes.has(c)) activeCustsMask[idx] = 1; });
-
-      const prevM = mIdx > 0 ? mIdx - 1 : 0;
-      const evalCutoffYM = 2026 * 12 + mIdx;
-      const prevCutoffYM = 2026 * 12 + prevM;
-
-      const cN_start = new Int16Array(7);
-      const cN_end = new Int16Array(7);
-      const cP_start = new Int16Array(7);
-      const cP_end = new Int16Array(7);
-
-      for (let s = 0; s < 7; s++) {
-        const cn = getCohortBoundsYM(mIdx, s);
-        cN_start[s] = cn.startYM; cN_end[s] = cn.endYM;
-        const cp = getCohortBoundsYM(prevM, s);
-        cP_start[s] = cp.startYM; cP_end[s] = cp.endYM;
-      }
-
-      const numBranches = branchDict.length;
-      const numModels = modelDict.length;
-      const numCusts = custDict.length;
-
-      // Flat typed arrays for zero-allocation performance
-      const dPotNow = new Int32Array(numBranches * 7);
-      const dActNow = new Int32Array(numBranches * 7);
-      const dPotPrev = new Int32Array(numBranches * 7);
-      const dActPrev = new Int32Array(numBranches * 7);
-
-      const mCount = new Int32Array(numModels);
-      const mServ1st = new Int32Array(numModels);
-      const mLite = new Int32Array(numModels);
-      const mTcare = new Int32Array(numModels);
-
-      const cCount = new Int32Array(numCusts);
-      const cServ1st = new Int32Array(numCusts);
-
-      let homeLoyalty = 0, visitingLoyalty = 0, puncCount = 0, lateCount = 0;
-      const rawSampleRows = [];
-      const totalRows = records.length;
-
-      // SINGLE ULTRA-FAST PASS (Takes < 3ms for 67k rows in V8)
-      for (let i = 0; i < totalRows; i++) {
-        const r = records[i];
-
-        if (activeProgsMask[r.progIdx] === 0) continue;
-        if (activeModelsMask[r.modelIdx] === 0) continue;
-        if (activeCustsMask[r.custIdx] === 0) continue;
-
-        const mIdxObj = r.modelIdx;
-        mCount[mIdxObj]++;
-        if (r.isLite) mLite[mIdxObj]++; else mTcare[mIdxObj]++;
-        const has1st = (r.sDoneMask & 1) !== 0;
-        if (has1st) mServ1st[mIdxObj]++;
-
-        const cIdxObj = r.custIdx;
-        cCount[cIdxObj]++;
-        if (has1st) cServ1st[cIdxObj]++;
-
-        if (r.d1st) {
-          if (r.isHome1st) homeLoyalty++; else visitingLoyalty++;
-        }
-        if (r.p1st) {
-          if (r.isPunctual1st) puncCount++; else lateCount++;
-        }
-
-        if (rawSampleRows.length < 50) {
-          rawSampleRows.push({
-            vin: r.vin, model: modelDict[r.modelIdx], prog: progDict[r.progIdx], decStr: r.decStr,
-            dealer: branchDict[r.dealerIdx], sDone: [(r.sDoneMask & 1) !== 0], p1st: r.p1st, d1st: r.d1st, kota: r.kota
-          });
-        }
-
-        if (activeBranchesMask[r.dealerIdx] === 0) continue;
-
-        const dec = r.decYM;
-        if (dec === 0) continue;
-
-        const dBase = r.dealerIdx * 7;
-        const sMask = r.sDoneMask;
-        const sYM = r.sYM;
-
-        for (let s = 0; s < 7; s++) {
-          if (dec >= cN_start[s] && dec <= cN_end[s]) {
-            dPotNow[dBase + s]++;
-            if ((sMask & (1 << s)) !== 0) {
-              if (sYM[s] === 0 || sYM[s] <= evalCutoffYM) dActNow[dBase + s]++;
-            }
-          }
-
-          if (dec >= cP_start[s] && dec <= cP_end[s]) {
-            dPotPrev[dBase + s]++;
-            if ((sMask & (1 << s)) !== 0) {
-              if (sYM[s] === 0 || sYM[s] <= prevCutoffYM) dActPrev[dBase + s]++;
-            }
-          }
-        }
-      }
-
-      // Format dealer results
-      const computedDealers = [];
-      for (let b = 0; b < numBranches; b++) {
-        if (activeBranchesMask[b] === 0) continue;
-        const dBase = b * 7;
-        const stagesDetail = [];
-        let totalPot = 0, totalAct = 0, totalGap = 0;
-        const failingStages = [];
-
-        for (let s = 0; s < 7; s++) {
-          const pot = dPotNow[dBase + s];
-          const act = dActNow[dBase + s];
-          const ach = pot > 0 ? (act / pot) : 1.0;
-
-          const potP = dPotPrev[dBase + s];
-          const actP = dActPrev[dBase + s];
-          const achP = potP > 0 ? (actP / potP) : ach;
-          const deltaLm = ach - achP;
-
-          const gap = Math.max(0, Math.ceil(pot * targetThreshold) - act);
-
-          totalPot += pot; totalAct += act; totalGap += gap;
-          if (ach < targetThreshold && pot > 0) {
-            failingStages.push({ stage: `${s + 1}st`, ach, gap });
-          }
-
-          stagesDetail.push({ name: `${s + 1}st`, pot, act, ach, lm: deltaLm, gap });
-        }
-
-        const s1 = stagesDetail[0].ach, lm1 = stagesDetail[0].lm;
-        const s2 = stagesDetail[1].ach, lm2 = stagesDetail[1].lm;
-        const s3 = stagesDetail[2].ach, lm3 = stagesDetail[2].lm;
-        const s4 = stagesDetail[3].ach, lm4 = stagesDetail[3].lm;
-        const s5 = stagesDetail[4].ach, lm5 = stagesDetail[4].lm;
-        const s6 = stagesDetail[5].ach, lm6 = stagesDetail[5].lm;
-        const s7 = stagesDetail[6].ach, lm7 = stagesDetail[6].lm;
-
-        const pm = totalPot > 0 ? (totalAct / totalPot) : ((s1 + s2 + s3 + s4 + s5 + s6 + s7) / 7);
-        const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
-        const severity = (pm < targetThreshold || failingStages.length >= 3) ? "Level 3 (Red Alert)" : (failingStages.length > 0 ? "Level 2 (Yellow Alert)" : "Level 0 (Aman)");
-
-        computedDealers.push({
-          dealer: branchDict[b],
-          s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
-          pm, lmpm, totalPot, totalAct, totalGap, failingStages, severity, stagesDetail
-        });
-      }
-
-      // Model Analytics Map
-      const modelStats = {};
-      for (let m = 0; m < numModels; m++) {
-        if (mCount[m] > 0) {
-          modelStats[modelDict[m]] = {
-            count: mCount[m], serviced1st: mServ1st[m], lite: mLite[m], tcare: mTcare[m]
-          };
-        }
-      }
-
-      // Customer Analytics Map
-      const custStats = {};
-      for (let c = 0; c < numCusts; c++) {
-        if (cCount[c] > 0) {
-          custStats[custDict[c]] = {
-            count: cCount[c], serviced1st: cServ1st[c]
-          };
-        }
-      }
-
-      activeCalculatedData = {
-        dealers: computedDealers,
-        targetThreshold,
-        rangeLabelText: "vs LM",
-        rawAnalytics: {
-          models: modelStats,
-          customers: custStats,
-          loyalty: { home: homeLoyalty, visiting: visitingLoyalty, punctual: puncCount, late: lateCount }
-        },
-        rawSampleRows
-      };
-
-      renderMatrixTable(activeCalculatedData);
     }
 
     function updateOverviewTrendChart(actualCurve, targetVal) {
@@ -2815,28 +2648,6 @@
 
     function filterMatrixTable() {
       renderMatrixTable(activeCalculatedData);
-    }
-
-    function switchLookerPage(pageId) {
-      const idx = LOOKER_PAGES.indexOf(pageId);
-      if (idx !== -1) currentLookerPageIndex = idx;
-
-      LOOKER_PAGES.forEach(pid => {
-        const el = document.getElementById(pid);
-        const btn = document.getElementById(`navBtn-${pid}`);
-        if (el) el.classList.remove('active-page');
-        if (btn) btn.className = "looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition text-xs font-semibold";
-      });
-
-      const activeEl = document.getElementById(pageId);
-      const activeBtn = document.getElementById(`navBtn-${pageId}`);
-      if (activeEl) activeEl.classList.add('active-page');
-      if (activeBtn) activeBtn.className = "looker-nav-btn py-2 px-3 rounded-lg bg-slate-900 text-white font-bold flex items-center space-x-1.5 transition text-xs shadow-xs";
-
-      document.getElementById('lookerPageIndicator').innerText = `Halaman ${currentLookerPageIndex + 1} dari ${LOOKER_PAGES.length}`;
-
-      if (pageId === 'page-overview' && overviewChartInstance) overviewChartInstance.resize();
-      if (pageId === 'page-funnel' && funnelChartInstance) funnelChartInstance.resize();
     }
 
     function navigatePageStep(direction) {
