@@ -191,7 +191,7 @@
         </div>
 
         <div class="flex items-center space-x-1.5 text-xs text-slate-500 shrink-0">
-          <span class="text-[11px] font-semibold text-slate-600" id="lookerPageIndicator">Halaman 1 dari 8</span>
+          <span class="text-[11px] font-semibold text-slate-600" id="lookerPageIndicator">Halaman 1 dari 6</span>
           <button onclick="navigatePageStep(-1)" title="Halaman Sebelumnya" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 border border-slate-200">
             <i class="fa-solid fa-chevron-left text-[10px]"></i>
           </button>
@@ -647,29 +647,6 @@
         </h4>
         <div id="punctualityAuditContainer" class="space-y-2"></div>
       </div>
-    </div>
-
-    <div id="page-irregularity" class="view-page space-y-4">
-      <div class="bg-red-50 border-l-4 border-looker-accent p-3.5 rounded-r-xl text-xs">
-        <div class="flex items-start">
-          <i class="fa-solid fa-triangle-exclamation text-looker-accent text-lg mr-2.5 mt-0.5"></i>
-          <div>
-            <h4 class="font-bold text-red-900 text-sm">Protokol Pengendalian Ketidaksesuaian (Irregularity SLA)</h4>
-            <p class="text-red-800 mt-0.5 leading-relaxed">
-              Cabang dengan pencapaian retensi di bawah target (<strong id="capaTargetInfoText">91% T-Care / 81% T-Care Lite</strong>) pada tahap servis mana pun atau PM Rate regional diwajibkan menerbitkan dokumen <strong>CAPA (4M + 1E)</strong> dengan komitmen penutupan gap dalam kurun waktu 3–7 hari kerja.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex items-center space-x-2 text-xs font-semibold">
-        <span class="text-slate-500">Filter Status:</span>
-        <button onclick="filterIrregularityView('all')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-2.5 py-1 rounded-md">Semua Defisit</button>
-        <button onclick="filterIrregularityView('critical')" class="bg-red-100 hover:bg-red-200 text-red-800 px-2.5 py-1 rounded-md">Critical (PM &lt; Target)</button>
-        <button onclick="filterIrregularityView('stage')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded-md">Stage Drop Only</button>
-      </div>
-
-      <div id="irregularityCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1"></div>
     </div>
 
     <!-- PAGE 7: RAW EXPLORER & ATTACKLIST REMINDER (PER VIN SERVICE HISTORY) -->
@@ -1728,10 +1705,10 @@
           vin: (cVin !== -1 && r[cVin]) ? String(r[cVin]).trim() : '',
           dealerIdx, progIdx, modelIdx, custIdx,
           decYM, sDoneMask, sYM,
-          d1st, p1st, isHome1st, isPunctual1st, isLate1st, isLite,
+          d1st, p1st, isHome1st, loyaltyType, isPunctual1st, isLate1st, isLite,
           sDealers, sPunctuals,
           kota: (cKota !== -1 && r[cKota]) ? String(r[cKota]).trim() : '',
-          decStr: decVal || '-'
+          decStr: decVal || '-'const rawSampleRows = [];
         };
       }
 
@@ -1969,7 +1946,7 @@
       const cCount = new Int32Array(numCusts);
       const cServ1st = new Int32Array(numCusts);
 
-      let homeLoyalty = 0, visitingLoyalty = 0, puncCount = 0, lateCount = 0;
+      let sameOutletCount = 0, sameDealerCount = 0, otherDealerCount = 0, puncCount = 0, lateCount = 0;
       const rawSampleRows = [];
       const totalRows = records.length;
 
@@ -2123,7 +2100,7 @@
         rawAnalytics: {
           models: modelStats,
           customers: custStats,
-          loyalty: { home: homeLoyalty, visiting: visitingLoyalty, punctual: puncCount, late: lateCount }
+          loyalty: { sameOutlet: sameOutletCount, sameDealer: sameDealerCount, otherDealer: otherDealerCount, punctual: puncCount, late: lateCount }
         },
         rawSampleRows
       };
@@ -2604,7 +2581,8 @@
       document.getElementById('kpiIrregularBranches').innerText = `${irregularList.length} Cabang`;
       const compPct = (((dealers.length - irregularList.length) / dealers.length) * 100).toFixed(0);
       document.getElementById('kpiComplianceRate').innerText = `${compPct}% Cabang Aman`;
-      document.getElementById('navIrregularBadge').innerText = irregularList.length;
+      const elNavBadge = document.getElementById('navIrregularBadge');
+      if (elNavBadge) elNavBadge.innerText = irregularList.length;
 
       const totalGap = dealers.reduce((acc, d) => acc + d.totalGap, 0);
       document.getElementById('kpiTotalGapUnits').innerText = `${totalGap.toLocaleString()} Unit`;
@@ -3018,7 +2996,7 @@
 
     function setAttacklistFilter(filterKey) {
       currentAttacklistFilter = filterKey;
-      ['all_unserviced', 'this_month', 'm_plus_1', 'm_plus_2', 'overdue', 'all_raw'].forEach(k => {
+      ['all_active_atk', 'this_month', 'm_plus_1', 'm_plus_2', 'overdue', 'expired', 'all_raw'].forEach(k => {
         const btn = document.getElementById(`btnAtkFilter-${k}`);
         if (btn) {
           if (k === filterKey) {
@@ -3161,11 +3139,12 @@
       if (elTotalRev) elTotalRev.innerText = "Rp " + (revTotal / 1000000000).toFixed(2) + " M";
 
       const filtered = processedUnits.filter(u => {
-        if (currentAttacklistFilter === 'all_unserviced' && u.atkCategory === 'completed') return false;
+        if (currentAttacklistFilter === 'all_active_atk' && (u.atkCategory === 'completed' || u.atkCategory === 'expired')) return false;
         if (currentAttacklistFilter === 'this_month' && u.atkCategory !== 'this_month') return false;
         if (currentAttacklistFilter === 'm_plus_1' && u.atkCategory !== 'm_plus_1') return false;
         if (currentAttacklistFilter === 'm_plus_2' && u.atkCategory !== 'm_plus_2') return false;
         if (currentAttacklistFilter === 'overdue' && u.atkCategory !== 'overdue') return false;
+        if (currentAttacklistFilter === 'expired' && u.atkCategory !== 'expired') return false;
 
         if (stageFilter !== 'all' && u.nextStageIdx !== parseInt(stageFilter, 10)) return false;
         if (priorityFilter !== 'all' && u.prioInfo.label !== priorityFilter) return false;
@@ -3193,7 +3172,9 @@
         }
 
         let atkBadge = '';
-        if (u.atkCategory === 'this_month') {
+        if (u.atkCategory === 'expired') {
+          atkBadge = `<span class="bg-slate-100 text-slate-600 border border-slate-300 font-bold px-2 py-0.5 rounded text-[10px]">⏰ Expired (>36 Bln)</span>`;
+        } else if (u.atkCategory === 'this_month') {
           atkBadge = `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold px-2 py-0.5 rounded text-[10px]">🔥 Bulan Ini (${MONTH_SHORT[evalMIdx]})</span>`;
         } else if (u.atkCategory === 'm_plus_1') {
           atkBadge = `<span class="bg-blue-100 text-blue-900 border border-blue-300 font-bold px-2 py-0.5 rounded text-[10px]">⚡ M+1 (${MONTH_SHORT[(evalMIdx + 1) % 12]})</span>`;
@@ -3206,7 +3187,7 @@
         } else {
           atkBadge = `<span class="bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded text-[10px]">Lengkap (7/7)</span>`;
         }
-
+        
         let stageHistoryCells = '';
         for (let s = 0; s < 7; s++) {
           const isDone = (u.sDoneMask & (1 << s)) !== 0;
