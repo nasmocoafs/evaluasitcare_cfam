@@ -54,23 +54,17 @@
 
     /* Custom Multi-Select Dropdown styling */
     .ms-dropdown-menu {
-      max-height: 320px;
+      max-height: 340px;
       overflow-y: auto;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     }
 
     /* Page view transitions */
     .view-page { display: none; }
-    .view-page.active-page { display: block; animation: fadeIn 0.12s ease-in-out; }
+    .view-page.active-page { display: block; animation: fadeIn 0.1s ease-in-out; }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(2px); }
+      from { opacity: 0; transform: translateY(1px); }
       to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Loading overlay */
-    #calcSpinnerOverlay {
-      backdrop-filter: blur(2px);
-      transition: opacity 0.15s ease-out;
     }
 
     @media print {
@@ -82,7 +76,6 @@
 </head>
 <body class="bg-looker-bg text-looker-text antialiased min-h-screen flex flex-col">
 
-  <!-- Header -->
   <header class="bg-looker-header text-white sticky top-0 z-40 shadow-sm border-b border-slate-800 select-none">
     <div class="max-w-[1850px] mx-auto px-3 sm:px-6">
       <div class="flex items-center justify-between h-14">
@@ -146,7 +139,6 @@
     </div>
   </header>
 
-  <!-- Live Sync Status Banner -->
   <div id="liveSyncStatusBanner" class="bg-slate-900 border-b border-slate-800 px-3 sm:px-6 py-1 text-[11px] text-slate-300">
     <div class="max-w-[1850px] mx-auto flex items-center justify-between">
       <div class="flex items-center space-x-2 truncate">
@@ -157,13 +149,18 @@
         <span class="text-slate-400 hidden sm:inline" id="lastSyncTimestamp">| Siap Sinkronisasi</span>
       </div>
       <div class="flex items-center space-x-3 text-[10px] text-slate-400 font-mono">
+        <button onclick="openMatrixReferenceModal()" class="text-blue-400 hover:text-blue-300 font-sans underline cursor-pointer">
+          <i class="fa-solid fa-table-list mr-1"></i>Lihat Matriks Kohort
+        </button>
+        <button onclick="switchLookerPage('page-matrix-settings')" class="text-amber-400 hover:text-amber-300 font-sans underline cursor-pointer font-bold">
+          <i class="fa-solid fa-sliders mr-1"></i>Setting Matrix Manual
+        </button>
         <span id="activeTargetRuleLabel">Target: T-Care 91% | Lite 81%</span>
-        <span class="hidden lg:inline bg-slate-800 px-2 py-0.5 rounded text-slate-300 font-sans">Looker Engine v5.0 Turbo</span>
+        <span class="hidden lg:inline bg-slate-800 px-2 py-0.5 rounded text-slate-300 font-sans">Looker Engine v6.2 Ultra-Fast</span>
       </div>
     </div>
   </div>
 
-  <!-- Navigation Tabs -->
   <nav class="bg-white border-b border-slate-200 sticky top-14 z-30 shadow-xs">
     <div class="max-w-[1850px] mx-auto px-3 sm:px-6">
       <div class="flex items-center justify-between overflow-x-auto scrollbar-thin py-1 gap-2">
@@ -204,10 +201,15 @@
             <i class="fa-solid fa-magnifying-glass-chart text-slate-600 text-xs"></i>
             <span>7. Raw Explorer</span>
           </button>
+
+          <button onclick="switchLookerPage('page-matrix-settings')" id="navBtn-page-matrix-settings" class="looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-sliders text-indigo-600 text-xs"></i>
+            <span>8. Setting Matrix</span>
+          </button>
         </div>
 
         <div class="flex items-center space-x-1.5 text-xs text-slate-500 shrink-0">
-          <span class="text-[11px] font-semibold text-slate-600" id="lookerPageIndicator">Halaman 1 dari 7</span>
+          <span class="text-[11px] font-semibold text-slate-600" id="lookerPageIndicator">Halaman 1 dari 8</span>
           <button onclick="navigatePageStep(-1)" title="Halaman Sebelumnya" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 border border-slate-200">
             <i class="fa-solid fa-chevron-left text-[10px]"></i>
           </button>
@@ -220,7 +222,6 @@
     </div>
   </nav>
 
-  <!-- Universal Multi-Select Filter Strip -->
   <section class="bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 shadow-xs relative z-20">
     <div class="max-w-[1850px] mx-auto">
       <div class="flex flex-wrap items-center justify-between gap-2.5">
@@ -235,13 +236,14 @@
               <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
             </button>
             <div id="msProgramMenu" class="hidden absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl p-2.5 z-50 ms-dropdown-menu">
-              <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-1.5 text-[11px]">
-                <button type="button" onclick="selectAllMultiOptions('program', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
-                <button type="button" onclick="selectAllMultiOptions('program', false)" class="text-slate-500 hover:underline">Reset</button>
+              <div class="pb-1.5 mb-1.5 border-b border-slate-100 space-y-1">
+                <input type="text" id="searchProgramInput" onkeyup="filterOptionList('program')" placeholder="Cari program..." class="w-full text-xs p-1 rounded border border-slate-200 focus:outline-none">
+                <div class="flex items-center justify-between text-[11px]">
+                  <button type="button" onclick="selectAllMultiOptions('program', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
+                  <button type="button" onclick="selectAllMultiOptions('program', false)" class="text-slate-500 hover:underline">Reset</button>
+                </div>
               </div>
-              <div id="msProgramOptionsList" class="space-y-0.5 text-xs">
-                <!-- Dynamically populated -->
-              </div>
+              <div id="msProgramOptionsList" class="space-y-0.5 text-xs"></div>
             </div>
           </div>
 
@@ -257,7 +259,7 @@
           <!-- Single Month Selector (Januari s/d Desember 2026, default September 2026) -->
           <div id="singleMonthControls" class="flex items-center space-x-1 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1">
             <label class="text-[10px] font-bold uppercase text-slate-400">BULAN:</label>
-            <select id="monthSelect" onchange="debouncedApplyFilters()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
+            <select id="monthSelect" onchange="fastRecalculate()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
               <option value="Januari">Januari 2026</option>
               <option value="Februari">Februari 2026</option>
               <option value="Maret">Maret 2026</option>
@@ -276,7 +278,7 @@
           <!-- Multi-Month Range Selector (Januari s/d Desember 2026) -->
           <div id="rangePeriodControls" class="hidden flex items-center space-x-1 bg-red-50/70 border border-red-200 rounded-lg px-2 py-1">
             <label class="text-[10px] font-bold text-looker-accent uppercase">RENTANG:</label>
-            <select id="rangeStartMonth" onchange="debouncedApplyFilters()" class="bg-white border border-slate-300 rounded text-xs px-1 py-0.5">
+            <select id="rangeStartMonth" onchange="fastRecalculate()" class="bg-white border border-slate-300 rounded text-xs px-1 py-0.5">
               <option value="Januari" selected>Jan 2026</option>
               <option value="Februari">Feb 2026</option>
               <option value="Maret">Mar 2026</option>
@@ -291,7 +293,7 @@
               <option value="Desember">Des 2026</option>
             </select>
             <span class="text-slate-400 text-xs">s/d</span>
-            <select id="rangeEndMonth" onchange="debouncedApplyFilters()" class="bg-white border border-slate-300 rounded text-xs px-1 py-0.5">
+            <select id="rangeEndMonth" onchange="fastRecalculate()" class="bg-white border border-slate-300 rounded text-xs px-1 py-0.5">
               <option value="Januari">Jan 2026</option>
               <option value="Februari">Feb 2026</option>
               <option value="Maret">Mar 2026</option>
@@ -318,13 +320,14 @@
               <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
             </button>
             <div id="msBranchMenu" class="hidden absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl p-2.5 z-50 ms-dropdown-menu">
-              <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-1.5 text-[11px]">
-                <button type="button" onclick="selectAllMultiOptions('branch', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
-                <button type="button" onclick="selectAllMultiOptions('branch', false)" class="text-slate-500 hover:underline">Reset</button>
+              <div class="pb-1.5 mb-1.5 border-b border-slate-100 space-y-1">
+                <input type="text" id="searchBranchInput" onkeyup="filterOptionList('branch')" placeholder="Cari cabang..." class="w-full text-xs p-1 rounded border border-slate-200 focus:outline-none">
+                <div class="flex items-center justify-between text-[11px]">
+                  <button type="button" onclick="selectAllMultiOptions('branch', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
+                  <button type="button" onclick="selectAllMultiOptions('branch', false)" class="text-slate-500 hover:underline">Reset</button>
+                </div>
               </div>
-              <div id="msBranchOptionsList" class="space-y-0.5 text-xs">
-                <!-- Dynamically populated -->
-              </div>
+              <div id="msBranchOptionsList" class="space-y-0.5 text-xs"></div>
             </div>
           </div>
 
@@ -336,13 +339,14 @@
               <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
             </button>
             <div id="msModelMenu" class="hidden absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl p-2.5 z-50 ms-dropdown-menu">
-              <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-1.5 text-[11px]">
-                <button type="button" onclick="selectAllMultiOptions('model', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
-                <button type="button" onclick="selectAllMultiOptions('model', false)" class="text-slate-500 hover:underline">Reset</button>
+              <div class="pb-1.5 mb-1.5 border-b border-slate-100 space-y-1">
+                <input type="text" id="searchModelInput" onkeyup="filterOptionList('model')" placeholder="Cari model..." class="w-full text-xs p-1 rounded border border-slate-200 focus:outline-none">
+                <div class="flex items-center justify-between text-[11px]">
+                  <button type="button" onclick="selectAllMultiOptions('model', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
+                  <button type="button" onclick="selectAllMultiOptions('model', false)" class="text-slate-500 hover:underline">Reset</button>
+                </div>
               </div>
-              <div id="msModelOptionsList" class="space-y-0.5 text-xs">
-                <!-- Dynamically populated -->
-              </div>
+              <div id="msModelOptionsList" class="space-y-0.5 text-xs"></div>
             </div>
           </div>
 
@@ -354,13 +358,14 @@
               <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
             </button>
             <div id="msCustMenu" class="hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl p-2.5 z-50 ms-dropdown-menu">
-              <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-1.5 text-[11px]">
-                <button type="button" onclick="selectAllMultiOptions('cust', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
-                <button type="button" onclick="selectAllMultiOptions('cust', false)" class="text-slate-500 hover:underline">Reset</button>
+              <div class="pb-1.5 mb-1.5 border-b border-slate-100 space-y-1">
+                <input type="text" id="searchCustInput" onkeyup="filterOptionList('cust')" placeholder="Cari tipe cust..." class="w-full text-xs p-1 rounded border border-slate-200 focus:outline-none">
+                <div class="flex items-center justify-between text-[11px]">
+                  <button type="button" onclick="selectAllMultiOptions('cust', true)" class="text-blue-600 font-bold hover:underline">Pilih Semua</button>
+                  <button type="button" onclick="selectAllMultiOptions('cust', false)" class="text-slate-500 hover:underline">Reset</button>
+                </div>
               </div>
-              <div id="msCustOptionsList" class="space-y-0.5 text-xs">
-                <!-- Dynamically populated -->
-              </div>
+              <div id="msCustOptionsList" class="space-y-0.5 text-xs"></div>
             </div>
           </div>
 
@@ -380,14 +385,6 @@
       </div>
     </div>
   </section>
-
-  <!-- Calculation Spinner Indicator Overlay -->
-  <div id="calcSpinnerOverlay" class="fixed inset-0 bg-slate-900/10 z-50 pointer-events-none opacity-0 flex items-center justify-center transition-opacity">
-    <div class="bg-white/95 px-4 py-2.5 rounded-xl shadow-lg border border-slate-200 flex items-center space-x-2.5 text-xs font-bold text-slate-800">
-      <i class="fa-solid fa-circle-notch fa-spin text-looker-accent text-sm"></i>
-      <span>Mengalkulasi 67.000+ unit...</span>
-    </div>
-  </div>
 
   <main class="max-w-[1850px] mx-auto px-3 sm:px-6 py-4 flex-1 w-full space-y-4">
 
@@ -519,7 +516,6 @@
       </div>
     </div>
 
-    <!-- PAGE 2: MATRIX 22 CABANG -->
     <div id="page-matrix" class="view-page space-y-3">
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-3 sm:p-4">
         <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 mb-2.5 gap-2">
@@ -598,7 +594,6 @@
       </div>
     </div>
 
-    <!-- PAGE 3: RETENTION FUNNEL -->
     <div id="page-funnel" class="view-page space-y-4">
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -634,7 +629,6 @@
       </div>
     </div>
 
-    <!-- PAGE 4: MODEL KENDARAAN -->
     <div id="page-models" class="view-page space-y-4">
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-4">
         <div>
@@ -662,7 +656,6 @@
       </div>
     </div>
 
-    <!-- PAGE 5: CUSTOMER SEGMENT & LOYALTY -->
     <div id="page-segments" class="view-page space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3">
@@ -693,7 +686,6 @@
       </div>
     </div>
 
-    <!-- PAGE 6: IRREGULARITY CONTROL -->
     <div id="page-irregularity" class="view-page space-y-4">
       <div class="bg-red-50 border-l-4 border-looker-accent p-3.5 rounded-r-xl text-xs">
         <div class="flex items-start">
@@ -717,7 +709,6 @@
       <div id="irregularityCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1"></div>
     </div>
 
-    <!-- PAGE 7: RAW TRANSACTION EXPLORER -->
     <div id="page-explorer" class="view-page space-y-4">
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -755,9 +746,135 @@
       </div>
     </div>
 
+    <!-- PAGE 8: MANUAL MATRIX SETTING -->
+    <div id="page-matrix-settings" class="view-page space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-4">
+        
+        <!-- Header & Info Banner -->
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center text-lg shadow-2xs">
+              <i class="fa-solid fa-sliders"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                <span>Konfigurasi Matriks CFAM (Manual Setting)</span>
+                <span id="matrixCustomStatusBadge" class="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                  Standar Matriks Aktif
+                </span>
+              </h3>
+              <p class="text-xs text-slate-500">
+                Atur secara manual rentang <strong>Tanggal DEC (Potensi / Denominator)</strong> dan rentang <strong>Bulan Masuk Servis (Actual / Numerator)</strong>.
+              </p>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <button onclick="resetMatrixToDefault()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-300 transition flex items-center space-x-1.5 shadow-2xs">
+              <i class="fa-solid fa-rotate-left text-slate-500"></i>
+              <span>Reset Standar CFAM</span>
+            </button>
+            <button onclick="copyCurrentMatrixMonthToAll()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 transition flex items-center space-x-1.5 shadow-2xs">
+              <i class="fa-solid fa-clone text-indigo-600"></i>
+              <span>Salin Bulan Ini ke Semua</span>
+            </button>
+            <button onclick="applyAndRecalculateMatrix()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-1.5 rounded-lg transition flex items-center space-x-1.5 shadow-xs">
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>Simpan & Terapkan</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Concept Explainer Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div class="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-1">
+            <div class="flex items-center space-x-2 font-bold text-blue-900">
+              <i class="fa-solid fa-calendar-day text-blue-600"></i>
+              <span>POTENSI (Denominator / NCS) = Tanggal DEC</span>
+            </div>
+            <p class="text-[11px] text-blue-800 leading-relaxed">
+              Memfilter kendaraan berdasarkan <strong>Tanggal Penyerahan Unit (`Tgl DEC`)</strong> di sheet Raw. Menentukan populasi kendaraan yang jatuh tempo servis berkala.
+            </p>
+          </div>
+          <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-1">
+            <div class="flex items-center space-x-2 font-bold text-emerald-900">
+              <i class="fa-solid fa-wrench text-emerald-600"></i>
+              <span>ACTUAL (Numerator / Realisasi) = Bulan Masuk Servis</span>
+            </div>
+            <p class="text-[11px] text-emerald-800 leading-relaxed">
+              Memfilter kendaraan berdasarkan <strong>Bulan Masuk Servis (`Bulan 1st` s/d `Bulan 7th Service`)</strong> di sheet Raw (Towass & Asiisst) yang jatuh pada rentang bulan masuk yang diatur.
+            </p>
+          </div>
+        </div>
+
+        <!-- Month Selector for Matrix Config -->
+        <div class="flex flex-wrap items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200 gap-2">
+          <div class="flex items-center space-x-2">
+            <label class="text-xs font-bold text-slate-700 uppercase">PILIH BULAN EVALUASI:</label>
+            <select id="matrixSettingMonthSelect" onchange="onMatrixSettingMonthChange()" class="bg-white border border-slate-300 text-slate-800 font-bold text-xs rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-indigo-500 focus:outline-none cursor-pointer">
+              <option value="0">Januari 2026</option>
+              <option value="1">Februari 2026</option>
+              <option value="2">Maret 2026</option>
+              <option value="3">April 2026</option>
+              <option value="4">Mei 2026</option>
+              <option value="5">Juni 2026</option>
+              <option value="6">Juli 2026</option>
+              <option value="7">Agustus 2026</option>
+              <option value="8" selected>September 2026</option>
+              <option value="9">Oktober 2026</option>
+              <option value="10">November 2026</option>
+              <option value="11">Desember 2026</option>
+            </select>
+          </div>
+          <div class="text-[11px] text-slate-500 font-medium">
+            Perubahan aturan di bawah akan langsung memengaruhi perhitungan di tab <strong>Matrix 22 Cabang</strong> & <strong>Overview KPI</strong>.
+          </div>
+        </div>
+
+        <!-- 7 Stages Matrix Editor Cards -->
+        <div id="stageMatrixEditorContainer" class="space-y-3"></div>
+
+        <!-- 12 Months Visual Reference Table (Mirroring Sheet Matrix) -->
+        <div class="pt-4 border-t border-slate-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-table text-indigo-600"></i>
+              <span>Peta Matriks 12 Bulan (Status Saat Ini)</span>
+            </h4>
+            <span class="text-[11px] text-slate-500 font-medium">Kolom bulan aktif ditandai warna biru lembut</span>
+          </div>
+
+          <div class="overflow-x-auto scrollbar-thin rounded-xl border border-slate-300 max-h-[460px]">
+            <table class="w-full text-center border-collapse text-[11px] whitespace-nowrap" id="matrixLiveGridTable">
+              <thead class="bg-slate-900 text-white font-bold sticky top-0 z-10 divide-x divide-slate-800">
+                <tr>
+                  <th class="p-2 text-left sticky-col-1 bg-slate-900">Tahap</th>
+                  <th class="p-2 sticky-col-2 bg-slate-900">Parameter</th>
+                  <th class="p-2 min-w-[105px]">Januari</th>
+                  <th class="p-2 min-w-[105px]">Februari</th>
+                  <th class="p-2 min-w-[105px]">Maret</th>
+                  <th class="p-2 min-w-[105px]">April</th>
+                  <th class="p-2 min-w-[105px]">Mei</th>
+                  <th class="p-2 min-w-[105px]">Juni</th>
+                  <th class="p-2 min-w-[105px]">Juli</th>
+                  <th class="p-2 min-w-[105px]">Agustus</th>
+                  <th class="p-2 min-w-[105px] bg-blue-900 text-amber-300">September</th>
+                  <th class="p-2 min-w-[105px]">Oktober</th>
+                  <th class="p-2 min-w-[105px]">November</th>
+                  <th class="p-2 min-w-[105px]">Desember</th>
+                </tr>
+              </thead>
+              <tbody id="matrixLiveGridBody" class="divide-y divide-slate-200 bg-white font-mono text-[10px] text-slate-700"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </main>
 
-  <!-- CAPA Modal -->
   <div id="capaModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 hidden backdrop-blur-xs">
     <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
       <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-looker-header text-white rounded-t-2xl">
@@ -888,7 +1005,6 @@
     </div>
   </div>
 
-  <!-- Google Sheets Settings Modal -->
   <div id="gsheetsModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 hidden backdrop-blur-xs">
     <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
       <div class="p-3.5 bg-looker-header text-white flex items-center justify-between">
@@ -935,17 +1051,77 @@
     </div>
   </div>
 
-  <!-- Toast Notification -->
   <div id="toast" class="fixed bottom-4 right-4 bg-slate-900 text-white text-xs font-medium px-3.5 py-2.5 rounded-xl shadow-xl border border-slate-800 flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
     <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
     <span id="toastMsg">Notifikasi</span>
   </div>
 
+  <!-- POPUP MODAL REFERENSI MATRIKS KOHORT CFAM -->
+  <div id="matrixRefModal" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-3 hidden backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+      <div class="p-3.5 bg-looker-header text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-table-cells text-emerald-400"></i>
+          <div>
+            <h3 class="font-bold text-xs sm:text-sm">Matriks Kohort Customer Flow Aftersales (CFAM)</h3>
+            <p class="text-[10px] text-slate-300">Peta acuan perhitungan Potensi (NCS) dan Realisasi (Towass & Asiisst) 2026</p>
+          </div>
+        </div>
+        <button onclick="closeMatrixReferenceModal()" class="text-slate-400 hover:text-white text-base">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-4 overflow-x-auto text-xs space-y-3">
+        <p class="text-[11px] text-slate-600 leading-relaxed">
+          Berikut adalah tabel aturan perhitungan periode kohort penyerahan kendaraan (<strong>Potensi / Denominator</strong>) dan batas waktu klaim servis (<strong>Actual / Numerator</strong>) yang digunakan sistem secara otomatis:
+        </p>
+        <table class="w-full text-center border-collapse text-[10px] border border-slate-300 whitespace-nowrap">
+          <thead class="bg-slate-800 text-white font-bold divide-x divide-slate-700">
+            <tr>
+              <th class="p-1.5 text-left">Tahap</th>
+              <th class="p-1.5">Parameter</th>
+              <th class="p-1.5">Januari</th>
+              <th class="p-1.5">Februari</th>
+              <th class="p-1.5">Maret</th>
+              <th class="p-1.5">Juni</th>
+              <th class="p-1.5 bg-blue-900 text-amber-300">September</th>
+              <th class="p-1.5">Desember</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 font-mono text-[10px] text-slate-700">
+            <tr class="bg-slate-50"><td rowspan="2" class="font-bold font-sans text-slate-900 border-r border-slate-300 p-1">1st</td><td class="font-bold text-blue-700 p-1">Potensi (NCS)</td><td>Dec 25 - Dec 25</td><td>Dec 25 - Jan 26</td><td>Dec 25 - Feb 26</td><td>Dec 25 - May 26</td><td class="bg-blue-50 font-bold text-blue-900">Dec 25 - Aug 26</td><td>Dec 25 - Nov 26</td></tr>
+            <tr class="bg-slate-50"><td class="font-bold text-emerald-700 p-1">Actual</td><td>Dec 25 - Jan 26</td><td>Dec 25 - Feb 26</td><td>Dec 25 - Mar 26</td><td>Dec 25 - Jun 26</td><td class="bg-blue-50 font-bold text-emerald-900">Dec 25 - Sep 26</td><td>Dec 25 - Dec 26</td></tr>
+
+            <tr><td rowspan="2" class="font-bold font-sans text-slate-900 border-r border-slate-300 p-1">2nd</td><td class="font-bold text-blue-700 p-1">Potensi (NCS)</td><td>Jul 25 - Jul 25</td><td>Jul 25 - Aug 25</td><td>Jul 25 - Sep 25</td><td>Jul 25 - Dec 25</td><td class="bg-blue-50 font-bold text-blue-900">Jul 25 - Mar 26</td><td>Jul 25 - Jun 26</td></tr>
+            <tr><td class="font-bold text-emerald-700 p-1">Actual</td><td>Jul 25 - Jan 26</td><td>Jul 25 - Feb 26</td><td>Jul 25 - Mar 26</td><td>Jul 25 - Jun 26</td><td class="bg-blue-50 font-bold text-emerald-900">Jul 25 - Sep 26</td><td>Jul 25 - Dec 26</td></tr>
+
+            <tr class="bg-slate-50"><td rowspan="2" class="font-bold font-sans text-slate-900 border-r border-slate-300 p-1">3rd</td><td class="font-bold text-blue-700 p-1">Potensi (NCS)</td><td>Jan 25 - Jan 25</td><td>Jan 25 - Feb 25</td><td>Jan 25 - Mar 25</td><td>Jan 25 - Jun 25</td><td class="bg-blue-50 font-bold text-blue-900">Jan 25 - Sep 25</td><td>Jan 25 - Dec 25</td></tr>
+            <tr class="bg-slate-50"><td class="font-bold text-emerald-700 p-1">Actual</td><td>Jan 25 - Jan 26</td><td>Jan 25 - Feb 26</td><td>Jan 25 - Mar 26</td><td>Jan 25 - Jun 26</td><td class="bg-blue-50 font-bold text-emerald-900">Jan 25 - Sep 26</td><td>Jan 25 - Dec 26</td></tr>
+
+            <tr><td rowspan="2" class="font-bold font-sans text-slate-900 border-r border-slate-300 p-1">4th</td><td class="font-bold text-blue-700 p-1">Potensi (NCS)</td><td>Jul 24 - Jul 24</td><td>Jul 24 - Aug 24</td><td>Jul 24 - Sep 24</td><td>Jul 24 - Dec 24</td><td class="bg-blue-50 font-bold text-blue-900">Jul 24 - Mar 25</td><td>Jul 24 - Jun 25</td></tr>
+            <tr><td class="font-bold text-emerald-700 p-1">Actual</td><td>Jul 24 - Jan 26</td><td>Jul 24 - Feb 26</td><td>Jul 24 - Mar 26</td><td>Jul 24 - Jun 26</td><td class="bg-blue-50 font-bold text-emerald-900">Jul 24 - Sep 26</td><td>Jul 24 - Dec 26</td></tr>
+
+            <tr class="bg-slate-50"><td rowspan="2" class="font-bold font-sans text-slate-900 border-r border-slate-300 p-1">5th</td><td class="font-bold text-blue-700 p-1">Potensi (NCS)</td><td>Jan 24 - Jan 24</td><td>Jan 24 - Feb 24</td><td>Jan 24 - Mar 24</td><td>Jan 24 - Jun 24</td><td class="bg-blue-50 font-bold text-blue-900">Jan 24 - Sep 24</td><td>Jan 24 - Dec 24</td></tr>
+            <tr class="bg-slate-50"><td class="font-bold text-emerald-700 p-1">Actual</td><td>Jan 24 - Jan 26</td><td>Jan 24 - Feb 26</td><td>Jan 24 - Mar 26</td><td>Jan 24 - Jun 26</td><td class="bg-blue-50 font-bold text-emerald-900">Jan 24 - Sep 26</td><td>Jan 24 - Dec 26</td></tr>
+
+            <tr><td rowspan="2" class="font-bold font-sans text-slate-900 border-r border-slate-300 p-1">6th</td><td class="font-bold text-blue-700 p-1">Potensi (NCS)</td><td>Jul 23 - Jul 23</td><td>Jul 23 - Aug 23</td><td>Jul 23 - Sep 23</td><td>Jul 23 - Dec 23</td><td class="bg-blue-50 font-bold text-blue-900">Jul 23 - Mar 24</td><td>Jul 23 - Jun 24</td></tr>
+            <tr><td class="font-bold text-emerald-700 p-1">Actual</td><td>Jul 23 - Jan 26</td><td>Jul 23 - Feb 26</td><td>Jul 23 - Mar 26</td><td>Jul 23 - Jun 26</td><td class="bg-blue-50 font-bold text-emerald-900">Jul 23 - Sep 26</td><td>Jul 23 - Dec 26</td></tr>
+
+            <tr class="bg-slate-50"><td rowspan="2" class="font-bold font-sans text-slate-900 border-r border-slate-300 p-1">7th</td><td class="font-bold text-blue-700 p-1">Potensi (NCS)</td><td>Jan 23 - Jan 23</td><td>Jan 23 - Feb 23</td><td>Jan 23 - Mar 23</td><td>Jan 23 - Jun 23</td><td class="bg-blue-50 font-bold text-blue-900">Jan 23 - Sep 23</td><td>Jan 23 - Dec 23</td></tr>
+            <tr class="bg-slate-50"><td class="font-bold text-emerald-700 p-1">Actual</td><td>Jan 23 - Jan 26</td><td>Jan 23 - Feb 26</td><td>Jan 23 - Mar 26</td><td>Jan 23 - Jun 26</td><td class="bg-blue-50 font-bold text-emerald-900">Jan 23 - Sep 26</td><td>Jan 23 - Dec 26</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="p-3 bg-slate-50 border-t border-slate-200 text-right">
+        <button onclick="closeMatrixReferenceModal()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold py-1.5 px-4 rounded-lg">Tutup</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // System Constants
     const TARGET_TCARE = 0.91; // 91.0% Target
     const TARGET_LITE = 0.81;  // 81.0% Target
-    const AVG_EST_REVENUE_PER_UNIT = 850000; // Est Rp 850.000 per unit intake
+    const AVG_EST_REVENUE_PER_UNIT = 850000;
 
     const NASMOCO_DEALERS = [
       "Nasmoco Klaten", "Nasmoco Solo Baru", "Nasmoco Pemuda", "Nasmoco Cilacap",
@@ -961,104 +1137,221 @@
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
 
-    const LOOKER_PAGES = [
-      'page-overview', 'page-matrix', 'page-funnel', 
-      'page-models', 'page-segments', 'page-irregularity', 'page-explorer'
+    const MONTH_SHORT = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
     ];
 
-    // Multi-Select Filter State Objects
-    const filterState = {
-      programs: new Set(),
-      branches: new Set(),
-      models: new Set(),
-      custTypes: new Set(),
-      allPrograms: [],
-      allBranches: [],
-      allModels: [],
-      allCustTypes: []
-    };
+    const STAGE_NAMES = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th'];
+    const STAGE_DESCS = [
+      '1st Service (1.000 KM / 1 Bulan)',
+      '2nd Service (10.000 KM / 6 Bulan)',
+      '3rd Service (20.000 KM / 12 Bulan)',
+      '4th Service (30.000 KM / 18 Bulan)',
+      '5th Service (40.000 KM / 24 Bulan)',
+      '6th Service (50.000 KM / 30 Bulan)',
+      '7th Service (60.000 KM / 36 Bulan)'
+    ];
 
-    let currentLookerPageIndex = 0;
-    let currentPeriodMode = 'single'; // 'single', 'range'
-    let activeCalculatedData = null;
-    let overviewChartInstance = null;
-    let funnelChartInstance = null;
-    
-    // High-performance typed dataset
-    let optimizedRawRows = null; 
-    let googleSheetId = "1swzEkk_K2c_6xoWoKvimHPZLEKXU_VC_Z50yyKE1Il4";
-    let googleSheetTabName = "Raw";
-    let isFetchingSheet = false;
-    let filterDebounceTimer = null;
+    const LOOKER_PAGES = [
+      'page-overview', 'page-matrix', 'page-funnel', 
+      'page-models', 'page-segments', 'page-irregularity', 'page-explorer', 'page-matrix-settings'
+    ];
 
-    // Fast Normalized Date Parser returning integer millisecond timestamp
-    function fastParseDate(val) {
-      if (!val) return 0;
-      if (typeof val === 'number') {
-        return Math.round((val - 25569) * 86400 * 1000);
-      }
-      const str = String(val).trim();
-      if (!str || str === '-' || str === '0') return 0;
-
-      if (/^\d{5}$/.test(str)) {
-        return Math.round((parseInt(str, 10) - 25569) * 86400 * 1000);
-      }
-
-      // Format YYYY-MM-DD
-      const iso = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-      if (iso) {
-        return new Date(parseInt(iso[1], 10), parseInt(iso[2], 10) - 1, parseInt(iso[3], 10)).getTime();
-      }
-
-      // Format DD-MM-YYYY or DD-MM-YY (2-digit fix: 20s to 30s -> 2000s)
-      const dmy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
-      if (dmy) {
-        let yr = parseInt(dmy[3], 10);
-        if (yr < 100) yr += 2000;
-        return new Date(yr, parseInt(dmy[2], 10) - 1, parseInt(dmy[1], 10)).getTime();
-      }
-
-      const parsed = Date.parse(str);
-      return isNaN(parsed) ? 0 : parsed;
+    // Year-Month integer representation: YM = year * 12 + monthIndex
+    function ymToString(ym) {
+      if (!ym) return '-';
+      const y = Math.floor(ym / 12);
+      const m = ym % 12;
+      const yrShort = String(y).slice(-2);
+      return `${MONTH_SHORT[m]} ${yrShort}`;
     }
 
-    // Exact cumulative CFAM cohort logic bounds returning integer timestamps
-    function getCohortBounds(m, stageIdx) {
-      let start, end;
-      switch (stageIdx) {
-        case 0: // 1st Service
-          start = new Date(2025, 11, 1).getTime();
-          end = new Date(2026, m, 0, 23, 59, 59).getTime();
-          break;
-        case 1: // 2nd Service (6 Bulan)
-          start = new Date(2025, 6, 1).getTime();
-          end = new Date(2026, m - 5, 0, 23, 59, 59).getTime();
-          break;
-        case 2: // 3rd Service (12 Bulan)
-          start = new Date(2025, 0, 1).getTime();
-          end = new Date(2025, m + 1, 0, 23, 59, 59).getTime();
-          break;
-        case 3: // 4th Service (18 Bulan)
-          start = new Date(2024, 6, 1).getTime();
-          end = new Date(2024, 7 + m, 0, 23, 59, 59).getTime();
-          break;
-        case 4: // 5th Service (24 Bulan)
-          start = new Date(2024, 0, 1).getTime();
-          end = new Date(2024, 1 + m, 0, 23, 59, 59).getTime();
-          break;
-        case 5: // 6th Service (30 Bulan)
-          start = new Date(2023, 6, 1).getTime();
-          end = new Date(2023, 7 + m, 0, 23, 59, 59).getTime();
-          break;
-        case 6: // 7th Service (36 Bulan)
-          start = new Date(2023, 0, 1).getTime();
-          end = new Date(2023, 1 + m, 0, 23, 59, 59).getTime();
-          break;
-        default:
-          start = new Date(2025, 11, 1).getTime();
-          end = new Date(2026, m, 0, 23, 59, 59).getTime();
+    function ymToInputObj(ym) {
+      const y = Math.floor(ym / 12);
+      const m = ym % 12;
+      return { year: y, month: m };
+    }
+
+    function inputObjToYm(year, month) {
+      return parseInt(year, 10) * 12 + parseInt(month, 10);
+    }
+
+    // Default CFAM Matrix Generator (100% exact match to IMG-20261008-WA0032(1).jpg)
+    function generateDefaultCFAMMatrix() {
+      const matrix = [];
+      for (let m = 0; m < 12; m++) {
+        const stages = [];
+        for (let s = 0; s < 7; s++) {
+          let potStartYM, potEndYM, actStartYM, actEndYM;
+          switch (s) {
+            case 0: // 1st: Potensi Dec 25 s/d Bulan (M-1) 26. Actual: Dec 25 s/d Bulan M 26.
+              potStartYM = 2025 * 12 + 11;
+              potEndYM = (m === 0) ? (2025 * 12 + 11) : (2026 * 12 + (m - 1));
+              actStartYM = 2025 * 12 + 11;
+              actEndYM = 2026 * 12 + m;
+              break;
+
+            case 1: // 2nd: Potensi Jul 25 s/d (Jul 25 + M). Actual: Jul 25 s/d Bulan M 26.
+              potStartYM = 2025 * 12 + 6;
+              potEndYM = (2025 * 12 + 6) + m;
+              actStartYM = 2025 * 12 + 6;
+              actEndYM = 2026 * 12 + m;
+              break;
+
+            case 2: // 3rd: Potensi Jan 25 s/d (Jan 25 + M). Actual: Jan 25 s/d Bulan M 26.
+              potStartYM = 2025 * 12 + 0;
+              potEndYM = (2025 * 12 + 0) + m;
+              actStartYM = 2025 * 12 + 0;
+              actEndYM = 2026 * 12 + m;
+              break;
+
+            case 3: // 4th: Potensi Jul 24 s/d (Jul 24 + M). Actual: Jul 24 s/d Bulan M 26.
+              potStartYM = 2024 * 12 + 6;
+              potEndYM = (2024 * 12 + 6) + m;
+              actStartYM = 2024 * 12 + 6;
+              actEndYM = 2026 * 12 + m;
+              break;
+
+            case 4: // 5th: Potensi Jan 24 s/d (Jan 24 + M). Actual: Jan 24 s/d Bulan M 26.
+              potStartYM = 2024 * 12 + 0;
+              potEndYM = (2024 * 12 + 0) + m;
+              actStartYM = 2024 * 12 + 0;
+              actEndYM = 2026 * 12 + m;
+              break;
+
+            case 5: // 6th: Potensi Jul 23 s/d (Jul 23 + M). Actual: Jul 23 s/d Bulan M 26.
+              potStartYM = 2023 * 12 + 6;
+              potEndYM = (2023 * 12 + 6) + m;
+              actStartYM = 2023 * 12 + 6;
+              actEndYM = 2026 * 12 + m;
+              break;
+
+            case 6: // 7th: Potensi Jan 23 s/d (Jan 23 + M). Actual: Jan 23 s/d Bulan M 26.
+              potStartYM = 2023 * 12 + 0;
+              potEndYM = (2023 * 12 + 0) + m;
+              actStartYM = 2023 * 12 + 0;
+              actEndYM = 2026 * 12 + m;
+              break;
+          }
+          stages.push({ potStartYM, potEndYM, actStartYM, actEndYM });
+        }
+        matrix.push(stages);
       }
-      return { start, end };
+      return matrix;
+    }
+
+    let activeMatrixConfig = generateDefaultCFAMMatrix();
+    let isMatrixCustomized = false;
+
+    // Load persisted custom matrix from localStorage if available
+    function loadSavedMatrixConfig() {
+      try {
+        const saved = localStorage.getItem('tcare_custom_matrix_cfam');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length === 12 && Array.isArray(parsed[0])) {
+            activeMatrixConfig = parsed;
+            isMatrixCustomized = true;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load custom matrix config:", e);
+      }
+      updateMatrixStatusBadge();
+    }
+
+    function saveMatrixConfigToStorage() {
+      try {
+        localStorage.setItem('tcare_custom_matrix_cfam', JSON.stringify(activeMatrixConfig));
+        isMatrixCustomized = true;
+      } catch (e) {
+        console.warn("Storage failed:", e);
+      }
+      updateMatrixStatusBadge();
+    }
+
+    function updateMatrixStatusBadge() {
+      const badge = document.getElementById('matrixCustomStatusBadge');
+      if (!badge) return;
+      if (isMatrixCustomized) {
+        badge.innerText = "Matriks Kustom Manual Aktif";
+        badge.className = "text-[10px] bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full font-bold";
+      } else {
+        badge.innerText = "Standar Matriks CFAM Aktif";
+        badge.className = "text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-bold";
+      }
+    }
+
+    function getMatrixRule(m, stageIdx) {
+      if (activeMatrixConfig[m] && activeMatrixConfig[m][stageIdx]) {
+        return activeMatrixConfig[m][stageIdx];
+      }
+      return {
+        potStartYM: 2025 * 12 + 11,
+        potEndYM: 2026 * 12 + m,
+        actStartYM: 2025 * 12 + 11,
+        actEndYM: 2026 * 12 + m
+      };
+    }
+
+    function getCohortBoundsYM(m, stageIdx) {
+      const rule = getMatrixRule(m, stageIdx);
+      return { startYM: rule.potStartYM, endYM: rule.potEndYM };
+    }
+      return { startYM, endYM };
+    }
+
+    function parseToYearMonth(val) {
+      if (!val) return 0;
+      if (typeof val === 'number') {
+        if (val > 30000 && val < 60000) {
+          const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+          return date.getFullYear() * 12 + date.getMonth();
+        }
+        return 0;
+      }
+      const str = String(val).trim();
+      if (str.length < 3 || str === '-' || str === '0') return 0;
+
+      // 1. Digits-only (Excel serial stored as text string)
+      if (/^\d{5}$/.test(str)) {
+        const num = parseInt(str, 10);
+        const date = new Date(Math.round((num - 25569) * 86400 * 1000));
+        return date.getFullYear() * 12 + date.getMonth();
+      }
+
+      // 2. ISO format YYYY-MM-DD or YYYY/MM/DD
+      if (str.charCodeAt(4) === 45 || str.charCodeAt(4) === 47) {
+        const y = parseInt(str.slice(0, 4), 10);
+        const m = parseInt(str.slice(5, 7), 10) - 1;
+        if (y > 2000 && m >= 0 && m < 12) return y * 12 + m;
+      }
+
+      // 3. DD/MM/YYYY or DD-MM-YYYY or DD/MM/YY or DD-MM-YY
+      const slashOrDash = str.indexOf('/') !== -1 ? '/' : (str.indexOf('-') !== -1 ? '-' : '');
+      if (slashOrDash) {
+        const parts = str.split(slashOrDash);
+        if (parts.length >= 3) {
+          let y = parseInt(parts[2], 10);
+          let m = parseInt(parts[1], 10) - 1;
+          if (y < 100) y += 2000;
+          if (y > 2000 && m >= 0 && m < 12) return y * 12 + m;
+        }
+      }
+
+      // 4. Month text string (e.g., "September 2026", "Sep 26")
+      const sLower = str.toLowerCase();
+      for (let m = 0; m < 12; m++) {
+        const mShort = MONTH_NAMES[m].toLowerCase().slice(0, 3);
+        if (sLower.includes(mShort)) {
+          const yrMatch = str.match(/\b(20\d{2}|\d{2})\b/);
+          let yr = yrMatch ? parseInt(yrMatch[1], 10) : 2026;
+          if (yr < 100) yr += 2000;
+          return yr * 12 + m;
+        }
+      }
+      return 0;
     }
 
     function formatPct(val) {
@@ -1072,72 +1365,143 @@
       return sign + (val * 100).toFixed(1).replace('.', ',') + '%';
     }
 
-    // One-time fast normalization of raw rows into a lightweight typed object
-    function ingestAndNormalizeRows(rawRows) {
-      if (!rawRows || rawRows.length === 0) return [];
-      
-      const sample = rawRows[0];
+    // Filter state with bitmask-friendly sets
+    const filterState = {
+      programs: new Set(),
+      branches: new Set(),
+      models: new Set(),
+      custTypes: new Set(),
+      allPrograms: [],
+      allBranches: [],
+      allModels: [],
+      allCustTypes: []
+    };
+
+    let currentLookerPageIndex = 0;
+    let currentPeriodMode = 'single';
+    let activeCalculatedData = null;
+    let overviewChartInstance = null;
+    let funnelChartInstance = null;
+    let recalcTimer = null;
+    
+    let rawNormalizedDataset = null; 
+    let googleSheetId = "1swzEkk_K2c_6xoWoKvimHPZLEKXU_VC_Z50yyKE1Il4";
+    let googleSheetTabName = "Raw";
+    let isFetchingSheet = false;
+
+    // Ultra-fast line parser for CSV
+    function parseCSVFast(text) {
+      const rows = [];
+      let row = [];
+      let inQuote = false;
+      let token = '';
+      const len = text.length;
+
+      for (let i = 0; i < len; i++) {
+        const char = text[i];
+        if (char === '"') {
+          if (inQuote && text[i + 1] === '"') {
+            token += '"';
+            i++;
+          } else {
+            inQuote = !inQuote;
+          }
+        } else if (char === ',' && !inQuote) {
+          row.push(token);
+          token = '';
+        } else if ((char === '\r' || char === '\n') && !inQuote) {
+          if (char === '\r' && text[i + 1] === '\n') i++;
+          row.push(token);
+          token = '';
+          if (row.length > 1 || (row.length === 1 && row[0] !== '')) rows.push(row);
+          row = [];
+        } else {
+          token += char;
+        }
+      }
+      if (token || row.length > 0) {
+        row.push(token);
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function ingestAndNormalizeTable(rawTable) {
+      if (!rawTable || rawTable.length < 2) return null;
+
+      const header = rawTable[0].map(h => String(h || '').trim());
       const colMap = {};
-      Object.keys(sample).forEach(k => {
-        colMap[k.toLowerCase().replace(/[^a-z0-9]/g, '')] = k;
+      header.forEach((h, idx) => {
+        const clean = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+        colMap[clean] = idx;
       });
 
-      function getKey(...candidates) {
-        for (const c of candidates) {
-          const clean = c.toLowerCase().replace(/[^a-z0-9]/g, '');
-          if (colMap[clean]) return colMap[clean];
+      function findCol(...names) {
+        for (const n of names) {
+          const clean = n.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (colMap[clean] !== undefined) return colMap[clean];
         }
-        return candidates[0];
+        return -1;
       }
 
-      const kVin = getKey('No Rangka', 'VIN');
-      const kDealer = getKey('Dealer Penjual', 'Dealer');
-      const kProg = getKey('T-CARE TYPE', 'T-Care Type', 'Program');
-      const kModel = getKey('Model Kendaraan', 'Model');
-      const kCust = getKey('Type Customer', 'Tipe Customer');
-      const kKota = getKey('Kota');
-      const kDec = getKey('Tgl DEC', 'Tgl Retail', 'TGL DEC');
+      const cVin = findCol('No Rangka', 'VIN');
+      const cDealer = findCol('Dealer Penjual', 'Dealer');
+      const cProg = findCol('T-CARE TYPE', 'T-Care Type', 'Program');
+      const cModel = findCol('Model Kendaraan', 'Model');
+      const cCust = findCol('Type Customer', 'Tipe Customer');
+      const cKota = findCol('Kota');
+      const cDec = findCol('Tgl DEC', 'Tgl Retail', 'TGL DEC');
 
-      const stageKeys = [];
+      const stageCols = [];
       const stagePrefixes = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th'];
       stagePrefixes.forEach(st => {
-        stageKeys.push({
-          d: getKey(`Dealer ${st} Service`, `Dealer ${st}`),
-          p: getKey(`Status Punctual ${st}`, `Status ${st}`),
-          m: getKey(`Bulan ${st} Service`, `Bulan ${st}`)
+        stageCols.push({
+          d: findCol(`Dealer ${st} Service`, `Dealer ${st}`),
+          p: findCol(`Status Punctual ${st}`, `Status ${st}`),
+          m: findCol(`Bulan ${st} Service`, `Bulan ${st}`)
         });
       });
 
-      const progSet = new Set();
-      const branchSet = new Set();
-      const modelSet = new Set();
-      const custSet = new Set();
+      const progDict = [];
+      const branchDict = [];
+      const modelDict = [];
+      const custDict = [];
 
-      const normalized = new Array(rawRows.length);
-      for (let i = 0; i < rawRows.length; i++) {
-        const r = rawRows[i];
-        const dealer = (r[kDealer] ? String(r[kDealer]).trim() : '') || 'Cabang Lain';
-        const prog = (r[kProg] ? String(r[kProg]).trim() : '') || 'NON T-CARE';
-        const model = (r[kModel] ? String(r[kModel]).trim() : '') || 'Lainnya';
-        const cust = (r[kCust] ? String(r[kCust]).trim() : '') || 'Retail';
-        const kota = (r[kKota] ? String(r[kKota]).trim() : '');
-        const decTime = fastParseDate(r[kDec]);
+      function getOrAdd(dict, val) {
+        let idx = dict.indexOf(val);
+        if (idx === -1) {
+          idx = dict.length;
+          dict.push(val);
+        }
+        return idx;
+      }
 
-        progSet.add(prog);
-        branchSet.add(dealer);
-        modelSet.add(model);
-        custSet.add(cust);
+      const numRows = rawTable.length - 1;
+      const records = new Array(numRows);
 
-        // Pre-parse the 7 service completion flags
-        const sDone = [false, false, false, false, false, false, false];
-        const sDates = [0, 0, 0, 0, 0, 0, 0];
+      for (let i = 1; i <= numRows; i++) {
+        const r = rawTable[i];
+        const dealerStr = (cDealer !== -1 && r[cDealer] ? String(r[cDealer]).trim() : '') || 'Cabang Lain';
+        const progStr = (cProg !== -1 && r[cProg] ? String(r[cProg]).trim() : '') || 'NON T-CARE';
+        const modelStr = (cModel !== -1 && r[cModel] ? String(r[cModel]).trim() : '') || 'Lainnya';
+        const custStr = (cCust !== -1 && r[cCust] ? String(r[cCust]).trim() : '') || 'Retail';
+        const decVal = (cDec !== -1 ? r[cDec] : '');
+        const decYM = parseToYearMonth(decVal);
+
+        const dealerIdx = getOrAdd(branchDict, dealerStr);
+        const progIdx = getOrAdd(progDict, progStr);
+        const modelIdx = getOrAdd(modelDict, modelStr);
+        const custIdx = getOrAdd(custDict, custStr);
+
+        let sDoneMask = 0;
+        const sYM = [0, 0, 0, 0, 0, 0, 0];
         let d1st = '', p1st = '';
 
         for (let s = 0; s < 7; s++) {
-          const sk = stageKeys[s];
-          const dVal = r[sk.d] ? String(r[sk.d]).trim() : '';
-          const pVal = r[sk.p] ? String(r[sk.p]).trim() : '';
-          const mVal = r[sk.m] ? String(r[sk.m]).trim() : '';
+          const sc = stageCols[s];
+          const dVal = (sc.d !== -1 && r[sc.d]) ? String(r[sc.d]).trim() : '';
+          const pVal = (sc.p !== -1 && r[sc.p]) ? String(r[sc.p]).trim() : '';
+          const mVal = (sc.m !== -1 && r[sc.m]) ? String(r[sc.m]).trim() : '';
 
           if (s === 0) {
             d1st = dVal;
@@ -1145,27 +1509,33 @@
           }
 
           if (dVal && dVal !== '-' && dVal !== '0') {
-            sDone[s] = true;
+            sDoneMask |= (1 << s);
           } else if (pVal && pVal !== '-' && pVal !== '0' && !pVal.toLowerCase().startsWith('belum') && !pVal.toLowerCase().startsWith('no')) {
-            sDone[s] = true;
+            sDoneMask |= (1 << s);
           } else if (mVal && mVal !== '-' && mVal !== '0') {
-            sDone[s] = true;
-            sDates[s] = fastParseDate(mVal);
+            sDoneMask |= (1 << s);
+            sYM[s] = parseToYearMonth(mVal);
           }
         }
 
-        normalized[i] = {
-          vin: r[kVin] ? String(r[kVin]).trim() : '',
-          dealer, prog, model, cust, kota, dec: decTime,
-          sDone, sDates, d1st, p1st,
-          decStr: r[kDec] ? String(r[kDec]).trim() : '-'
+        const isHome1st = (d1st && d1st.toLowerCase() === dealerStr.toLowerCase());
+        const isPunctual1st = (p1st && (p1st.toLowerCase().includes('punc') || p1st.toLowerCase().includes('on')));
+        const isLite = progStr.toLowerCase().includes('lite');
+
+        records[i - 1] = {
+          vin: (cVin !== -1 && r[cVin]) ? String(r[cVin]).trim() : '',
+          dealerIdx, progIdx, modelIdx, custIdx,
+          decYM, sDoneMask, sYM,
+          d1st, p1st, isHome1st, isPunctual1st, isLite,
+          kota: (cKota !== -1 && r[cKota]) ? String(r[cKota]).trim() : '',
+          decStr: decVal || '-'
         };
       }
 
-      filterState.allPrograms = Array.from(progSet).sort();
-      filterState.allBranches = Array.from(branchSet).sort();
-      filterState.allModels = Array.from(modelSet).sort();
-      filterState.allCustTypes = Array.from(custSet).sort();
+      filterState.allPrograms = progDict.slice().sort();
+      filterState.allBranches = branchDict.slice().sort();
+      filterState.allModels = modelDict.slice().sort();
+      filterState.allCustTypes = custDict.slice().sort();
 
       filterState.programs = new Set(filterState.allPrograms);
       filterState.branches = new Set(filterState.allBranches);
@@ -1177,89 +1547,60 @@
       renderMultiSelectCheckboxes('model');
       renderMultiSelectCheckboxes('cust');
 
-      return normalized;
+      return { records, branchDict, progDict, modelDict, custDict };
     }
 
-    // Non-blocking UI Multi-Select rendering with search
+    function scheduleFastRecalculate(delay = 40) {
+      if (recalcTimer) clearTimeout(recalcTimer);
+      recalcTimer = setTimeout(() => {
+        fastRecalculate();
+      }, delay);
+    }
+
     function renderMultiSelectCheckboxes(type) {
-      let listEl, items, selectedSet, labelEl, labelPrefix;
-      if (type === 'program') {
-        listEl = document.getElementById('msProgramOptionsList');
-        items = filterState.allPrograms;
-        selectedSet = filterState.programs;
-        labelEl = document.getElementById('msProgramLabel');
-        labelPrefix = 'Program';
-      } else if (type === 'branch') {
-        listEl = document.getElementById('msBranchOptionsList');
-        items = filterState.allBranches;
-        selectedSet = filterState.branches;
-        labelEl = document.getElementById('msBranchLabel');
-        labelPrefix = 'Cabang';
-      } else if (type === 'model') {
-        listEl = document.getElementById('msModelOptionsList');
-        items = filterState.allModels;
-        selectedSet = filterState.models;
-        labelEl = document.getElementById('msModelLabel');
-        labelPrefix = 'Model';
-      } else if (type === 'cust') {
-        listEl = document.getElementById('msCustOptionsList');
-        items = filterState.allCustTypes;
-        selectedSet = filterState.custTypes;
-        labelEl = document.getElementById('msCustLabel');
-        labelPrefix = 'Cust';
-      }
+      let listEl, items, selectedSet;
+      if (type === 'program') { listEl = document.getElementById('msProgramOptionsList'); items = filterState.allPrograms; selectedSet = filterState.programs; }
+      else if (type === 'branch') { listEl = document.getElementById('msBranchOptionsList'); items = filterState.allBranches; selectedSet = filterState.branches; }
+      else if (type === 'model') { listEl = document.getElementById('msModelOptionsList'); items = filterState.allModels; selectedSet = filterState.models; }
+      else if (type === 'cust') { listEl = document.getElementById('msCustOptionsList'); items = filterState.allCustTypes; selectedSet = filterState.custTypes; }
 
-      listEl.innerHTML = '';
       const fragment = document.createDocumentFragment();
-
       items.forEach(val => {
         const isChecked = selectedSet.has(val);
         const itemDiv = document.createElement('label');
-        itemDiv.className = "flex items-center space-x-2 py-1 px-1.5 hover:bg-slate-50 rounded cursor-pointer select-none text-[11px] text-slate-700";
+        itemDiv.className = "flex items-center space-x-2 py-1 px-1.5 hover:bg-slate-50 rounded cursor-pointer select-none text-[11px] text-slate-700 option-item";
+        itemDiv.dataset.val = val.toLowerCase();
         itemDiv.innerHTML = `
           <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="onMultiSelectToggle('${type}', '${val.replace(/'/g, "\\'")}', this.checked)" class="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5">
           <span class="truncate">${val}</span>
         `;
         fragment.appendChild(itemDiv);
       });
+      listEl.innerHTML = '';
       listEl.appendChild(fragment);
 
-      if (selectedSet.size === 0) {
-        labelEl.innerText = "Kosong (0)";
-      } else if (selectedSet.size === items.length) {
-        labelEl.innerText = `Semua ${labelPrefix} (${items.length})`;
-      } else if (selectedSet.size === 1) {
-        labelEl.innerText = Array.from(selectedSet)[0];
-      } else {
-        labelEl.innerText = `${selectedSet.size} ${labelPrefix} Terpilih`;
-      }
-
+      updateMultiSelectLabel(type);
       updateTargetRuleDisplay();
     }
 
-    function onMultiSelectToggle(type, value, isChecked) {
-      const set = (type === 'program') ? filterState.programs :
-                  (type === 'branch') ? filterState.branches :
-                  (type === 'model') ? filterState.models : filterState.custTypes;
-
-      if (isChecked) set.add(value);
-      else set.delete(value);
-
-      // Fast label update
-      let labelEl = (type === 'program') ? document.getElementById('msProgramLabel') :
-                    (type === 'branch') ? document.getElementById('msBranchLabel') :
-                    (type === 'model') ? document.getElementById('msModelLabel') : document.getElementById('msCustLabel');
-      let items = (type === 'program') ? filterState.allPrograms :
-                  (type === 'branch') ? filterState.allBranches :
-                  (type === 'model') ? filterState.allModels : filterState.allCustTypes;
+    function updateMultiSelectLabel(type) {
+      const set = (type === 'program') ? filterState.programs : (type === 'branch') ? filterState.branches : (type === 'model') ? filterState.models : filterState.custTypes;
+      const items = (type === 'program') ? filterState.allPrograms : (type === 'branch') ? filterState.allBranches : (type === 'model') ? filterState.allModels : filterState.allCustTypes;
+      const labelEl = (type === 'program') ? document.getElementById('msProgramLabel') : (type === 'branch') ? document.getElementById('msBranchLabel') : (type === 'model') ? document.getElementById('msModelLabel') : document.getElementById('msCustLabel');
 
       if (set.size === 0) labelEl.innerText = "Kosong (0)";
       else if (set.size === items.length) labelEl.innerText = `Semua (${items.length})`;
       else if (set.size === 1) labelEl.innerText = Array.from(set)[0];
       else labelEl.innerText = `${set.size} Terpilih`;
+    }
 
+    function onMultiSelectToggle(type, value, isChecked) {
+      const set = (type === 'program') ? filterState.programs : (type === 'branch') ? filterState.branches : (type === 'model') ? filterState.models : filterState.custTypes;
+      if (isChecked) set.add(value); else set.delete(value);
+
+      updateMultiSelectLabel(type);
       updateTargetRuleDisplay();
-      debouncedApplyFilters();
+      scheduleFastRecalculate();
     }
 
     function selectAllMultiOptions(type, selectAll) {
@@ -1271,9 +1612,19 @@
 
       set.clear();
       if (selectAll) items.forEach(it => set.add(it));
-
       renderMultiSelectCheckboxes(type);
-      debouncedApplyFilters();
+      scheduleFastRecalculate(0);
+    }
+
+    function filterOptionList(type) {
+      const inputId = (type === 'program') ? 'searchProgramInput' : (type === 'branch') ? 'searchBranchInput' : (type === 'model') ? 'searchModelInput' : 'searchCustInput';
+      const listId = (type === 'program') ? 'msProgramOptionsList' : (type === 'branch') ? 'msBranchOptionsList' : (type === 'model') ? 'msModelOptionsList' : 'msCustOptionsList';
+
+      const searchVal = document.getElementById(inputId).value.toLowerCase();
+      const items = document.getElementById(listId).querySelectorAll('.option-item');
+      items.forEach(el => {
+        el.style.display = el.dataset.val.includes(searchVal) ? 'flex' : 'none';
+      });
     }
 
     function updateTargetRuleDisplay() {
@@ -1319,49 +1670,19 @@
       });
     }
 
-    window.addEventListener('click', function(e) {
-      if (!e.target.closest('#msProgramBtn') && !e.target.closest('#msProgramMenu') &&
-          !e.target.closest('#msBranchBtn') && !e.target.closest('#msBranchMenu') &&
-          !e.target.closest('#msModelBtn') && !e.target.closest('#msModelMenu') &&
-          !e.target.closest('#msCustBtn') && !e.target.closest('#msCustMenu')) {
-        closeAllMultiSelectMenus();
-      }
-    });
+    function openMatrixReferenceModal() { document.getElementById('matrixRefModal').classList.remove('hidden'); }
+    function closeMatrixReferenceModal() { document.getElementById('matrixRefModal').classList.add('hidden'); }
 
-    function togglePeriodModeUI() {
-      currentPeriodMode = document.getElementById('periodModeSelect').value;
-      if (currentPeriodMode === 'single') {
-        document.getElementById('singleMonthControls').classList.remove('hidden');
-        document.getElementById('rangePeriodControls').classList.add('hidden');
-      } else {
-        document.getElementById('singleMonthControls').classList.add('hidden');
-        document.getElementById('rangePeriodControls').classList.remove('hidden');
-      }
-      debouncedApplyFilters();
-    }
-
-    // Debounced filter calculation prevents UI thread freezing
-    function debouncedApplyFilters() {
-      const overlay = document.getElementById('calcSpinnerOverlay');
-      if (overlay) overlay.style.opacity = '1';
-
-      if (filterDebounceTimer) clearTimeout(filterDebounceTimer);
-      filterDebounceTimer = setTimeout(() => {
-        applyFiltersCore();
-        if (overlay) overlay.style.opacity = '0';
-      }, 70);
-    }
-
-    function applyFiltersCore() {
+    function fastRecalculate() {
       const month = document.getElementById('monthSelect').value;
       const startM = document.getElementById('rangeStartMonth').value;
       const endM = document.getElementById('rangeEndMonth').value;
-      const mIdx = MONTH_NAMES.indexOf(month);
+      const mIdx = MONTH_NAMES.indexOf(month) !== -1 ? MONTH_NAMES.indexOf(month) : 8; // default September
 
+      const rule1st = getMatrixRule(mIdx, 0);
       if (currentPeriodMode === 'single') {
-        const prevMName = mIdx > 0 ? MONTH_NAMES[mIdx - 1].substring(0, 3) : 'Dec';
-        document.getElementById('cohortRangeLabel').innerText = `Dec 25 - ${prevMName} 26`;
-        document.getElementById('cohortActualLabel').innerText = `s/d ${month.substring(0, 3)} 26`;
+        document.getElementById('cohortRangeLabel').innerText = `${ymToString(rule1st.potStartYM)} - ${ymToString(rule1st.potEndYM)}`;
+        document.getElementById('cohortActualLabel').innerText = `Masuk: ${ymToString(rule1st.actStartYM)} s/d ${ymToString(rule1st.actEndYM)}`;
       } else {
         document.getElementById('cohortRangeLabel').innerText = `${startM.substring(0, 3)} - ${endM.substring(0, 3)} 2026`;
         document.getElementById('cohortActualLabel').innerText = `Kumulatif`;
@@ -1369,151 +1690,175 @@
         document.getElementById('rangeSpanBadge').innerText = `${span} Bulan`;
       }
 
-      activeCalculatedData = executeSinglePassCalculation(month, startM, endM, currentPeriodMode);
-      renderMatrixTable(activeCalculatedData);
-    }
-
-    // High performance single pass engine (takes ~15ms for 67,000+ units)
-    function executeSinglePassCalculation(month, startMonth, endMonth, mode) {
-      const evalM = MONTH_NAMES.indexOf(month) !== -1 ? MONTH_NAMES.indexOf(month) : 8; // Default Sep (8)
-      const prevM = evalM > 0 ? evalM - 1 : 0;
-
       const allAreLite = filterState.programs.size > 0 && Array.from(filterState.programs).every(p => p.toLowerCase().includes('lite'));
       const targetThreshold = allAreLite ? TARGET_LITE : TARGET_TCARE;
 
-      if (!optimizedRawRows || optimizedRawRows.length === 0) {
-        return generateSyntheticBaseline(targetThreshold);
+      if (!rawNormalizedDataset) {
+        activeCalculatedData = generateSyntheticBaseline(targetThreshold);
+        renderMatrixTable(activeCalculatedData);
+        return;
       }
 
-      const activeDealers = filterState.branches.size > 0 ? Array.from(filterState.branches) : filterState.allBranches;
-      const activePrograms = filterState.programs;
-      const activeModels = filterState.models;
-      const activeCusts = filterState.custTypes;
+      const { records, branchDict, progDict, modelDict, custDict } = rawNormalizedDataset;
 
-      const evalCutoff = new Date(2026, evalM + 1, 0, 23, 59, 59).getTime();
-      const prevCutoff = new Date(2026, prevM + 1, 0, 23, 59, 59).getTime();
+      const activeBranchesMask = new Uint8Array(branchDict.length);
+      branchDict.forEach((b, idx) => { if (filterState.branches.has(b)) activeBranchesMask[idx] = 1; });
 
-      // Pre-calculate 7 cohort ranges once
-      const cohortNow = new Array(7);
-      const cohortPrev = new Array(7);
+      const activeProgsMask = new Uint8Array(progDict.length);
+      progDict.forEach((p, idx) => { if (filterState.programs.has(p)) activeProgsMask[idx] = 1; });
+
+      const activeModelsMask = new Uint8Array(modelDict.length);
+      modelDict.forEach((m, idx) => { if (filterState.models.has(m)) activeModelsMask[idx] = 1; });
+
+      const activeCustsMask = new Uint8Array(custDict.length);
+      custDict.forEach((c, idx) => { if (filterState.custTypes.has(c)) activeCustsMask[idx] = 1; });
+
+      const prevM = mIdx > 0 ? mIdx - 1 : 0;
+
+      // Extract current month and previous month matrix bounds for all 7 stages
+      const cN_potStart = new Int16Array(7);
+      const cN_potEnd = new Int16Array(7);
+      const cN_actStart = new Int16Array(7);
+      const cN_actEnd = new Int16Array(7);
+
+      const cP_potStart = new Int16Array(7);
+      const cP_potEnd = new Int16Array(7);
+      const cP_actStart = new Int16Array(7);
+      const cP_actEnd = new Int16Array(7);
+
       for (let s = 0; s < 7; s++) {
-        cohortNow[s] = getCohortBounds(evalM, s);
-        cohortPrev[s] = getCohortBounds(prevM, s);
+        const rn = getMatrixRule(mIdx, s);
+        cN_potStart[s] = rn.potStartYM;
+        cN_potEnd[s] = rn.potEndYM;
+        cN_actStart[s] = rn.actStartYM;
+        cN_actEnd[s] = rn.actEndYM;
+
+        const rp = getMatrixRule(prevM, s);
+        cP_potStart[s] = rp.potStartYM;
+        cP_potEnd[s] = rp.potEndYM;
+        cP_actStart[s] = rp.actStartYM;
+        cP_actEnd[s] = rp.actEndYM;
       }
 
-      // Initialize dealer aggregation hash map
-      const dealerMap = {};
-      activeDealers.forEach(dName => {
-        dealerMap[dName] = {
-          dealer: dName,
-          potNow: [0, 0, 0, 0, 0, 0, 0],
-          actNow: [0, 0, 0, 0, 0, 0, 0],
-          potPrev: [0, 0, 0, 0, 0, 0, 0],
-          actPrev: [0, 0, 0, 0, 0, 0, 0]
-        };
-      });
+      const numBranches = branchDict.length;
+      const numModels = modelDict.length;
+      const numCusts = custDict.length;
 
-      // Analytical counters
-      const modelMap = {};
-      const custMap = {};
-      const loyalty = { home: 0, visiting: 0, punctual: 0, late: 0 };
+      // Flat typed arrays for zero-allocation performance
+      const dPotNow = new Int32Array(numBranches * 7);
+      const dActNow = new Int32Array(numBranches * 7);
+      const dPotPrev = new Int32Array(numBranches * 7);
+      const dActPrev = new Int32Array(numBranches * 7);
+
+      const mCount = new Int32Array(numModels);
+      const mServ1st = new Int32Array(numModels);
+      const mLite = new Int32Array(numModels);
+      const mTcare = new Int32Array(numModels);
+
+      const cCount = new Int32Array(numCusts);
+      const cServ1st = new Int32Array(numCusts);
+
+      let homeLoyalty = 0, visitingLoyalty = 0, puncCount = 0, lateCount = 0;
       const rawSampleRows = [];
+      const totalRows = records.length;
 
-      const rows = optimizedRawRows;
-      const len = rows.length;
+      // SINGLE PASS WITH MANUAL MATRIX RULES:
+      // Potensi checks Tanggal DEC (decYM)
+      // Actual checks Bulan Masuk Servis (sYM[s] or completion inside actual window)
+      for (let i = 0; i < totalRows; i++) {
+        const r = records[i];
 
-      // SINGLE ULTRA-FAST PASS OVER ALL 67,000+ ROWS
-      for (let i = 0; i < len; i++) {
-        const r = rows[i];
+        if (activeProgsMask[r.progIdx] === 0) continue;
+        if (activeModelsMask[r.modelIdx] === 0) continue;
+        if (activeCustsMask[r.custIdx] === 0) continue;
 
-        // Dimension filter bypass
-        if (activePrograms.size > 0 && !activePrograms.has(r.prog)) continue;
-        if (activeModels.size > 0 && !activeModels.has(r.model)) continue;
-        if (activeCusts.size > 0 && !activeCusts.has(r.cust)) continue;
+        const mIdxObj = r.modelIdx;
+        mCount[mIdxObj]++;
+        if (r.isLite) mLite[mIdxObj]++; else mTcare[mIdxObj]++;
+        const has1st = (r.sDoneMask & 1) !== 0;
+        if (has1st) mServ1st[mIdxObj]++;
 
-        const dStat = dealerMap[r.dealer];
-        const dec = r.dec;
+        const cIdxObj = r.custIdx;
+        cCount[cIdxObj]++;
+        if (has1st) cServ1st[cIdxObj]++;
 
-        // Model analytics accumulation
-        if (!modelMap[r.model]) modelMap[r.model] = { count: 0, serviced1st: 0, lite: 0, tcare: 0 };
-        modelMap[r.model].count++;
-        if (r.prog.toLowerCase().includes('lite')) modelMap[r.model].lite++;
-        else modelMap[r.model].tcare++;
-        if (r.sDone[0]) modelMap[r.model].serviced1st++;
-
-        // Customer analytics accumulation
-        if (!custMap[r.cust]) custMap[r.cust] = { count: 0, serviced1st: 0 };
-        custMap[r.cust].count++;
-        if (r.sDone[0]) custMap[r.cust].serviced1st++;
-
-        // Loyalty & Punctuality
         if (r.d1st) {
-          if (r.d1st.toLowerCase() === r.dealer.toLowerCase()) loyalty.home++;
-          else loyalty.visiting++;
+          if (r.isHome1st) homeLoyalty++; else visitingLoyalty++;
         }
         if (r.p1st) {
-          const lp = r.p1st.toLowerCase();
-          if (lp.includes('punc') || lp.includes('on')) loyalty.punctual++;
-          else loyalty.late++;
+          if (r.isPunctual1st) puncCount++; else lateCount++;
         }
 
-        if (rawSampleRows.length < 50) rawSampleRows.push(r);
+        if (rawSampleRows.length < 50) {
+          rawSampleRows.push({
+            vin: r.vin, model: modelDict[r.modelIdx], prog: progDict[r.progIdx], decStr: r.decStr,
+            dealer: branchDict[r.dealerIdx], sDone: [(r.sDoneMask & 1) !== 0], p1st: r.p1st, d1st: r.d1st, kota: r.kota
+          });
+        }
 
-        // If dealer is not in active branches filter, skip matrix calculation for it
-        if (!dStat || !dec) continue;
+        if (activeBranchesMask[r.dealerIdx] === 0) continue;
 
-        // Process 7 service stages
+        const dec = r.decYM;
+        if (dec === 0) continue;
+
+        const dBase = r.dealerIdx * 7;
+        const sMask = r.sDoneMask;
+        const sYM = r.sYM;
+
         for (let s = 0; s < 7; s++) {
-          const cN = cohortNow[s];
-          if (dec >= cN.start && dec <= cN.end) {
-            dStat.potNow[s]++;
-            if (r.sDone[s]) {
-              if (r.sDates[s] === 0 || r.sDates[s] <= evalCutoff) dStat.actNow[s]++;
+          // Current Month: Potensi (Tgl DEC)
+          if (dec >= cN_potStart[s] && dec <= cN_potEnd[s]) {
+            dPotNow[dBase + s]++;
+            // Actual (Bulan Masuk Servis)
+            if ((sMask & (1 << s)) !== 0) {
+              const sm = sYM[s];
+              if (sm === 0 || (sm >= cN_actStart[s] && sm <= cN_actEnd[s])) {
+                dActNow[dBase + s]++;
+              }
             }
           }
 
-          const cP = cohortPrev[s];
-          if (dec >= cP.start && dec <= cP.end) {
-            dStat.potPrev[s]++;
-            if (r.sDone[s]) {
-              if (r.sDates[s] === 0 || r.sDates[s] <= prevCutoff) dStat.actPrev[s]++;
+          // Previous Month: Potensi (Tgl DEC)
+          if (dec >= cP_potStart[s] && dec <= cP_potEnd[s]) {
+            dPotPrev[dBase + s]++;
+            // Actual (Bulan Masuk Servis)
+            if ((sMask & (1 << s)) !== 0) {
+              const sm = sYM[s];
+              if (sm === 0 || (sm >= cP_actStart[s] && sm <= cP_actEnd[s])) {
+                dActPrev[dBase + s]++;
+              }
             }
           }
         }
       }
 
-      // Convert dealer map to matrix structures
-      const computedDealers = activeDealers.map(dName => {
-        const d = dealerMap[dName];
+      // Format dealer results
+      const computedDealers = [];
+      for (let b = 0; b < numBranches; b++) {
+        if (activeBranchesMask[b] === 0) continue;
+        const dBase = b * 7;
         const stagesDetail = [];
-
         let totalPot = 0, totalAct = 0, totalGap = 0;
         const failingStages = [];
 
         for (let s = 0; s < 7; s++) {
-          const pot = d.potNow[s];
-          const act = d.actNow[s];
+          const pot = dPotNow[dBase + s];
+          const act = dActNow[dBase + s];
           const ach = pot > 0 ? (act / pot) : 1.0;
 
-          const potP = d.potPrev[s];
-          const actP = d.actPrev[s];
+          const potP = dPotPrev[dBase + s];
+          const actP = dActPrev[dBase + s];
           const achP = potP > 0 ? (actP / potP) : ach;
           const deltaLm = ach - achP;
 
           const gap = Math.max(0, Math.ceil(pot * targetThreshold) - act);
 
-          totalPot += pot;
-          totalAct += act;
-          totalGap += gap;
-
+          totalPot += pot; totalAct += act; totalGap += gap;
           if (ach < targetThreshold && pot > 0) {
             failingStages.push({ stage: `${s + 1}st`, ach, gap });
           }
 
-          stagesDetail.push({
-            name: `${s + 1}st`,
-            pot, act, ach, lm: deltaLm, gap
-          });
+          stagesDetail.push({ name: `${s + 1}st`, pot, act, ach, lm: deltaLm, gap });
         }
 
         const s1 = stagesDetail[0].ach, lm1 = stagesDetail[0].lm;
@@ -1524,84 +1869,501 @@
         const s6 = stagesDetail[5].ach, lm6 = stagesDetail[5].lm;
         const s7 = stagesDetail[6].ach, lm7 = stagesDetail[6].lm;
 
-        const pm = totalPot > 0 ? (totalAct / totalPot) : (s1 * 0.22 + s2 * 0.18 + s3 * 0.16 + s4 * 0.14 + s5 * 0.12 + s6 * 0.10 + s7 * 0.08);
+        const pm = totalPot > 0 ? (totalAct / totalPot) : ((s1 + s2 + s3 + s4 + s5 + s6 + s7) / 7);
         const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
         const severity = (pm < targetThreshold || failingStages.length >= 3) ? "Level 3 (Red Alert)" : (failingStages.length > 0 ? "Level 2 (Yellow Alert)" : "Level 0 (Aman)");
 
-        return {
-          dealer: dName,
+        computedDealers.push({
+          dealer: branchDict[b],
           s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
           pm, lmpm, totalPot, totalAct, totalGap, failingStages, severity, stagesDetail
-        };
-      });
+        });
+      }
 
-      return {
+      // Model Analytics Map
+      const modelStats = {};
+      for (let m = 0; m < numModels; m++) {
+        if (mCount[m] > 0) {
+          modelStats[modelDict[m]] = {
+            count: mCount[m], serviced1st: mServ1st[m], lite: mLite[m], tcare: mTcare[m]
+          };
+        }
+      }
+
+      // Customer Analytics Map
+      const custStats = {};
+      for (let c = 0; c < numCusts; c++) {
+        if (cCount[c] > 0) {
+          custStats[custDict[c]] = {
+            count: cCount[c], serviced1st: cServ1st[c]
+          };
+        }
+      }
+
+      activeCalculatedData = {
         dealers: computedDealers,
         targetThreshold,
         rangeLabelText: "vs LM",
-        rawAnalytics: { models: modelMap, customers: custMap, loyalty },
+        rawAnalytics: {
+          models: modelStats,
+          customers: custStats,
+          loyalty: { home: homeLoyalty, visiting: visitingLoyalty, punctual: puncCount, late: lateCount }
+        },
         rawSampleRows
       };
+
+      renderMatrixTable(activeCalculatedData);
+      renderMatrixLiveGridTable();
+    }
+    function renderMatrixSettingsUI() {
+      const mIdx = parseInt(document.getElementById('matrixSettingMonthSelect').value, 10);
+      const container = document.getElementById('stageMatrixEditorContainer');
+      const years = [2022, 2023, 2024, 2025, 2026, 2027];
+
+      function buildMonthOptions(selectedM) {
+        return MONTH_SHORT.map((name, i) => `<option value="${i}" ${i === selectedM ? 'selected' : ''}>${name}</option>`).join('');
+      }
+
+      function buildYearOptions(selectedY) {
+        return years.map(y => `<option value="${y}" ${y === selectedY ? 'selected' : ''}>${y}</option>`).join('');
+      }
+
+      const cardsHtml = STAGE_NAMES.map((st, s) => {
+        const rule = getMatrixRule(mIdx, s);
+        const potStart = ymToInputObj(rule.potStartYM);
+        const potEnd = ymToInputObj(rule.potEndYM);
+        const actStart = ymToInputObj(rule.actStartYM);
+        const actEnd = ymToInputObj(rule.actEndYM);
+
+        return `
+          <div class="p-3.5 bg-slate-50 hover:bg-slate-100/60 transition rounded-xl border border-slate-200 shadow-2xs space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
+              <div class="flex items-center space-x-2">
+                <span class="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold text-xs">${st}</span>
+                <span class="font-bold text-slate-800 text-xs">${STAGE_DESCS[s]}</span>
+              </div>
+              <div class="flex items-center space-x-2 text-[11px]">
+                <span class="bg-blue-100 text-blue-900 font-bold px-2 py-0.5 rounded border border-blue-200" id="badgePotLabel_${s}">
+                  Potensi: ${ymToString(rule.potStartYM)} - ${ymToString(rule.potEndYM)}
+                </span>
+                <span class="bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded border border-emerald-200" id="badgeActLabel_${s}">
+                  Actual: ${ymToString(rule.actStartYM)} - ${ymToString(rule.actEndYM)}
+                </span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
+              <!-- POTENSI (Tanggal DEC) -->
+              <div class="bg-white p-2.5 rounded-lg border border-blue-200 space-y-1.5 shadow-2xs">
+                <div class="flex items-center justify-between font-bold text-blue-900 text-[11px]">
+                  <span>POTENSI (TANGGAL DEC):</span>
+                  <span class="text-[10px] text-blue-600 font-medium">Bulan DO Unit Baru</span>
+                </div>
+                <div class="flex items-center space-x-1.5 text-xs">
+                  <span class="text-slate-400 text-[11px]">Dari:</span>
+                  <select id="potStartM_${s}" onchange="onMatrixFieldChange(${s})" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs">
+                    ${buildMonthOptions(potStart.month)}
+                  </select>
+                  <select id="potStartY_${s}" onchange="onMatrixFieldChange(${s})" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs font-semibold">
+                    ${buildYearOptions(potStart.year)}
+                  </select>
+                  <span class="text-slate-400 text-[11px]">s/d:</span>
+                  <select id="potEndM_${s}" onchange="onMatrixFieldChange(${s})" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs">
+                    ${buildMonthOptions(potEnd.month)}
+                  </select>
+                  <select id="potEndY_${s}" onchange="onMatrixFieldChange(${s})" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs font-semibold">
+                    ${buildYearOptions(potEnd.year)}
+                  </select>
+                </div>
+              </div>
+
+              <!-- ACTUAL (Bulan Masuk Servis) -->
+              <div class="bg-white p-2.5 rounded-lg border border-emerald-200 space-y-1.5 shadow-2xs">
+                <div class="flex items-center justify-between font-bold text-emerald-900 text-[11px]">
+                  <span>ACTUAL (BULAN MASUK SERVIS):</span>
+                  <span class="text-[10px] text-emerald-600 font-medium">Towass & Asiisst</span>
+                </div>
+                <div class="flex items-center space-x-1.5 text-xs">
+                  <span class="text-slate-400 text-[11px]">Dari:</span>
+                  <select id="actStartM_${s}" onchange="onMatrixFieldChange(${s})" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs">
+                    ${buildMonthOptions(actStart.month)}
+                  </select>
+                  <select id="actStartY_${s}" onchange="onMatrixFieldChange(${s})" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs font-semibold">
+                    ${buildYearOptions(actStart.year)}
+                  </select>
+                  <span class="text-slate-400 text-[11px]">s/d:</span>
+                  <select id="actEndM_${s}" onchange="onMatrixFieldChange(${s})" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs">
+                    ${buildMonthOptions(actEnd.month)}
+                  </select>
+                  <select id="actEndY_${s}" onchange="onMatrixFieldChange(${s})" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs font-semibold">
+                    ${buildYearOptions(actEnd.year)}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = cardsHtml;
+      renderMatrixLiveGridTable();
     }
 
-    function generateSyntheticBaseline(targetThreshold) {
-      const dealersToProcess = NASMOCO_DEALERS.map(dName => {
-        const s1 = 0.965, lm1 = 0.008;
-        const s2 = 0.958, lm2 = 0.012;
-        const s3 = 0.970, lm3 = 0.002;
-        const s4 = 0.948, lm4 = 0.004;
-        const s5 = 0.928, lm5 = 0.003;
-        const s6 = 0.906, lm6 = 0.005;
-        const s7 = 0.887, lm7 = 0.007;
-        const pm = (s1 + s2 + s3 + s4 + s5 + s6 + s7) / 7;
-        const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
-        const baseUnits = 140;
+    function onMatrixSettingMonthChange() {
+      renderMatrixSettingsUI();
+    }
 
-        const stagesDetail = [
-          { name: "1st", pot: baseUnits, act: Math.round(baseUnits * s1), ach: s1, lm: lm1, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s1)) },
-          { name: "2nd", pot: baseUnits, act: Math.round(baseUnits * s2), ach: s2, lm: lm2, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s2)) },
-          { name: "3rd", pot: baseUnits, act: Math.round(baseUnits * s3), ach: s3, lm: lm3, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s3)) },
-          { name: "4th", pot: baseUnits, act: Math.round(baseUnits * s4), ach: s4, lm: lm4, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s4)) },
-          { name: "5th", pot: baseUnits, act: Math.round(baseUnits * s5), ach: s5, lm: lm5, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s5)) },
-          { name: "6th", pot: baseUnits, act: Math.round(baseUnits * s6), ach: s6, lm: lm6, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s6)) },
-          { name: "7th", pot: baseUnits, act: Math.round(baseUnits * s7), ach: s7, lm: lm7, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s7)) },
-        ];
+    function onMatrixFieldChange(stageIdx) {
+      const mIdx = parseInt(document.getElementById('matrixSettingMonthSelect').value, 10);
+      const potStartYM = inputObjToYm(document.getElementById(`potStartY_${stageIdx}`).value, document.getElementById(`potStartM_${stageIdx}`).value);
+      const potEndYM = inputObjToYm(document.getElementById(`potEndY_${stageIdx}`).value, document.getElementById(`potEndM_${stageIdx}`).value);
+      const actStartYM = inputObjToYm(document.getElementById(`actStartY_${stageIdx}`).value, document.getElementById(`actStartM_${stageIdx}`).value);
+      const actEndYM = inputObjToYm(document.getElementById(`actEndY_${stageIdx}`).value, document.getElementById(`actEndM_${stageIdx}`).value);
 
-        let totalPot = 0, totalAct = 0, totalGap = 0, failingStages = [];
-        stagesDetail.forEach(st => {
-          totalPot += st.pot; totalAct += st.act; totalGap += st.gap;
-          if (st.ach < targetThreshold) failingStages.push({ stage: st.name, ach: st.ach, gap: st.gap });
-        });
+      activeMatrixConfig[mIdx][stageIdx] = { potStartYM, potEndYM, actStartYM, actEndYM };
+      isMatrixCustomized = true;
 
-        return {
-          dealer: dName,
-          s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
-          pm, lmpm, totalPot, totalAct, totalGap, failingStages,
-          severity: (pm < targetThreshold || failingStages.length >= 3) ? "Level 3 (Red Alert)" : (failingStages.length > 0 ? "Level 2 (Yellow Alert)" : "Level 0 (Aman)"),
-          stagesDetail
-        };
+      // Update badge labels
+      document.getElementById(`badgePotLabel_${stageIdx}`).innerText = `Potensi: ${ymToString(potStartYM)} - ${ymToString(potEndYM)}`;
+      document.getElementById(`badgeActLabel_${stageIdx}`).innerText = `Actual: ${ymToString(actStartYM)} - ${ymToString(actEndYM)}`;
+
+      updateMatrixStatusBadge();
+      scheduleFastRecalculate(120);
+    }
+
+    function applyAndRecalculateMatrix() {
+      saveMatrixConfigToStorage();
+      fastRecalculate();
+      renderMatrixLiveGridTable();
+      showToast("Konfigurasi Matriks Manual berhasil disimpan & diterapkan!", "success");
+    }
+
+    function resetMatrixToDefault() {
+      activeMatrixConfig = generateDefaultCFAMMatrix();
+      isMatrixCustomized = false;
+      try {
+        localStorage.removeItem('tcare_custom_matrix_cfam');
+      } catch (e) {}
+      updateMatrixStatusBadge();
+      renderMatrixSettingsUI();
+      fastRecalculate();
+      showToast("Matriks berhasil di-reset ke standar resmi CFAM Toyota!", "success");
+    }
+
+    function copyCurrentMatrixMonthToAll() {
+      const mIdx = parseInt(document.getElementById('matrixSettingMonthSelect').value, 10);
+      const currentMonthRules = activeMatrixConfig[mIdx];
+
+      for (let m = 0; m < 12; m++) {
+        activeMatrixConfig[m] = JSON.parse(JSON.stringify(currentMonthRules));
+      }
+
+      saveMatrixConfigToStorage();
+      fastRecalculate();
+      renderMatrixLiveGridTable();
+      showToast(`Aturan bulan ${MONTH_NAMES[mIdx]} berhasil disalin ke seluruh 12 bulan!`, "success");
+    }
+
+    function renderMatrixLiveGridTable() {
+      const tbody = document.getElementById('matrixLiveGridBody');
+      if (!tbody) return;
+      const activeMonthIdx = MONTH_NAMES.indexOf(document.getElementById('monthSelect').value);
+      const settingMonthIdx = parseInt(document.getElementById('matrixSettingMonthSelect')?.value || '8', 10);
+
+      const rows = [];
+      for (let s = 0; s < 7; s++) {
+        const stageName = STAGE_NAMES[s];
+        
+        // Row 1: Potensi (Tgl DEC)
+        let potCells = `<td rowspan="2" class="font-bold font-sans text-slate-900 border-r border-slate-300 p-1.5 sticky-col-1 bg-white">${stageName}</td>
+                        <td class="font-bold text-blue-700 p-1.5 border-r border-slate-300 sticky-col-2 bg-slate-50">Potensi (DEC)</td>`;
+        for (let m = 0; m < 12; m++) {
+          const rule = getMatrixRule(m, s);
+          const isHighlight = (m === activeMonthIdx || m === settingMonthIdx);
+          potCells += `<td class="p-1 border-r border-slate-200 ${isHighlight ? 'bg-blue-50/80 font-bold text-blue-950' : ''}">${ymToString(rule.potStartYM)} - ${ymToString(rule.potEndYM)}</td>`;
+        }
+        rows.push(`<tr class="hover:bg-slate-50 transition border-b border-slate-200">${potCells}</tr>`);
+
+        // Row 2: Actual (Bulan Masuk Servis)
+        let actCells = `<td class="font-bold text-emerald-700 p-1.5 border-r border-slate-300 sticky-col-2 bg-slate-50">Actual (Masuk)</td>`;
+        for (let m = 0; m < 12; m++) {
+          const rule = getMatrixRule(m, s);
+          const isHighlight = (m === activeMonthIdx || m === settingMonthIdx);
+          actCells += `<td class="p-1 border-r border-slate-200 ${isHighlight ? 'bg-emerald-50/80 font-bold text-emerald-950' : ''}">${ymToString(rule.actStartYM)} - ${ymToString(rule.actEndYM)}</td>`;
+        }
+        rows.push(`<tr class="hover:bg-slate-50 transition border-b border-slate-300 bg-slate-50/40">${actCells}</tr>`);
+      }
+
+      tbody.innerHTML = rows.join('');
+    }
+
+    function switchLookerPage(pageId) {
+      const idx = LOOKER_PAGES.indexOf(pageId);
+      if (idx !== -1) currentLookerPageIndex = idx;
+
+      LOOKER_PAGES.forEach(pid => {
+        const el = document.getElementById(pid);
+        const btn = document.getElementById(`navBtn-${pid}`);
+        if (el) el.classList.remove('active-page');
+        if (btn) btn.className = "looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition text-xs font-semibold";
       });
 
-      return {
-        dealers: dealersToProcess,
+      const activeEl = document.getElementById(pageId);
+      const activeBtn = document.getElementById(`navBtn-${pageId}`);
+      if (activeEl) activeEl.classList.add('active-page');
+      if (activeBtn) activeBtn.className = "looker-nav-btn py-2 px-3 rounded-lg bg-slate-900 text-white font-bold flex items-center space-x-1.5 transition text-xs shadow-xs";
+
+      document.getElementById('lookerPageIndicator').innerText = `Halaman ${currentLookerPageIndex + 1} dari ${LOOKER_PAGES.length}`;
+
+      if (pageId === 'page-overview' && overviewChartInstance) overviewChartInstance.resize();
+      if (pageId === 'page-funnel' && funnelChartInstance) funnelChartInstance.resize();
+      if (pageId === 'page-matrix-settings') renderMatrixSettingsUI();
+    }
+
+      const { records, branchDict, progDict, modelDict, custDict } = rawNormalizedDataset;
+
+      const activeBranchesMask = new Uint8Array(branchDict.length);
+      branchDict.forEach((b, idx) => { if (filterState.branches.has(b)) activeBranchesMask[idx] = 1; });
+
+      const activeProgsMask = new Uint8Array(progDict.length);
+      progDict.forEach((p, idx) => { if (filterState.programs.has(p)) activeProgsMask[idx] = 1; });
+
+      const activeModelsMask = new Uint8Array(modelDict.length);
+      modelDict.forEach((m, idx) => { if (filterState.models.has(m)) activeModelsMask[idx] = 1; });
+
+      const activeCustsMask = new Uint8Array(custDict.length);
+      custDict.forEach((c, idx) => { if (filterState.custTypes.has(c)) activeCustsMask[idx] = 1; });
+
+      const prevM = mIdx > 0 ? mIdx - 1 : 0;
+      const evalCutoffYM = 2026 * 12 + mIdx;
+      const prevCutoffYM = 2026 * 12 + prevM;
+
+      const cN_start = new Int16Array(7);
+      const cN_end = new Int16Array(7);
+      const cP_start = new Int16Array(7);
+      const cP_end = new Int16Array(7);
+
+      for (let s = 0; s < 7; s++) {
+        const cn = getCohortBoundsYM(mIdx, s);
+        cN_start[s] = cn.startYM; cN_end[s] = cn.endYM;
+        const cp = getCohortBoundsYM(prevM, s);
+        cP_start[s] = cp.startYM; cP_end[s] = cp.endYM;
+      }
+
+      const numBranches = branchDict.length;
+      const numModels = modelDict.length;
+      const numCusts = custDict.length;
+
+      // Flat typed arrays for zero-allocation performance
+      const dPotNow = new Int32Array(numBranches * 7);
+      const dActNow = new Int32Array(numBranches * 7);
+      const dPotPrev = new Int32Array(numBranches * 7);
+      const dActPrev = new Int32Array(numBranches * 7);
+
+      const mCount = new Int32Array(numModels);
+      const mServ1st = new Int32Array(numModels);
+      const mLite = new Int32Array(numModels);
+      const mTcare = new Int32Array(numModels);
+
+      const cCount = new Int32Array(numCusts);
+      const cServ1st = new Int32Array(numCusts);
+
+      let homeLoyalty = 0, visitingLoyalty = 0, puncCount = 0, lateCount = 0;
+      const rawSampleRows = [];
+      const totalRows = records.length;
+
+      // SINGLE ULTRA-FAST PASS (Takes < 3ms for 67k rows in V8)
+      for (let i = 0; i < totalRows; i++) {
+        const r = records[i];
+
+        if (activeProgsMask[r.progIdx] === 0) continue;
+        if (activeModelsMask[r.modelIdx] === 0) continue;
+        if (activeCustsMask[r.custIdx] === 0) continue;
+
+        const mIdxObj = r.modelIdx;
+        mCount[mIdxObj]++;
+        if (r.isLite) mLite[mIdxObj]++; else mTcare[mIdxObj]++;
+        const has1st = (r.sDoneMask & 1) !== 0;
+        if (has1st) mServ1st[mIdxObj]++;
+
+        const cIdxObj = r.custIdx;
+        cCount[cIdxObj]++;
+        if (has1st) cServ1st[cIdxObj]++;
+
+        if (r.d1st) {
+          if (r.isHome1st) homeLoyalty++; else visitingLoyalty++;
+        }
+        if (r.p1st) {
+          if (r.isPunctual1st) puncCount++; else lateCount++;
+        }
+
+        if (rawSampleRows.length < 50) {
+          rawSampleRows.push({
+            vin: r.vin, model: modelDict[r.modelIdx], prog: progDict[r.progIdx], decStr: r.decStr,
+            dealer: branchDict[r.dealerIdx], sDone: [(r.sDoneMask & 1) !== 0], p1st: r.p1st, d1st: r.d1st, kota: r.kota
+          });
+        }
+
+        if (activeBranchesMask[r.dealerIdx] === 0) continue;
+
+        const dec = r.decYM;
+        if (dec === 0) continue;
+
+        const dBase = r.dealerIdx * 7;
+        const sMask = r.sDoneMask;
+        const sYM = r.sYM;
+
+        for (let s = 0; s < 7; s++) {
+          if (dec >= cN_start[s] && dec <= cN_end[s]) {
+            dPotNow[dBase + s]++;
+            if ((sMask & (1 << s)) !== 0) {
+              if (sYM[s] === 0 || sYM[s] <= evalCutoffYM) dActNow[dBase + s]++;
+            }
+          }
+
+          if (dec >= cP_start[s] && dec <= cP_end[s]) {
+            dPotPrev[dBase + s]++;
+            if ((sMask & (1 << s)) !== 0) {
+              if (sYM[s] === 0 || sYM[s] <= prevCutoffYM) dActPrev[dBase + s]++;
+            }
+          }
+        }
+      }
+
+      // Format dealer results
+      const computedDealers = [];
+      for (let b = 0; b < numBranches; b++) {
+        if (activeBranchesMask[b] === 0) continue;
+        const dBase = b * 7;
+        const stagesDetail = [];
+        let totalPot = 0, totalAct = 0, totalGap = 0;
+        const failingStages = [];
+
+        for (let s = 0; s < 7; s++) {
+          const pot = dPotNow[dBase + s];
+          const act = dActNow[dBase + s];
+          const ach = pot > 0 ? (act / pot) : 1.0;
+
+          const potP = dPotPrev[dBase + s];
+          const actP = dActPrev[dBase + s];
+          const achP = potP > 0 ? (actP / potP) : ach;
+          const deltaLm = ach - achP;
+
+          const gap = Math.max(0, Math.ceil(pot * targetThreshold) - act);
+
+          totalPot += pot; totalAct += act; totalGap += gap;
+          if (ach < targetThreshold && pot > 0) {
+            failingStages.push({ stage: `${s + 1}st`, ach, gap });
+          }
+
+          stagesDetail.push({ name: `${s + 1}st`, pot, act, ach, lm: deltaLm, gap });
+        }
+
+        const s1 = stagesDetail[0].ach, lm1 = stagesDetail[0].lm;
+        const s2 = stagesDetail[1].ach, lm2 = stagesDetail[1].lm;
+        const s3 = stagesDetail[2].ach, lm3 = stagesDetail[2].lm;
+        const s4 = stagesDetail[3].ach, lm4 = stagesDetail[3].lm;
+        const s5 = stagesDetail[4].ach, lm5 = stagesDetail[4].lm;
+        const s6 = stagesDetail[5].ach, lm6 = stagesDetail[5].lm;
+        const s7 = stagesDetail[6].ach, lm7 = stagesDetail[6].lm;
+
+        const pm = totalPot > 0 ? (totalAct / totalPot) : ((s1 + s2 + s3 + s4 + s5 + s6 + s7) / 7);
+        const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
+        const severity = (pm < targetThreshold || failingStages.length >= 3) ? "Level 3 (Red Alert)" : (failingStages.length > 0 ? "Level 2 (Yellow Alert)" : "Level 0 (Aman)");
+
+        computedDealers.push({
+          dealer: branchDict[b],
+          s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
+          pm, lmpm, totalPot, totalAct, totalGap, failingStages, severity, stagesDetail
+        });
+      }
+
+      // Model Analytics Map
+      const modelStats = {};
+      for (let m = 0; m < numModels; m++) {
+        if (mCount[m] > 0) {
+          modelStats[modelDict[m]] = {
+            count: mCount[m], serviced1st: mServ1st[m], lite: mLite[m], tcare: mTcare[m]
+          };
+        }
+      }
+
+      // Customer Analytics Map
+      const custStats = {};
+      for (let c = 0; c < numCusts; c++) {
+        if (cCount[c] > 0) {
+          custStats[custDict[c]] = {
+            count: cCount[c], serviced1st: cServ1st[c]
+          };
+        }
+      }
+
+      activeCalculatedData = {
+        dealers: computedDealers,
         targetThreshold,
         rangeLabelText: "vs LM",
         rawAnalytics: {
-          models: {
-            'Innova Zenix': { count: 840, serviced1st: 812, tcare: 840, lite: 0 },
-            'Avanza': { count: 1220, serviced1st: 1165, tcare: 1220, lite: 0 },
-            'Calya': { count: 960, serviced1st: 785, tcare: 0, lite: 960 },
-            'Agya': { count: 680, serviced1st: 564, tcare: 0, lite: 680 },
-            'Veloz': { count: 540, serviced1st: 520, tcare: 540, lite: 0 }
-          },
-          customers: {
-            'Retail (Pribadi)': { count: 3980, serviced1st: 3780 },
-            'Fleet / Perusahaan': { count: 920, serviced1st: 710 }
-          },
-          loyalty: { home: 3620, visiting: 1200, punctual: 4100, late: 720 }
+          models: modelStats,
+          customers: custStats,
+          loyalty: { home: homeLoyalty, visiting: visitingLoyalty, punctual: puncCount, late: lateCount }
         },
-        rawSampleRows: []
+        rawSampleRows
       };
+
+      renderMatrixTable(activeCalculatedData);
+    }
+
+    function updateOverviewTrendChart(actualCurve, targetVal) {
+      const stages = ['1st (1k)', '2nd (10k)', '3rd (20k)', '4th (30k)', '5th (40k)', '6th (50k)', '7th (60k)'];
+      const actualPct = actualCurve.map(v => +(v * 100).toFixed(1));
+      const targetLine = stages.map(() => +(targetVal * 100).toFixed(1));
+
+      if (overviewChartInstance) {
+        overviewChartInstance.data.datasets[0].data = actualPct;
+        overviewChartInstance.data.datasets[1].data = targetLine;
+        overviewChartInstance.update('none'); // Ultra-fast in place update
+        return;
+      }
+
+      const ctx = document.getElementById('overviewTrendCanvas').getContext('2d');
+      overviewChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: stages,
+          datasets: [
+            {
+              label: 'Aktual Regional %',
+              data: actualPct,
+              borderColor: '#1A73E8',
+              backgroundColor: 'rgba(26, 115, 232, 0.1)',
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#1A73E8',
+              pointRadius: 4
+            },
+            {
+              label: `Target KPI (${(targetVal * 100).toFixed(0)}%)`,
+              data: targetLine,
+              borderColor: '#EF4444',
+              borderDash: [5, 5],
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { min: 60, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
     }
 
     function renderMatrixTable(datasetResult) {
@@ -1614,54 +2376,48 @@
         if (el) el.innerText = rangeLabel;
       });
 
-      const progTitle = `T-Care Matrix (${(target * 100).toFixed(0)}% Target)`;
+      const progTitle = `T-Care CAI (Target ${(target * 100).toFixed(0)}%)`;
       document.getElementById('matrixSuperHeader').innerText = progTitle;
       document.getElementById('matrixLegendTargetValue').innerText = (target * 100).toFixed(0) + "%";
 
       const tbody = document.getElementById('matrixTableBody');
       const tfoot = document.getElementById('matrixTableFoot');
-      tbody.innerHTML = '';
 
       const searchKey = document.getElementById('matrixSearchInput').value.toLowerCase();
       const filtered = dealers.filter(d => d.dealer.toLowerCase().includes(searchKey));
 
-      const fragment = document.createDocumentFragment();
-
+      const rowsBuffer = [];
       filtered.forEach((d, idx) => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-blue-50/50 cursor-pointer transition divide-x divide-slate-200 border-b border-slate-200 text-center";
-        tr.onclick = () => openCapaModal(d.dealer);
-
-        function renderCellPair(achVal, lmVal, isPm = false) {
+        function cellPair(achVal, lmVal, isPm = false) {
           const isUnder = achVal < target;
           const achClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-black text-slate-900" : "font-medium");
           const lmClass = lmVal < 0 ? "cell-negative-lm" : "cell-positive-lm";
           const lmBg = (lmVal < 0 && Math.abs(lmVal) >= 0.01) ? "bg-red-50/50" : (isPm ? "bg-slate-100" : "");
-
           return `
             <td class="p-1 text-center ${achClass}">${formatPct(achVal)}</td>
             <td class="p-1 text-center ${lmClass} ${lmBg}">${formatDelta(lmVal)}</td>
           `;
         }
 
-        tr.innerHTML = `
-          <td class="p-1.5 font-bold text-slate-500 sticky-col-1 bg-white border-r border-slate-200 text-[11px]">${idx + 1}</td>
-          <td class="p-1.5 font-bold text-slate-800 text-left sticky-col-2 bg-white border-r border-slate-200 flex items-center justify-between text-[11px]">
-            <span class="truncate">${d.dealer}</span>
-            ${d.failingStages.length > 0 ? `<span class="w-2 h-2 rounded-full bg-red-500 ml-1 flex-shrink-0" title="${d.failingStages.length} tahap defisit"></span>` : ''}
-          </td>
-          ${renderCellPair(d.s1, d.lm1)}
-          ${renderCellPair(d.s2, d.lm2)}
-          ${renderCellPair(d.s3, d.lm3)}
-          ${renderCellPair(d.s4, d.lm4)}
-          ${renderCellPair(d.s5, d.lm5)}
-          ${renderCellPair(d.s6, d.lm6)}
-          ${renderCellPair(d.s7, d.lm7)}
-          ${renderCellPair(d.pm, d.lmpm, true)}
-        `;
-        fragment.appendChild(tr);
+        rowsBuffer.push(`
+          <tr class="hover:bg-blue-50/50 cursor-pointer transition divide-x divide-slate-200 border-b border-slate-200 text-center" onclick="openCapaModal('${d.dealer}')">
+            <td class="p-1.5 font-bold text-slate-500 sticky-col-1 bg-white border-r border-slate-200 text-[11px]">${idx + 1}</td>
+            <td class="p-1.5 font-bold text-slate-800 text-left sticky-col-2 bg-white border-r border-slate-200 flex items-center justify-between text-[11px]">
+              <span class="truncate">${d.dealer}</span>
+              ${d.failingStages.length > 0 ? `<span class="w-2 h-2 rounded-full bg-red-500 ml-1 flex-shrink-0" title="${d.failingStages.length} tahap defisit"></span>` : ''}
+            </td>
+            ${cellPair(d.s1, d.lm1)}
+            ${cellPair(d.s2, d.lm2)}
+            ${cellPair(d.s3, d.lm3)}
+            ${cellPair(d.s4, d.lm4)}
+            ${cellPair(d.s5, d.lm5)}
+            ${cellPair(d.s6, d.lm6)}
+            ${cellPair(d.s7, d.lm7)}
+            ${cellPair(d.pm, d.lmpm, true)}
+          </tr>
+        `);
       });
-      tbody.appendChild(fragment);
+      tbody.innerHTML = rowsBuffer.join('');
 
       const n = dealers.length;
       if (n === 0) return;
@@ -1683,7 +2439,7 @@
       const avgPm = dealers.reduce((acc, d) => acc + d.pm, 0) / n;
       const avgLmPm = dealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
 
-      function renderTotalCellPair(achVal, lmVal) {
+      function totalCell(achVal, lmVal) {
         const isUnder = achVal < target;
         const colorClass = isUnder ? "text-red-300 font-black" : "text-emerald-300 font-black";
         return `
@@ -1697,13 +2453,13 @@
           <td colspan="2" class="p-2 text-left font-black tracking-wider uppercase sticky-col-1 bg-looker-header border-r border-slate-700 text-[11px]">
             TOTAL REGIONAL (${n} CABANG)
           </td>
-          ${renderTotalCellPair(avgS1, avgLm1)}
-          ${renderTotalCellPair(avgS2, avgLm2)}
-          ${renderTotalCellPair(avgS3, avgLm3)}
-          ${renderTotalCellPair(avgS4, avgLm4)}
-          ${renderTotalCellPair(avgS5, avgLm5)}
-          ${renderTotalCellPair(avgS6, avgLm6)}
-          ${renderTotalCellPair(avgS7, avgLm7)}
+          ${totalCell(avgS1, avgLm1)}
+          ${totalCell(avgS2, avgLm2)}
+          ${totalCell(avgS3, avgLm3)}
+          ${totalCell(avgS4, avgLm4)}
+          ${totalCell(avgS5, avgLm5)}
+          ${totalCell(avgS6, avgLm6)}
+          ${totalCell(avgS7, avgLm7)}
           <td class="p-1.5 text-center font-black text-amber-300 bg-slate-900">${formatPct(avgPm)}</td>
           <td class="p-1.5 text-center font-bold text-slate-100 bg-slate-900">${formatDelta(avgLmPm)}</td>
         </tr>
@@ -1762,111 +2518,67 @@
         </div>
       `).join('');
 
-      renderOverviewTrendChart([avgS1, dealers.reduce((acc, d) => acc + d.s2, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s3, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s4, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s5, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s6, 0)/dealers.length, avgS7], target);
-    }
-
-    function renderOverviewTrendChart(actualCurve, targetVal) {
-      const ctx = document.getElementById('overviewTrendCanvas').getContext('2d');
-      if (overviewChartInstance) overviewChartInstance.destroy();
-
-      const stages = ['1st (1k)', '2nd (10k)', '3rd (20k)', '4th (30k)', '5th (40k)', '6th (50k)', '7th (60k)'];
-      const actualPct = actualCurve.map(v => +(v * 100).toFixed(1));
-      const targetLine = stages.map(() => +(targetVal * 100).toFixed(1));
-
-      overviewChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: stages,
-          datasets: [
-            {
-              label: 'Aktual Regional %',
-              data: actualPct,
-              borderColor: '#1A73E8',
-              backgroundColor: 'rgba(26, 115, 232, 0.1)',
-              borderWidth: 2.5,
-              fill: true,
-              tension: 0.35,
-              pointBackgroundColor: '#1A73E8',
-              pointRadius: 4
-            },
-            {
-              label: `Target KPI (${(targetVal * 100).toFixed(0)}%)`,
-              data: targetLine,
-              borderColor: '#EF4444',
-              borderDash: [5, 5],
-              borderWidth: 2,
-              pointRadius: 0,
-              fill: false
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: { min: 60, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
-            x: { grid: { display: false } }
-          }
-        }
-      });
+      updateOverviewTrendChart([avgS1, dealers.reduce((acc, d) => acc + d.s2, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s3, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s4, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s5, 0)/dealers.length, dealers.reduce((acc, d) => acc + d.s6, 0)/dealers.length, avgS7], target);
     }
 
     function renderFunnelPage(actualCurve, targetVal) {
-      const ctx = document.getElementById('funnelChartCanvas').getContext('2d');
-      if (funnelChartInstance) funnelChartInstance.destroy();
-
       const stages = ['1st Service', '2nd Service', '3rd Service', '4th Service', '5th Service', '6th Service', '7th Service'];
       const stagesDesc = ['1.000 Km (1 Bulan)', '10.000 Km (6 Bulan)', '20.000 Km (12 Bulan)', '30.000 Km (18 Bulan)', '40.000 Km (24 Bulan)', '50.000 Km (30 Bulan)', '60.000 Km (36 Bulan)'];
       const actualPct = actualCurve.map(v => +(v * 100).toFixed(1));
       const targetLine = stages.map(() => +(targetVal * 100).toFixed(1));
 
-      funnelChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: stages,
-          datasets: [
-            {
-              label: 'Aktual Retensi %',
-              data: actualPct,
-              backgroundColor: '#1A73E8',
-              borderRadius: 6,
-              barPercentage: 0.6
-            },
-            {
-              type: 'line',
-              label: `Target KPI (${(targetVal * 100).toFixed(0)}%)`,
-              data: targetLine,
-              borderColor: '#EF4444',
-              borderWidth: 2,
-              borderDash: [5, 5],
-              pointRadius: 0,
-              fill: false
+      if (funnelChartInstance) {
+        funnelChartInstance.data.datasets[0].data = actualPct;
+        funnelChartInstance.data.datasets[1].data = targetLine;
+        funnelChartInstance.update('none');
+      } else {
+        const ctx = document.getElementById('funnelChartCanvas').getContext('2d');
+        funnelChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: stages,
+            datasets: [
+              {
+                label: 'Aktual Retensi %',
+                data: actualPct,
+                backgroundColor: '#1A73E8',
+                borderRadius: 6,
+                barPercentage: 0.6
+              },
+              {
+                type: 'line',
+                label: `Target KPI (${(targetVal * 100).toFixed(0)}%)`,
+                data: targetLine,
+                borderColor: '#EF4444',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                fill: false
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
+            scales: {
+              y: { min: 50, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
+              x: { grid: { display: false } }
             }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
-          scales: {
-            y: { min: 50, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
-            x: { grid: { display: false } }
           }
-        }
-      });
+        });
+      }
 
       const tbody = document.getElementById('funnelMetricsTableBody');
-      tbody.innerHTML = '';
+      const buf = [];
       stages.forEach((stName, idx) => {
         const ach = actualCurve[idx];
         const isUnder = ach < targetVal;
         const prevAch = (idx > 0) ? actualCurve[idx - 1] : ach;
         const drop = (idx > 0) ? (ach - prevAch) : 0;
 
-        tbody.innerHTML += `
+        buf.push(`
           <tr class="hover:bg-slate-50 transition">
             <td class="p-2 font-bold text-left text-slate-800">${stName}</td>
             <td class="p-2 text-slate-500">${stagesDesc[idx]}</td>
@@ -1879,14 +2591,15 @@
               </span>
             </td>
           </tr>
-        `;
+        `);
       });
+      tbody.innerHTML = buf.join('');
     }
 
     function renderModelPage(analytics, target) {
       if (!analytics || !analytics.models) return;
       const tbody = document.getElementById('modelAnalysisTableBody');
-      tbody.innerHTML = '';
+      const buf = [];
 
       Object.keys(analytics.models).forEach(model => {
         const m = analytics.models[model];
@@ -1895,7 +2608,7 @@
         const gap = Math.max(0, Math.ceil(m.count * target) - m.serviced1st);
         const prog = m.lite > m.tcare ? '<span class="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded text-[10px] border border-amber-200">T-Care Lite</span>' : '<span class="text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded text-[10px] border border-blue-200">T-Care Reguler</span>';
         
-        tbody.innerHTML += `
+        buf.push(`
           <tr class="hover:bg-slate-50 transition">
             <td class="p-2.5 font-bold text-slate-800">${model}</td>
             <td class="p-2.5 text-center">${prog}</td>
@@ -1910,19 +2623,20 @@
               </span>
             </td>
           </tr>
-        `;
+        `);
       });
+      tbody.innerHTML = buf.join('');
     }
 
     function renderSegmentsPage(analytics, target) {
       if (!analytics) return;
 
       const cCont = document.getElementById('customerTypeSegmentCards');
-      cCont.innerHTML = '';
+      const cBuf = [];
       Object.keys(analytics.customers).forEach(cName => {
         const c = analytics.customers[cName];
         const ach = c.count > 0 ? (c.serviced1st / c.count) : 1.0;
-        cCont.innerHTML += `
+        cBuf.push(`
           <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1.5 text-xs">
             <div class="flex justify-between font-bold">
               <span class="text-slate-700">${cName}</span>
@@ -1936,8 +2650,9 @@
               <span>Realisasi: ${c.serviced1st} Unit</span>
             </div>
           </div>
-        `;
+        `);
       });
+      cCont.innerHTML = cBuf.join('');
 
       const lCont = document.getElementById('dealerLoyaltyCards');
       const l = analytics.loyalty;
@@ -1986,7 +2701,6 @@
 
     function renderIrregularityCards(dealers, target) {
       const container = document.getElementById('irregularityCardsContainer');
-      container.innerHTML = '';
       document.getElementById('capaTargetInfoText').innerText = `${(target * 100).toFixed(0)}% Kepatuhan`;
 
       const defDealers = dealers.filter(d => d.pm < target || d.failingStages.length > 0);
@@ -2002,59 +2716,57 @@
         return;
       }
 
+      const cardBuf = [];
       defDealers.forEach(d => {
         const isCritical = d.pm < target || d.failingStages.length >= 3;
-        const card = document.createElement('div');
-        card.className = `p-3.5 rounded-xl border ${isCritical ? 'bg-red-50/60 border-red-200' : 'bg-amber-50/60 border-amber-200'} shadow-xs space-y-2.5`;
-
         const failingBadges = d.failingStages.map(st => `
           <span class="bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded text-[10px] border border-red-300">
             ${st.stage}: ${formatPct(st.ach)} (-${st.gap})
           </span>
         `).join('');
 
-        card.innerHTML = `
-          <div class="flex items-start justify-between">
-            <div>
-              <span class="text-[9px] font-bold uppercase tracking-wider ${isCritical ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'} px-1.5 py-0.5 rounded">
-                ${d.severity}
+        cardBuf.push(`
+          <div class="p-3.5 rounded-xl border ${isCritical ? 'bg-red-50/60 border-red-200' : 'bg-amber-50/60 border-amber-200'} shadow-xs space-y-2.5">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="text-[9px] font-bold uppercase tracking-wider ${isCritical ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'} px-1.5 py-0.5 rounded">
+                  ${d.severity}
+                </span>
+                <h4 class="font-bold text-slate-800 text-xs mt-1">${d.dealer}</h4>
+              </div>
+              <span class="text-xs font-black text-red-600 bg-white px-2 py-0.5 rounded shadow-xs border border-red-200">
+                Gap: ${d.totalGap} Unit
               </span>
-              <h4 class="font-bold text-slate-800 text-xs mt-1">${d.dealer}</h4>
             </div>
-            <span class="text-xs font-black text-red-600 bg-white px-2 py-0.5 rounded shadow-xs border border-red-200">
-              Gap: ${d.totalGap} Unit
-            </span>
-          </div>
 
-          <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-xs space-y-1">
-            <div class="flex justify-between items-center">
-              <span class="text-slate-500 font-medium">PM Rate:</span>
-              <span class="font-bold ${d.pm < target ? 'text-red-600' : 'text-slate-800'}">${formatPct(d.pm)} (${formatDelta(d.lmpm)})</span>
-            </div>
-            <div class="pt-0.5">
-              <span class="text-[10px] text-slate-400 font-semibold block mb-0.5">Tahap Defisit:</span>
-              <div class="flex flex-wrap gap-1">
-                ${failingBadges || '<span class="text-emerald-600 text-[10px]">Semua Di Atas Target</span>'}
+            <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-xs space-y-1">
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 font-medium">PM Rate:</span>
+                <span class="font-bold ${d.pm < target ? 'text-red-600' : 'text-slate-800'}">${formatPct(d.pm)} (${formatDelta(d.lmpm)})</span>
+              </div>
+              <div class="pt-0.5">
+                <span class="text-[10px] text-slate-400 font-semibold block mb-0.5">Tahap Defisit:</span>
+                <div class="flex flex-wrap gap-1">
+                  ${failingBadges || '<span class="text-emerald-600 text-[10px]">Semua Di Atas Target</span>'}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="flex items-center justify-between text-xs pt-0.5">
-            <span class="text-slate-500 text-[10px]"><i class="fa-regular fa-clock mr-1"></i>SLA: <strong>${isCritical ? '3 Hari' : '7 Hari'}</strong></span>
-            <button onclick="openCapaModal('${d.dealer}')" class="bg-looker-header hover:bg-slate-800 text-white font-medium py-1 px-2.5 rounded-lg text-xs transition flex items-center space-x-1 shadow-xs">
-              <i class="fa-solid fa-file-signature text-[10px]"></i>
-              <span>Form CAPA</span>
-            </button>
+            <div class="flex items-center justify-between text-xs pt-0.5">
+              <span class="text-slate-500 text-[10px]"><i class="fa-regular fa-clock mr-1"></i>SLA: <strong>${isCritical ? '3 Hari' : '7 Hari'}</strong></span>
+              <button onclick="openCapaModal('${d.dealer}')" class="bg-looker-header hover:bg-slate-800 text-white font-medium py-1 px-2.5 rounded-lg text-xs transition flex items-center space-x-1 shadow-xs">
+                <i class="fa-solid fa-file-signature text-[10px]"></i>
+                <span>Form CAPA</span>
+              </button>
+            </div>
           </div>
-        `;
-        container.appendChild(card);
+        `);
       });
+      container.innerHTML = cardBuf.join('');
     }
 
     function renderRawExplorerTable() {
       const tbody = document.getElementById('rawExplorerTableBody');
-      tbody.innerHTML = '';
-      
       const searchKey = (document.getElementById('rawTableSearchInput')?.value || '').toLowerCase();
       let rowsToDisplay = [];
 
@@ -2075,8 +2787,9 @@
                (r.kota && r.kota.toLowerCase().includes(searchKey));
       });
 
+      const buf = [];
       filtered.slice(0, 30).forEach(r => {
-        tbody.innerHTML += `
+        buf.push(`
           <tr class="hover:bg-slate-50 transition font-mono">
             <td class="p-2 font-bold text-slate-800">${r.vin || '-'}</td>
             <td class="p-2 font-sans font-semibold">${r.model || '-'}</td>
@@ -2092,8 +2805,9 @@
             <td class="p-2 font-sans">${r.d1st || '-'}</td>
             <td class="p-2 font-sans text-slate-500">${r.kota || '-'}</td>
           </tr>
-        `;
+        `);
       });
+      tbody.innerHTML = buf.join('');
 
       const counter = document.getElementById('rawExplorerCounter');
       if (counter) counter.innerText = `Menampilkan ${Math.min(filtered.length, 30)} dari ${filtered.length} baris unit sampel Raw.`;
@@ -2199,10 +2913,10 @@
       document.getElementById('modalEstLoss').innerText = "Rp " + ((d.totalGap * AVG_EST_REVENUE_PER_UNIT) / 1000000).toFixed(1) + " Jt";
 
       const tbody = document.getElementById('modalStageTableBody');
-      tbody.innerHTML = '';
+      const buf = [];
       d.stagesDetail.forEach(st => {
         const isUnder = st.ach < activeCalculatedData.targetThreshold;
-        tbody.innerHTML += `
+        buf.push(`
           <tr class="divide-x divide-slate-200">
             <td class="p-1.5 font-bold text-left">${st.name} Service</td>
             <td class="p-1.5">${st.pot}</td>
@@ -2217,16 +2931,13 @@
               </span>
             </td>
           </tr>
-        `;
+        `);
       });
-
+      tbody.innerHTML = buf.join('');
       document.getElementById('capaModal').classList.remove('hidden');
     }
 
-    function closeCapaModal() {
-      document.getElementById('capaModal').classList.add('hidden');
-    }
-
+    function closeCapaModal() { document.getElementById('capaModal').classList.add('hidden'); }
     function saveCapaPlan() {
       closeCapaModal();
       showToast("Rencana Tindakan Korektif (CAPA) tersimpan ke log audit!", "success");
@@ -2275,21 +2986,19 @@
 
       if (success) {
         try {
-          const workbook = XLSX.read(csvContent, { type: 'string' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+          const tableData = parseCSVFast(csvContent);
 
-          if (jsonData && jsonData.length > 0) {
-            optimizedRawRows = ingestAndNormalizeRows(jsonData);
+          if (tableData && tableData.length > 1) {
+            rawNormalizedDataset = ingestAndNormalizeTable(tableData);
             const now = new Date();
             const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
             statusIndicator.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
-            statusText.innerHTML = `Terhubung ke Google Sheets: <strong>${googleSheetTabName}</strong> (${jsonData.length.toLocaleString()} unit)`;
+            statusText.innerHTML = `Terhubung ke Google Sheets: <strong>${googleSheetTabName}</strong> (${(tableData.length - 1).toLocaleString()} unit)`;
             lastSyncTime.innerText = `| Sinkronisasi: ${timeStr} WIB`;
 
-            debouncedApplyFilters();
-            showToast(`Sinkronisasi sukses! ${jsonData.length.toLocaleString()} unit siap dianalisis.`, "success");
+            fastRecalculate();
+            showToast(`Sinkronisasi sukses! ${(tableData.length - 1).toLocaleString()} unit siap dianalisis.`, "success");
             return;
           }
         } catch (err) {
@@ -2314,21 +3023,21 @@
           const workbook = XLSX.read(data, { type: 'array' });
           const sheetName = workbook.SheetNames.includes("Raw") ? "Raw" : workbook.SheetNames[0];
           const sheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(sheet);
+          const rawTable = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-          if (jsonData.length === 0) {
+          if (!rawTable || rawTable.length < 2) {
             showToast("Sheet kosong atau format data tidak valid.", "error");
             return;
           }
 
-          optimizedRawRows = ingestAndNormalizeRows(jsonData);
+          rawNormalizedDataset = ingestAndNormalizeTable(rawTable);
 
           document.getElementById('syncStatusIndicator').className = "w-2 h-2 rounded-full bg-blue-400";
-          document.getElementById('syncStatusText').innerHTML = `Memuat file lokal: <strong>${file.name}</strong> (${jsonData.length.toLocaleString()} unit)`;
+          document.getElementById('syncStatusText').innerHTML = `Memuat file lokal: <strong>${file.name}</strong> (${(rawTable.length - 1).toLocaleString()} unit)`;
           document.getElementById('lastSyncTimestamp').innerText = `| Baru saja diunggah`;
 
-          debouncedApplyFilters();
-          showToast(`Berhasil memuat ${jsonData.length.toLocaleString()} data dari sheet '${sheetName}'!`, "success");
+          fastRecalculate();
+          showToast(`Berhasil memuat ${(rawTable.length - 1).toLocaleString()} data dari sheet '${sheetName}'!`, "success");
         } catch (err) {
           console.error(err);
           showToast("Gagal membaca file Excel. Pastikan format file valid.", "error");
@@ -2337,8 +3046,69 @@
       reader.readAsArrayBuffer(file);
     });
 
+    // Baseline synthetic generator
+    function generateSyntheticBaseline(targetThreshold) {
+      const dealersToProcess = NASMOCO_DEALERS.map(dName => {
+        const s1 = 0.965, lm1 = 0.008;
+        const s2 = 0.958, lm2 = 0.012;
+        const s3 = 0.970, lm3 = 0.002;
+        const s4 = 0.948, lm4 = 0.004;
+        const s5 = 0.928, lm5 = 0.003;
+        const s6 = 0.906, lm6 = 0.005;
+        const s7 = 0.887, lm7 = 0.007;
+        const pm = (s1 + s2 + s3 + s4 + s5 + s6 + s7) / 7;
+        const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
+        const baseUnits = 140;
+
+        const stagesDetail = [
+          { name: "1st", pot: baseUnits, act: Math.round(baseUnits * s1), ach: s1, lm: lm1, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s1)) },
+          { name: "2nd", pot: baseUnits, act: Math.round(baseUnits * s2), ach: s2, lm: lm2, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s2)) },
+          { name: "3rd", pot: baseUnits, act: Math.round(baseUnits * s3), ach: s3, lm: lm3, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s3)) },
+          { name: "4th", pot: baseUnits, act: Math.round(baseUnits * s4), ach: s4, lm: lm4, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s4)) },
+          { name: "5th", pot: baseUnits, act: Math.round(baseUnits * s5), ach: s5, lm: lm5, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s5)) },
+          { name: "6th", pot: baseUnits, act: Math.round(baseUnits * s6), ach: s6, lm: lm6, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s6)) },
+          { name: "7th", pot: baseUnits, act: Math.round(baseUnits * s7), ach: s7, lm: lm7, gap: Math.max(0, Math.ceil(baseUnits * targetThreshold) - Math.round(baseUnits * s7)) },
+        ];
+
+        let totalPot = 0, totalAct = 0, totalGap = 0, failingStages = [];
+        stagesDetail.forEach(st => {
+          totalPot += st.pot; totalAct += st.act; totalGap += st.gap;
+          if (st.ach < targetThreshold) failingStages.push({ stage: st.name, ach: st.ach, gap: st.gap });
+        });
+
+        return {
+          dealer: dName,
+          s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
+          pm, lmpm, totalPot, totalAct, totalGap, failingStages,
+          severity: (pm < targetThreshold || failingStages.length >= 3) ? "Level 3 (Red Alert)" : (failingStages.length > 0 ? "Level 2 (Yellow Alert)" : "Level 0 (Aman)"),
+          stagesDetail
+        };
+      });
+
+      return {
+        dealers: dealersToProcess,
+        targetThreshold,
+        rangeLabelText: "vs LM",
+        rawAnalytics: {
+          models: {
+            'Innova Zenix': { count: 840, serviced1st: 812, tcare: 840, lite: 0 },
+            'Avanza': { count: 1220, serviced1st: 1165, tcare: 1220, lite: 0 },
+            'Calya': { count: 960, serviced1st: 785, tcare: 0, lite: 960 },
+            'Agya': { count: 680, serviced1st: 564, tcare: 0, lite: 680 },
+            'Veloz': { count: 540, serviced1st: 520, tcare: 540, lite: 0 }
+          },
+          customers: {
+            'Retail (Pribadi)': { count: 3980, serviced1st: 3780 },
+            'Fleet / Perusahaan': { count: 920, serviced1st: 710 }
+          },
+          loyalty: { home: 3620, visiting: 1200, punctual: 4100, late: 720 }
+        },
+        rawSampleRows: []
+      };
+    }
+
     function resetToDemoData() {
-      optimizedRawRows = null;
+      rawNormalizedDataset = null;
       filterState.allPrograms = ['T-CARE', 'T-CARE LITE'];
       filterState.allBranches = NASMOCO_DEALERS;
       filterState.allModels = ['Innova Zenix', 'Avanza', 'Calya', 'Agya', 'Veloz'];
@@ -2357,15 +3127,17 @@
       document.getElementById('syncStatusIndicator').className = "w-2 h-2 rounded-full bg-slate-400";
       document.getElementById('syncStatusText').innerHTML = `Mode Demo Benchmark (22 Cabang Nasmoco)`;
       document.getElementById('lastSyncTimestamp').innerText = `| Data Standar`;
-      debouncedApplyFilters();
+      fastRecalculate();
       showToast("Berhasil me-reset ke data baseline Nasmoco!", "success");
     }
 
     window.onload = function () {
+      loadSavedMatrixConfig();
       resetToDemoData();
+      renderMatrixSettingsUI();
       setTimeout(() => {
         fetchLiveGoogleSheet();
-      }, 500);
+      }, 300);
     };
   </script>
 </body>
