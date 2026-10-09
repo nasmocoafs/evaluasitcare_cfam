@@ -1708,7 +1708,7 @@
           d1st, p1st, isHome1st, loyaltyType, isPunctual1st, isLate1st, isLite,
           sDealers, sPunctuals,
           kota: (cKota !== -1 && r[cKota]) ? String(r[cKota]).trim() : '',
-          decStr: decVal || '-'const rawSampleRows = [];
+          decStr: decVal || '-'
         };
       }
 
@@ -3043,12 +3043,7 @@
       if (activeCalculatedData && activeCalculatedData.rawSampleRows && activeCalculatedData.rawSampleRows.length > 0) {
         rowsPool = activeCalculatedData.rawSampleRows;
       } else {
-        rowsPool = [
-          { vin: 'MHFAB1BA5P00192', model: 'Innova Zenix', prog: 'T-Care', decStr: '15/01/2026', decYM: 2026 * 12 + 0, dealer: 'Nasmoco Klaten', sDoneMask: 1, sDealers: ['Nasmoco Klaten', '', '', '', '', '', ''], sPunctuals: ['Punctual', '', '', '', '', '', ''], sYM: [2026 * 12 + 1, 0, 0, 0, 0, 0, 0], kota: 'Kab. Klaten' },
-          { vin: 'MHFAB1BA5P00284', model: 'Avanza 1.5 G', prog: 'T-Care', decStr: '22/12/2025', decYM: 2025 * 12 + 11, dealer: 'Nasmoco Pemuda', sDoneMask: 3, sDealers: ['Nasmoco Pemuda', 'Nasmoco Pemuda', '', '', '', '', ''], sPunctuals: ['Punctual', 'Punctual', '', '', '', '', ''], sYM: [2026 * 12 + 0, 2026 * 12 + 5, 0, 0, 0, 0, 0], kota: 'Kota Semarang' },
-          { vin: 'MHFAB1BA5P00319', model: 'Calya 1.2 G', prog: 'T-Care Lite', decStr: '05/01/2026', decYM: 2026 * 12 + 0, dealer: 'Nasmoco Solo Baru', sDoneMask: 0, sDealers: ['', '', '', '', '', '', ''], sPunctuals: ['', '', '', '', '', '', ''], sYM: [0, 0, 0, 0, 0, 0, 0], kota: 'Kab. Sukoharjo' },
-          { vin: 'MHFAB1BA5P00451', model: 'Veloz 1.5 Q', prog: 'T-Care', decStr: '10/07/2025', decYM: 2025 * 12 + 6, dealer: 'Nasmoco Bantul', sDoneMask: 1, sDealers: ['Nasmoco Bantul', '', '', '', '', '', ''], sPunctuals: ['Not Punctual', '', '', '', '', '', ''], sYM: [2025 * 12 + 7, 0, 0, 0, 0, 0, 0], kota: 'Kab. Bantul' }
-        ];
+        rowsPool = [];
       }
 
       let countThisMonth = 0, countM1 = 0, countM2 = 0, countOverdue = 0, countTotal = 0;
@@ -3095,7 +3090,7 @@
           }
         }
 
-        // Hitung servis yang sudah dikerjakan
+        // Hitung sisa servis berdasarkan matriks prioritas SBE
         let doneCount = 0;
         for (let s = 0; s < 7; s++) {
           if ((r.sDoneMask & (1 << s)) !== 0) doneCount++;
@@ -3138,6 +3133,7 @@
       const elTotalRev = document.getElementById('atkCardTotalRev');
       if (elTotalRev) elTotalRev.innerText = "Rp " + (revTotal / 1000000000).toFixed(2) + " M";
 
+      // Filter data sesuai tombol & kriteria aktif
       const filtered = processedUnits.filter(u => {
         if (currentAttacklistFilter === 'all_active_atk' && (u.atkCategory === 'completed' || u.atkCategory === 'expired')) return false;
         if (currentAttacklistFilter === 'this_month' && u.atkCategory !== 'this_month') return false;
@@ -3187,7 +3183,7 @@
         } else {
           atkBadge = `<span class="bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded text-[10px]">Lengkap (7/7)</span>`;
         }
-        
+
         let stageHistoryCells = '';
         for (let s = 0; s < 7; s++) {
           const isDone = (u.sDoneMask & (1 << s)) !== 0;
@@ -3253,7 +3249,7 @@
         `;
       }
     }
-
+    
     function copyToClipboard(text) {
       if (!text || text === '-') return;
       const tempInput = document.createElement('input');
