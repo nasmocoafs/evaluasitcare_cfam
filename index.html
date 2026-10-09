@@ -171,28 +171,22 @@
 
           <button onclick="switchLookerPage('page-models')" id="navBtn-page-models" class="looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition">
             <i class="fa-solid fa-car-rear text-purple-600 text-xs"></i>
-            <span>4. Model Kendaraan</span>
+            <span>3. Model Kendaraan</span>
           </button>
 
           <button onclick="switchLookerPage('page-segments')" id="navBtn-page-segments" class="looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition">
             <i class="fa-solid fa-users-gear text-indigo-600 text-xs"></i>
-            <span>5. Segmentasi & Loyalitas</span>
-          </button>
-
-          <button onclick="switchLookerPage('page-irregularity')" id="navBtn-page-irregularity" class="looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition">
-            <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xs"></i>
-            <span>6. Irregularity Control</span>
-            <span id="navIrregularBadge" class="bg-red-100 text-red-700 font-black text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+            <span>4. Segmentasi & Loyalitas</span>
           </button>
 
           <button onclick="switchLookerPage('page-explorer')" id="navBtn-page-explorer" class="looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition">
             <i class="fa-solid fa-magnifying-glass-chart text-slate-600 text-xs"></i>
-            <span>7. Raw Explorer</span>
+            <span>5. Raw Explorer & Attacklist</span>
           </button>
 
           <button onclick="switchLookerPage('page-matrix-settings')" id="navBtn-page-matrix-settings" class="looker-nav-btn py-2 px-3 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center space-x-1.5 transition">
             <i class="fa-solid fa-sliders text-indigo-600 text-xs"></i>
-            <span>8. Setting Matrix</span>
+            <span>6. Setting Matrix</span>
           </button>
         </div>
 
@@ -595,28 +589,6 @@
         </div>
       </div>
     </div>
-    
-        <div class="h-80 bg-white rounded-lg">
-          <canvas id="funnelChartCanvas"></canvas>
-        </div>
-
-        <div class="overflow-x-auto rounded-lg border border-slate-200">
-          <table class="w-full text-center border-collapse text-xs">
-            <thead class="bg-slate-100 font-bold text-slate-700 divide-x divide-slate-200">
-              <tr>
-                <th class="p-2 text-left">Tahapan Servis</th>
-                <th class="p-2">Jarak / Usia Kendaraan</th>
-                <th class="p-2">Retensi Aktual</th>
-                <th class="p-2">Target Benchmark</th>
-                <th class="p-2">Drop dari Tahap Sebelumnya</th>
-                <th class="p-2">Status Evaluasi</th>
-              </tr>
-            </thead>
-            <tbody id="funnelMetricsTableBody" class="divide-y divide-slate-200 bg-white"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
 
     <div id="page-models" class="view-page space-y-4">
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-4">
@@ -627,16 +599,18 @@
 
         <div class="overflow-x-auto rounded-lg border border-slate-200">
           <table class="w-full text-left border-collapse text-xs">
-            <thead class="bg-slate-100 font-bold text-slate-700 divide-x divide-slate-200">
+            <thead class="bg-slate-900 text-white font-bold divide-x divide-slate-800 text-xs">
               <tr>
-                <th class="p-2.5">Model Kendaraan</th>
+                <th class="p-2.5 w-12 text-center">No</th>
+                <th class="p-2.5 text-left">Model Utama (Family)</th>
+                <th class="p-2.5 text-center">Segmentasi</th>
                 <th class="p-2.5 text-center">Program Dominan</th>
                 <th class="p-2.5 text-center">Populasi Unit</th>
-                <th class="p-2.5 text-center">Realisasi 1st Service</th>
-                <th class="p-2.5 text-center">1st Retention %</th>
+                <th class="p-2.5 text-center">Realisasi 1st</th>
+                <th class="p-2.5 text-center">Retensi 1st %</th>
                 <th class="p-2.5 text-center">Batas KPI</th>
                 <th class="p-2.5 text-center">Gap Defisit</th>
-                <th class="p-2.5 text-center">Status Model</th>
+                <th class="p-2.5 text-center">Status</th>
               </tr>
             </thead>
             <tbody id="modelAnalysisTableBody" class="divide-y divide-slate-200 bg-white"></tbody>
@@ -818,8 +792,8 @@
         <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
           <!-- Quick Status Tabs -->
           <div class="flex flex-wrap items-center gap-1.5" id="attacklistFilterTabs">
-            <button onclick="setAttacklistFilter('all_unserviced')" id="btnAtkFilter-all_unserviced" class="atk-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 text-white font-bold transition shadow-xs">
-              Semua Belum Servis
+            <button onclick="setAttacklistFilter('all_active_atk')" id="btnAtkFilter-all_active_atk" class="atk-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 text-white font-bold transition shadow-xs">
+              Semua Attacklist Aktif (≤36 Bln)
             </button>
             <button onclick="setAttacklistFilter('this_month')" id="btnAtkFilter-this_month" class="atk-filter-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">
               Bulan Ini
@@ -831,10 +805,13 @@
               M + 2
             </button>
             <button onclick="setAttacklistFilter('overdue')" id="btnAtkFilter-overdue" class="atk-filter-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">
-              Overdue
+              Overdue (Telat)
+            </button>
+            <button onclick="setAttacklistFilter('expired')" id="btnAtkFilter-expired" class="atk-filter-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">
+              Expired (>36 Bln)
             </button>
             <button onclick="setAttacklistFilter('all_raw')" id="btnAtkFilter-all_raw" class="atk-filter-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">
-              Semua Database Raw
+              Semua Database
             </button>
           </div>
 
@@ -1315,7 +1292,7 @@
 
     const LOOKER_PAGES = [
       'page-overview', 'page-matrix', 
-      'page-models', 'page-segments', 'page-irregularity', 'page-explorer', 'page-matrix-settings'
+      'page-models', 'page-segments', 'page-explorer', 'page-matrix-settings'
     ];
 
     // Year-Month integer representation: YM = year * 12 + monthIndex
@@ -1713,7 +1690,18 @@
           }
         }
 
-        const isHome1st = (d1st && d1st.toLowerCase() === dealerStr.toLowerCase());
+        let loyaltyType = '';
+        if (d1st && d1st !== '-' && d1st !== '0') {
+          const d1stClean = d1st.toLowerCase().trim();
+          const dSellerClean = dealerStr.toLowerCase().trim();
+          if (d1stClean === dSellerClean) {
+            loyaltyType = 'same_outlet';
+          } else if (d1stClean.includes('nasmoco')) {
+            loyaltyType = 'same_dealer';
+          } else {
+            loyaltyType = 'other_dealer';
+          }
+        }
         
         // Punctuality detection: accurately identify "Not Punctual" / "Overdue" vs "Punctual"
         // Deteksi Punctuality Presisi
@@ -2005,9 +1993,9 @@
         cCount[cIdxObj]++;
         if (has1st) cServ1st[cIdxObj]++;
 
-        if (r.d1st) {
-          if (r.isHome1st) homeLoyalty++; else visitingLoyalty++;
-        }
+        if (r.loyaltyType === 'same_outlet') sameOutletCount++;
+        else if (r.loyaltyType === 'same_dealer') sameDealerCount++;
+        else if (r.loyaltyType === 'other_dealer') otherDealerCount++;
         if (r.p1st) {
           if (r.isPunctual1st) puncCount++;
           else if (r.isLate1st) lateCount++;
@@ -2766,19 +2754,64 @@
       });
     }
 
+    function getModelFamilyAndSegment(rawModelName) {
+      const m = String(rawModelName || '').toUpperCase();
+      if (m.includes('CALYA')) return { family: 'Calya', segment: 'New Entry', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+      if (m.includes('AGYA')) return { family: 'Agya', segment: 'New Entry', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+      if (m.includes('AVANZA')) return { family: 'Avanza', segment: 'Economy', badge: 'bg-blue-100 text-blue-800 border-blue-300' };
+      if (m.includes('VELOZ')) return { family: 'Veloz', segment: 'Economy', badge: 'bg-blue-100 text-blue-800 border-blue-300' };
+      if (m.includes('RUSH')) return { family: 'Rush', segment: 'Economy', badge: 'bg-blue-100 text-blue-800 border-blue-300' };
+      if (m.includes('RAIZE')) return { family: 'Raize', segment: 'Economy', badge: 'bg-blue-100 text-blue-800 border-blue-300' };
+      if (m.includes('ZENIX') || m.includes('INNOVA')) return { family: 'Kijang Innova / Zenix', segment: 'Medium / MPV', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+      if (m.includes('FORTUNER')) return { family: 'Fortuner', segment: 'Medium / SUV', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+      if (m.includes('YARIS CROSS')) return { family: 'Yaris Cross', segment: 'Medium / SUV', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+      if (m.includes('YARIS')) return { family: 'Yaris', segment: 'Medium / Hatchback', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+      if (m.includes('COROLLA CROSS')) return { family: 'Corolla Cross', segment: 'Medium / SUV', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+      if (m.includes('VOXY')) return { family: 'Voxy', segment: 'High / MPV', badge: 'bg-amber-100 text-amber-800 border-amber-300' };
+      if (m.includes('HILUX')) return { family: 'Hilux', segment: 'Commercial', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
+      if (m.includes('HIACE') || m.includes('HI-ACE')) return { family: 'HiAce', segment: 'Commercial', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
+      if (m.includes('DYNA')) return { family: 'Dyna', segment: 'Commercial', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
+      if (m.includes('ALPHARD') || m.includes('VELLFIRE')) return { family: 'Alphard / Vellfire', segment: 'Premium / Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('LAND CRUISER') || m.includes('LC')) return { family: 'Land Cruiser', segment: 'Premium / 4x4', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('CAMRY') || m.includes('ALTIS') || m.includes('COROLLA')) return { family: 'Sedan (Camry/Altis)', segment: 'Medium Sedan', badge: 'bg-slate-100 text-slate-800 border-slate-300' };
+      if (m.includes('BZ4X')) return { family: 'bZ4X (EV)', segment: 'Electric Vehicle', badge: 'bg-cyan-100 text-cyan-800 border-cyan-300' };
+      return { family: rawModelName.trim() || 'Lainnya', segment: 'Other', badge: 'bg-slate-100 text-slate-700 border-slate-200' };
+    }
+
     function renderModelPage(rawAnalytics, targetVal) {
       const tbody = document.getElementById('modelAnalysisTableBody');
       if (!tbody) return;
 
       const models = rawAnalytics?.models || {};
-      const entries = Object.entries(models).sort((a, b) => b[1].count - a[1].count);
+      const familyGroups = {};
+
+      Object.entries(models).forEach(([rawName, data]) => {
+        const info = getModelFamilyAndSegment(rawName);
+        if (!familyGroups[info.family]) {
+          familyGroups[info.family] = {
+            family: info.family,
+            segment: info.segment,
+            badge: info.badge,
+            count: 0,
+            serviced1st: 0,
+            lite: 0,
+            tcare: 0
+          };
+        }
+        familyGroups[info.family].count += data.count;
+        familyGroups[info.family].serviced1st += data.serviced1st;
+        familyGroups[info.family].lite += (data.lite || 0);
+        familyGroups[info.family].tcare += (data.tcare || 0);
+      });
+
+      const entries = Object.values(familyGroups).sort((a, b) => b.count - a.count);
 
       if (entries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Belum ada data model kendaraan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-slate-400">Belum ada data model kendaraan.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = entries.map(([modelName, data]) => {
+      tbody.innerHTML = entries.map((data, idx) => {
         const ach = data.count > 0 ? (data.serviced1st / data.count) : 0;
         const progDominant = data.lite > data.tcare ? 'T-CARE LITE' : 'T-CARE';
         const modelTarget = progDominant.includes('LITE') ? TARGET_LITE : TARGET_TCARE;
@@ -2786,20 +2819,26 @@
         const isUnder = ach < modelTarget;
 
         return `
-          <tr class="hover:bg-slate-50 transition border-b border-slate-200 divide-x divide-slate-200">
-            <td class="p-2.5 font-bold text-slate-800">${modelName}</td>
-            <td class="p-2.5 text-center">
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${progDominant.includes('LITE') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}">
+          <tr class="hover:bg-slate-50 transition border-b border-slate-200 divide-x divide-slate-200 text-xs">
+            <td class="p-2 text-center font-bold text-slate-500">${idx + 1}</td>
+            <td class="p-2.5 font-bold text-slate-900">${data.family}</td>
+            <td class="p-2 text-center">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${data.badge}">
+                ${data.segment}
+              </span>
+            </td>
+            <td class="p-2 text-center">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${progDominant.includes('LITE') ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}">
                 ${progDominant}
               </span>
             </td>
-            <td class="p-2.5 text-center font-bold text-slate-700">${data.count.toLocaleString()}</td>
-            <td class="p-2.5 text-center font-bold text-slate-700">${data.serviced1st.toLocaleString()}</td>
-            <td class="p-2.5 text-center font-black ${isUnder ? 'text-red-600 bg-red-50' : 'text-emerald-700'}">${formatPct(ach)}</td>
-            <td class="p-2.5 text-center text-slate-500 font-semibold">${formatPct(modelTarget)}</td>
-            <td class="p-2.5 text-center font-black ${gap > 0 ? 'text-red-600' : 'text-slate-400'}">${gap > 0 ? `${gap.toLocaleString()} Unit` : '-'}</td>
-            <td class="p-2.5 text-center">
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isUnder ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}">
+            <td class="p-2 text-center font-bold text-slate-800">${data.count.toLocaleString()}</td>
+            <td class="p-2 text-center font-bold text-slate-800">${data.serviced1st.toLocaleString()}</td>
+            <td class="p-2 text-center font-black ${isUnder ? 'text-red-600 bg-red-50' : 'text-emerald-700'}">${formatPct(ach)}</td>
+            <td class="p-2 text-center text-slate-500 font-semibold">${formatPct(modelTarget)}</td>
+            <td class="p-2 text-center font-black ${gap > 0 ? 'text-red-600' : 'text-slate-400'}">${gap > 0 ? `${gap.toLocaleString()} Unit` : '-'}</td>
+            <td class="p-2 text-center">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isUnder ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'}">
                 ${isUnder ? 'DEFISIT' : 'AMAN'}
               </span>
             </td>
@@ -2848,23 +2887,37 @@
         const homePct = total > 0 ? (loyalty.home / total) : 0;
         const visitPct = total > 0 ? (loyalty.visiting / total) : 0;
 
+        const totalLoyal = (loyalty.sameOutlet || 0) + (loyalty.sameDealer || 0) + (loyalty.otherDealer || 0);
+        const soPct = totalLoyal > 0 ? (loyalty.sameOutlet / totalLoyal) : 0;
+        const sdPct = totalLoyal > 0 ? (loyalty.sameDealer / totalLoyal) : 0;
+        const odPct = totalLoyal > 0 ? (loyalty.otherDealer / totalLoyal) : 0;
+
         loyaltyContainer.innerHTML = `
-          <div class="p-3 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2">
+          <div class="p-2.5 rounded-xl border border-emerald-200 bg-white shadow-2xs space-y-1.5">
             <div class="flex justify-between items-center text-xs">
-              <span class="font-bold text-slate-700">Home Dealer (Loyal di Cabang Penjual)</span>
-              <span class="font-black text-blue-700">${formatPct(homePct)} (${loyalty.home.toLocaleString()} Unit)</span>
+              <span class="font-bold text-slate-800">1. Same Outlet (Cabang Penjual Asli)</span>
+              <span class="font-black text-emerald-700">${formatPct(soPct)} (${(loyalty.sameOutlet || 0).toLocaleString()} Unit)</span>
             </div>
             <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-              <div class="bg-blue-600 h-2 rounded-full" style="width: ${(homePct * 100).toFixed(1)}%"></div>
+              <div class="bg-emerald-600 h-2 rounded-full" style="width: ${(soPct * 100).toFixed(1)}%"></div>
             </div>
           </div>
-          <div class="p-3 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2">
+          <div class="p-2.5 rounded-xl border border-blue-200 bg-white shadow-2xs space-y-1.5">
             <div class="flex justify-between items-center text-xs">
-              <span class="font-bold text-slate-700">Visiting Dealer (Lintas Cabang Lain)</span>
-              <span class="font-black text-amber-700">${formatPct(visitPct)} (${loyalty.visiting.toLocaleString()} Unit)</span>
+              <span class="font-bold text-slate-800">2. Same Dealer (Sesama Cabang Nasmoco)</span>
+              <span class="font-black text-blue-700">${formatPct(sdPct)} (${(loyalty.sameDealer || 0).toLocaleString()} Unit)</span>
             </div>
             <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-              <div class="bg-amber-500 h-2 rounded-full" style="width: ${(visitPct * 100).toFixed(1)}%"></div>
+              <div class="bg-blue-600 h-2 rounded-full" style="width: ${(sdPct * 100).toFixed(1)}%"></div>
+            </div>
+          </div>
+          <div class="p-2.5 rounded-xl border border-amber-200 bg-white shadow-2xs space-y-1.5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-800">3. Other Dealer (Servis Luar Nasmoco)</span>
+              <span class="font-black text-amber-700">${formatPct(odPct)} (${(loyalty.otherDealer || 0).toLocaleString()} Unit)</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div class="bg-amber-500 h-2 rounded-full" style="width: ${(odPct * 100).toFixed(1)}%"></div>
             </div>
           </div>
         `;
@@ -3033,10 +3086,16 @@
 
         let atkCategory = 'completed';
         let dueYM = 0;
+        const ageMonthsFromDec = r.decYM > 0 ? (evalYM - r.decYM) : 0;
+        const isPast36Months = r.decYM > 0 && ageMonthsFromDec > 36;
 
         if (nextStageIdx !== -1 && r.decYM > 0) {
           dueYM = r.decYM + stageOffsets[nextStageIdx];
-          if (dueYM < evalYM) {
+
+          // Jika usia unit sudah lebih dari 36 bulan sejak DEC -> Expired
+          if (isPast36Months) {
+            atkCategory = 'expired';
+          } else if (dueYM < evalYM) {
             atkCategory = 'overdue';
             countOverdue++;
             countTotal++;
