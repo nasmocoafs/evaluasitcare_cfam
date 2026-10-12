@@ -2158,20 +2158,6 @@
         const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
         const severity = (pm < targetThreshold || failingStages.length >= 3) ? "Level 3 (Red Alert)" : (failingStages.length > 0 ? "Level 2 (Yellow Alert)" : "Level 0 (Aman)");
 
-        // Fallback aman perhitungan ASBD per cabang
-        const asbdStages = (typeof dPotNowASBD !== 'undefined') ? [
-          dPotNowASBD[dBase+0] > 0 ? (dActNowASBD[dBase+0] / dPotNowASBD[dBase+0]) : s1,
-          dPotNowASBD[dBase+1] > 0 ? (dActNowASBD[dBase+1] / dPotNowASBD[dBase+1]) : s2,
-          dPotNowASBD[dBase+2] > 0 ? (dActNowASBD[dBase+2] / dPotNowASBD[dBase+2]) : s3,
-          dPotNowASBD[dBase+3] > 0 ? (dActNowASBD[dBase+3] / dPotNowASBD[dBase+3]) : s4,
-          dPotNowASBD[dBase+4] > 0 ? (dActNowASBD[dBase+4] / dPotNowASBD[dBase+4]) : s5,
-          dPotNowASBD[dBase+5] > 0 ? (dActNowASBD[dBase+5] / dPotNowASBD[dBase+5]) : s6,
-          dPotNowASBD[dBase+6] > 0 ? (dActNowASBD[dBase+6] / dPotNowASBD[dBase+6]) : s7
-        ] : [s1, s2, s3, s4, s5, s6, s7];
-
-        const totalPotASBD = (typeof dPotNowASBD !== 'undefined') ? (dPotNowASBD[dBase+0]+dPotNowASBD[dBase+1]+dPotNowASBD[dBase+2]+dPotNowASBD[dBase+3]+dPotNowASBD[dBase+4]+dPotNowASBD[dBase+5]+dPotNowASBD[dBase+6]) : totalPot;
-        const totalActASBD = (typeof dActNowASBD !== 'undefined') ? (dActNowASBD[dBase+0]+dActNowASBD[dBase+1]+dActNowASBD[dBase+2]+dActNowASBD[dBase+3]+dActNowASBD[dBase+4]+dActNowASBD[dBase+5]+dActNowASBD[dBase+6]) : totalAct;
-
         computedDealers.push({
           dealer: branchDict[b],
           s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
@@ -2648,35 +2634,18 @@
       const avgPm = dealers.reduce((acc, d) => acc + d.pm, 0) / n;
       const avgLmPm = dealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
 
-      function tfootCellPair(achVal, lmVal, isPm = false) {
-        const isUnder = achVal < target;
-        const achClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-950 font-black text-amber-300" : "font-black text-white");
-        const lmClass = lmVal < 0 ? "text-red-400 font-bold" : (lmVal > 0 ? "text-emerald-400 font-bold" : "text-slate-400 font-medium");
-        return `
-          <td class="p-2 text-center ${achClass}">${formatPct(achVal)}</td>
-          <td class="p-2 text-center ${lmClass} ${isPm ? 'bg-slate-950 font-black' : ''}">${formatDelta(lmVal)}</td>
-        `;
-      }
+      // Hitung kurva regional ASBD untuk 7 tahapan
+      const asbdCurves = [
+        dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[0] : d.s1), 0) / n,
+        dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[1] : d.s2), 0) / n,
+        dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[2] : d.s3), 0) / n,
+        dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[3] : d.s4), 0) / n,
+        dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[4] : d.s5), 0) / n,
+        dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[5] : d.s6), 0) / n,
+        dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[6] : d.s7), 0) / n
+      ];
 
-      // Tambahkan proteksi 'if (tfoot)' agar tidak pernah memicu TypeError null
-      if (tfoot) {
-        tfoot.innerHTML = `
-          <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700">
-            <td class="p-2 sticky-col-1 bg-slate-900 border-r border-slate-800 text-slate-400 text-[11px] font-bold">∑</td>
-            <td class="p-2 text-left sticky-col-2 bg-slate-900 border-r border-slate-800 text-[11px] font-black uppercase tracking-wider text-amber-300">TOTAL REGIONAL</td>
-            ${tfootCellPair(avgS1, avgLm1)}
-            ${tfootCellPair(avgS2, avgLm2)}
-            ${tfootCellPair(avgS3, avgLm3)}
-            ${tfootCellPair(avgS4, avgLm4)}
-            ${tfootCellPair(avgS5, avgLm5)}
-            ${tfootCellPair(avgS6, avgLm6)}
-            ${tfootCellPair(avgS7, avgLm7)}
-            ${tfootCellPair(avgPm, avgLmPm, true)}
-          </tr>
-        `;
-      }
-
-      updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target, [avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7]);
+      updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target, [avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7], asbdCurves);
       renderFunnelPage([avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7], target);
       renderModelPage(datasetResult.rawAnalytics, target);
       renderSegmentsPage(datasetResult.rawAnalytics, target);
@@ -2684,7 +2653,7 @@
       renderRawExplorerTable();
     }
 
-    function updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target, stageCurves = []) {
+    function updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target, stageCurves = [], asbdCurves = []) {
       document.getElementById('kpiPmRate').innerText = formatPct(avgPm);
       document.getElementById('kpiPmRateLm').innerText = formatDelta(avgLmPm);
       document.getElementById('kpiPmRateLm').className = avgLmPm >= 0 ? "font-bold text-emerald-600" : "font-bold text-red-600";
@@ -2755,7 +2724,7 @@
         }).join('');
       }
 
-      updateOverviewTrendChart(curves, target);
+      updateOverviewTrendChart(curves, asbdCurves, target);
     }
 
     function renderFunnelPage(actualCurve, targetVal) {
