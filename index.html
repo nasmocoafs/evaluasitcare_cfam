@@ -1172,13 +1172,14 @@
           <thead class="bg-slate-900 text-white font-bold sticky top-0 z-10 divide-x divide-slate-800 text-[11px] text-center">
             <tr>
               <th class="p-2 w-10">No</th>
-              <th class="p-2 min-w-[170px] text-left">No Rangka (VIN)</th>
-              <th class="p-2 min-w-[130px] text-left">Model Kendaraan</th>
-              <th class="p-2 min-w-[90px]">Program</th>
-              <th class="p-2 min-w-[90px]">Tgl DEC</th>
-              <th class="p-2 min-w-[110px]">Target Servis</th>
-              <th class="p-2 min-w-[90px]">Prioritas</th>
-              <th class="p-2 min-w-[80px]">Aksi</th>
+              <th class="p-2 min-w-[160px] text-left">No Rangka (VIN)</th>
+              <th class="p-2 min-w-[130px] text-left">Dealer Penjual</th>
+              <th class="p-2 min-w-[120px] text-left">Model Kendaraan</th>
+              <th class="p-2 min-w-[85px]">Program</th>
+              <th class="p-2 min-w-[85px]">Tgl DEC</th>
+              <th class="p-2 min-w-[105px]">Target Servis</th>
+              <th class="p-2 min-w-[85px]">Prioritas</th>
+              <th class="p-2 min-w-[65px]">Aksi</th>
             </tr>
           </thead>
           <tbody id="drilldownVinTableBody" class="divide-y divide-slate-200 bg-white font-mono text-[11px] text-slate-800"></tbody>
@@ -2706,15 +2707,16 @@
         dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[6] : d.s7), 0) / n
       ];
 
-      function tfootCellTrio(asbdVal, cfamVal, lmVal, isPm = false) {
+      function tfootCellTrio(asbdVal, cfamVal, lmVal, isPm = false, stageIdx = -1) {
         const isUnder = cfamVal < target;
         const asbdClass = (asbdVal < target) ? "bg-purple-900/60 text-purple-200 font-bold" : (isPm ? "bg-slate-950 font-black text-purple-300" : "font-bold text-slate-200");
         const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-950 font-black text-amber-300" : "font-black text-white");
         const lmClass = lmVal < 0 ? "text-red-400 font-bold" : (lmVal > 0 ? "text-emerald-400 font-bold" : "text-slate-400 font-medium");
+        const clickAttr = `onclick="event.stopPropagation(); openDeficitVinDrilldown('TOTAL REGIONAL', ${stageIdx})" class="p-1.5 text-center cursor-pointer hover:opacity-75 transition" title="Klik untuk melihat detail No Rangka (VIN) defisit Regional"`;
         return `
-          <td class="p-1.5 text-center ${asbdClass}">${formatPct(asbdVal)}</td>
-          <td class="p-1.5 text-center ${cfamClass}">${formatPct(cfamVal)}</td>
-          <td class="p-1.5 text-center ${lmClass} ${isPm ? 'bg-slate-950 font-black' : ''}">${formatDelta(lmVal)}</td>
+          <td ${clickAttr} class="${asbdClass}">${formatPct(asbdVal)}</td>
+          <td ${clickAttr} class="${cfamClass}">${formatPct(cfamVal)}</td>
+          <td ${clickAttr} class="${lmClass} ${isPm ? 'bg-slate-950 font-black' : ''}">${formatDelta(lmVal)}</td>
         `;
       }
 
@@ -2724,17 +2726,20 @@
         const regionalAsbdPm = regPotASBD > 0 ? (regActASBD / regPotASBD) : (dealers.reduce((acc, d) => acc + (d.asbdPm || d.pm), 0) / n);
 
         tfoot.innerHTML = `
-          <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700">
+          <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700 select-none">
             <td class="p-2 sticky-col-1 bg-slate-900 border-r border-slate-800 text-slate-400 text-[11px] font-bold">∑</td>
-            <td class="p-2 text-left sticky-col-2 bg-slate-900 border-r border-slate-800 text-[11px] font-black uppercase tracking-wider text-amber-300">TOTAL REGIONAL</td>
-            ${tfootCellTrio(asbdCurves[0], avgS1, avgLm1)}
-            ${tfootCellTrio(asbdCurves[1], avgS2, avgLm2)}
-            ${tfootCellTrio(asbdCurves[2], avgS3, avgLm3)}
-            ${tfootCellTrio(asbdCurves[3], avgS4, avgLm4)}
-            ${tfootCellTrio(asbdCurves[4], avgS5, avgLm5)}
-            ${tfootCellTrio(asbdCurves[5], avgS6, avgLm6)}
-            ${tfootCellTrio(asbdCurves[6], avgS7, avgLm7)}
-            ${tfootCellTrio(regionalAsbdPm, avgPm, avgLmPm, true)}
+            <td onclick="openDeficitVinDrilldown('TOTAL REGIONAL', -1)" class="p-2 text-left sticky-col-2 bg-slate-900 border-r border-slate-800 text-[11px] font-black uppercase tracking-wider text-amber-300 cursor-pointer hover:bg-slate-800 transition flex items-center justify-between" title="Klik untuk melihat seluruh No Rangka (VIN) defisit Regional 22 Cabang">
+              <span>TOTAL REGIONAL</span>
+              <span class="text-[9px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/40 font-mono">Lihat VIN ➔</span>
+            </td>
+            ${tfootCellTrio(asbdCurves[0], avgS1, avgLm1, false, 0)}
+            ${tfootCellTrio(asbdCurves[1], avgS2, avgLm2, false, 1)}
+            ${tfootCellTrio(asbdCurves[2], avgS3, avgLm3, false, 2)}
+            ${tfootCellTrio(asbdCurves[3], avgS4, avgLm4, false, 3)}
+            ${tfootCellTrio(asbdCurves[4], avgS5, avgLm5, false, 4)}
+            ${tfootCellTrio(asbdCurves[5], avgS6, avgLm6, false, 5)}
+            ${tfootCellTrio(asbdCurves[6], avgS7, avgLm7, false, 6)}
+            ${tfootCellTrio(regionalAsbdPm, avgPm, avgLmPm, true, -1)}
           </tr>
         `;
       }
@@ -3875,9 +3880,11 @@
       if (!dealerName) return;
       currentDrilldownStageIdx = stageIdx;
       activeCurrentCapaDealer = dealerName;
+      const isRegional = (dealerName === 'TOTAL REGIONAL');
 
       const evalMonthStr = currentPeriodMode === 'range' ? document.getElementById('rangeEndMonth').value : document.getElementById('monthSelect').value;
       const mIdx = MONTH_NAMES.indexOf(evalMonthStr) !== -1 ? MONTH_NAMES.indexOf(evalMonthStr) : 8;
+      const evalYM = 2026 * 12 + mIdx;
 
       let targetStages = [];
       const d = activeCalculatedData?.dealers.find(x => x.dealer === dealerName);
@@ -3885,8 +3892,7 @@
       if (stageIdx >= 0) {
         targetStages = [stageIdx];
       } else {
-        // Jika klik kartu Total Gap, ambil seluruh tahapan yang defisit
-        if (d && d.stagesDetail) {
+        if (!isRegional && d && d.stagesDetail) {
           d.stagesDetail.forEach((st, s) => {
             if (st.gap > 0 || st.ach < activeCalculatedData.targetThreshold) {
               targetStages.push(s);
@@ -3897,30 +3903,46 @@
       }
 
       const collected = [];
+      const addedVins = new Set(); // Mencegah 1 unit ganda jika memiliki lebih dari 1 tahap defisit
 
-      // 1. Jika terhubung ke Google Sheets riil (67.000+ data unit)
+      // 1. Data Google Sheets riil
       if (rawNormalizedDataset && rawNormalizedDataset.records) {
         const { records, branchDict, modelDict, progDict } = rawNormalizedDataset;
-        const dIdx = branchDict.indexOf(dealerName);
+        const dIdx = isRegional ? -1 : branchDict.indexOf(dealerName);
 
         for (let i = 0; i < records.length; i++) {
           const r = records[i];
-          if (r.dealerIdx !== dIdx) continue;
+
+          // Filter cabang jika bukan pencarian regional
+          if (!isRegional && r.dealerIdx !== dIdx) continue;
           if (!filterState.programs.has(progDict[r.progIdx])) continue;
+          if (!filterState.branches.has(branchDict[r.dealerIdx])) continue;
+
+          // FILTER KUNCI: Buang unit yang tidak valid atau usianya > 36 bulan (EXPIRED)
+          if (r.decYM <= 0) continue;
+          const ageMonths = evalYM - r.decYM;
+          if (ageMonths > 36) continue; // Melebihi 36 bulan otomatis dibuang!
+
+          // Lewati jika unit sudah menyelesaikan 7th service
+          if ((r.sDoneMask & 127) === 127) continue;
 
           for (const s of targetStages) {
             const rule = getMatrixRule(mIdx, s);
             if (r.decYM >= rule.potStartYM && r.decYM <= rule.potEndYM) {
-              // Unit yang belum menyelesaikan servis tahapan s adalah target gap!
+              // Jika belum servis di tahapan s, ini adalah target defisit riil
               if ((r.sDoneMask & (1 << s)) === 0) {
+                if (addedVins.has(r.vin)) break;
+                addedVins.add(r.vin);
+
                 let doneCount = 0;
                 for (let k = 0; k < 7; k++) if ((r.sDoneMask & (1 << k)) !== 0) doneCount++;
                 const sisaSvc = Math.max(0, 7 - doneCount);
-                const expYear = r.decYM > 0 ? (Math.floor(r.decYM / 12) + 3) : 2026;
+                const expYear = Math.floor(r.decYM / 12) + 3;
                 const prioInfo = determinePriority(sisaSvc, expYear);
 
                 collected.push({
                   vin: r.vin,
+                  dealer: branchDict[r.dealerIdx],
                   model: modelDict[r.modelIdx],
                   prog: progDict[r.progIdx],
                   decStr: r.decStr,
@@ -3928,11 +3950,46 @@
                   stageIdx: s,
                   prioInfo
                 });
+                break;
               }
             }
           }
         }
       } else {
+        // 2. Data fallback demo (selalu dalam rentang aktif 2024-2025)
+        const sampleCount = isRegional ? 35 : (stageIdx >= 0 ? 7 : 14);
+        const sampleModels = ['Avanza 1.5 G', 'Innova Zenix', 'Calya 1.2 G', 'Yaris Cross', 'Rush 1.5 S', 'Veloz 1.5 Q'];
+        for (let i = 1; i <= sampleCount; i++) {
+          collected.push({
+            vin: `MHFAB1BA5P${(890120 + i)}`,
+            dealer: isRegional ? NASMOCO_DEALERS[i % NASMOCO_DEALERS.length] : dealerName,
+            model: sampleModels[i % sampleModels.length],
+            prog: i % 3 === 0 ? 'T-CARE LITE' : 'T-CARE',
+            decStr: '15/06/2024',
+            stageName: stageIdx >= 0 ? STAGE_NAMES[stageIdx] : `${(i % 3) + 4}th`,
+            stageIdx: stageIdx >= 0 ? stageIdx : ((i % 3) + 3),
+            prioInfo: { label: i % 2 === 0 ? 'Prio. 1A' : 'Prio. 1B', badge: 'bg-emerald-600 text-white' }
+          });
+        }
+      }
+
+      currentDrilldownVins = collected;
+
+      // Update Teks Modal Header
+      const stageTitleText = stageIdx >= 0 ? `${STAGE_NAMES[stageIdx]} Service` : 'Semua Tahapan Defisit';
+      document.getElementById('drilldownModalTitle').innerText = isRegional
+        ? `TOTAL REGIONAL — Target Unit Defisit`
+        : `${dealerName} — Target Unit Defisit`;
+
+      document.getElementById('drilldownModalSubtitle').innerText = isRegional
+        ? `Tahap: ${stageTitleText} (Konsolidasi 22 Cabang) | Usia: ≤36 Bln (Aktif) | Periode: ${MONTH_NAMES[mIdx]} 2026`
+        : `Tahap: ${stageTitleText} | Usia: ≤36 Bln (Aktif) | Periode: ${MONTH_NAMES[mIdx]} 2026`;
+
+      document.getElementById('drilldownVinCountBadge').innerText = `${collected.length} Unit Defisit`;
+
+      renderDrilldownVinTable(collected);
+      document.getElementById('drilldownVinModal').classList.remove('hidden');
+    }
         // 2. Data fallback demo jika offline (menghasilkan sample No Rangka sesuai gap)
         const sampleCount = stageIdx >= 0 ? 7 : 14;
         const sampleModels = ['Avanza 1.5 G', 'Innova Zenix', 'Calya 1.2 G', 'Yaris Cross', 'Rush 1.5 S', 'Veloz 1.5 Q'];
@@ -3966,7 +4023,7 @@
       if (!tbody) return;
 
       if (vinList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Tidak ada unit defisit yang ditemukan untuk kriteria ini.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400 font-sans">Tidak ada unit defisit aktif (≤36 bulan) yang ditemukan untuk kriteria ini.</td></tr>`;
         document.getElementById('drilldownCounterText').innerText = `Total: 0 unit`;
         return;
       }
@@ -3980,6 +4037,7 @@
               <i class="fa-regular fa-copy"></i>
             </button>
           </td>
+          <td class="p-2 font-sans font-medium text-slate-800 text-left">${u.dealer || '-'}</td>
           <td class="p-2 font-sans font-semibold text-slate-800">${u.model}</td>
           <td class="p-2 font-sans text-center">
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.prog.includes('LITE') ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}">${u.prog}</span>
@@ -3999,12 +4057,16 @@
         </tr>
       `).join('');
 
-      document.getElementById('drilldownCounterText').innerText = `Menampilkan ${vinList.length} unit target yang harus dikejar.`;
+      document.getElementById('drilldownCounterText').innerText = `Menampilkan ${vinList.length} unit aktif (≤36 bulan) yang menjadi target follow-up.`;
     }
 
     function filterDrilldownVinTable() {
       const q = (document.getElementById('searchDrilldownInput')?.value || '').toLowerCase();
-      const filtered = currentDrilldownVins.filter(u => u.vin.toLowerCase().includes(q) || u.model.toLowerCase().includes(q));
+      const filtered = currentDrilldownVins.filter(u =>
+        u.vin.toLowerCase().includes(q) ||
+        u.model.toLowerCase().includes(q) ||
+        (u.dealer && u.dealer.toLowerCase().includes(q))
+      );
       renderDrilldownVinTable(filtered);
     }
 
