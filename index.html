@@ -468,8 +468,9 @@
               <p class="text-xs text-slate-500">Pencapaian regional rata-rata vs ambang batas KPI Target.</p>
             </div>
             <div class="flex items-center space-x-3 text-xs font-medium">
-              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-1.5"></span> Aktual Regional</span>
-              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5"></span> Batas KPI Target</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-1.5"></span> Matriks CFAM</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-purple-600 mr-1.5"></span> Matriks ASBD</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5"></span> Batas KPI Target (91%)</span>
             </div>
           </div>
           <div class="h-64">
@@ -549,37 +550,39 @@
                 </th>
               </tr>
               <tr class="bg-slate-900 text-slate-200 text-center font-bold divide-x divide-slate-700 border-b border-slate-800 text-[11px]">
-                <th colspan="2" class="p-1 border-r border-slate-700">1st</th>
-                <th colspan="2" class="p-1 border-r border-slate-700">2nd</th>
-                <th colspan="2" class="p-1 border-r border-slate-700">3rd</th>
-                <th colspan="2" class="p-1 border-r border-slate-700">4th</th>
-                <th colspan="2" class="p-1 border-r border-slate-700">5th</th>
-                <th colspan="2" class="p-1 border-r border-slate-700">6th</th>
-                <th colspan="2" class="p-1 border-r border-slate-700">7th</th>
-                <th colspan="2" class="p-1 bg-slate-950 text-amber-300 font-extrabold cursor-pointer hover:bg-slate-800 transition select-none" onclick="toggleMatrixSort('pm')" title="Klik untuk mengurutkan PM Rate">
-                  <span>PM Rate</span>
+                <th colspan="3" class="p-1 border-r border-slate-700">1st Service</th>
+                <th colspan="3" class="p-1 border-r border-slate-700">2nd Service</th>
+                <th colspan="3" class="p-1 border-r border-slate-700">3rd Service</th>
+                <th colspan="3" class="p-1 border-r border-slate-700">4th Service</th>
+                <th colspan="3" class="p-1 border-r border-slate-700">5th Service</th>
+                <th colspan="3" class="p-1 border-r border-slate-700">6th Service</th>
+                <th colspan="3" class="p-1 border-r border-slate-700">7th Service</th>
+                <th colspan="3" class="p-1 bg-slate-950 text-amber-300 font-extrabold cursor-pointer hover:bg-slate-800 transition select-none" onclick="toggleMatrixSort('pm')" title="Klik untuk mengurutkan PM Rate">
+                  <span>PM Rate (Konsolidasi)</span>
                   <i class="fa-solid fa-sort-down ml-1 text-amber-300" id="thSortPmIcon"></i>
                 </th>
               </tr>
               <tr class="bg-slate-100 text-slate-700 font-bold text-center text-[10px] divide-x divide-slate-200 border-b border-slate-300">
                 <th class="p-1 sticky-col-1 bg-slate-100"></th>
                 <th class="p-1 sticky-col-2 bg-slate-100"></th>
-                <th class="p-1 min-w-[55px]">%</th>
-                <th class="p-1 min-w-[50px]" id="lmHeaderCol-1">vs LM</th>
-                <th class="p-1 min-w-[55px]">%</th>
-                <th class="p-1 min-w-[50px]" id="lmHeaderCol-2">vs LM</th>
-                <th class="p-1 min-w-[55px]">%</th>
-                <th class="p-1 min-w-[50px]" id="lmHeaderCol-3">vs LM</th>
-                <th class="p-1 min-w-[55px]">%</th>
-                <th class="p-1 min-w-[50px]" id="lmHeaderCol-4">vs LM</th>
-                <th class="p-1 min-w-[55px]">%</th>
-                <th class="p-1 min-w-[50px]" id="lmHeaderCol-5">vs LM</th>
-                <th class="p-1 min-w-[55px]">%</th>
-                <th class="p-1 min-w-[50px]" id="lmHeaderCol-6">vs LM</th>
-                <th class="p-1 min-w-[55px]">%</th>
-                <th class="p-1 min-w-[50px]" id="lmHeaderCol-7">vs LM</th>
-                <th class="p-1 min-w-[60px] bg-slate-200 text-slate-900 font-black">%</th>
-                <th class="p-1 min-w-[55px] bg-slate-200 text-slate-900 font-black" id="lmHeaderCol-pm">vs LM</th>
+                <!-- 1st -->
+                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <!-- 2nd -->
+                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <!-- 3rd -->
+                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <!-- 4th -->
+                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <!-- 5th -->
+                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <!-- 6th -->
+                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <!-- 7th -->
+                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <!-- PM Rate -->
+                <th class="p-1 min-w-[52px] bg-slate-200 text-blue-900 font-black">CFAM</th>
+                <th class="p-1 min-w-[52px] bg-slate-200 text-purple-900 font-black">ASBD</th>
+                <th class="p-1 min-w-[48px] bg-slate-200 text-slate-900 font-black">vs LM</th>
               </tr>
             </thead>
             <tbody id="matrixTableBody" class="divide-y divide-slate-200 text-slate-800 bg-white"></tbody>
@@ -1358,6 +1361,67 @@
     let activeMatrixConfig = generateDefaultCFAMMatrix();
     let isMatrixCustomized = false;
 
+
+    // Generator Matriks ASBD (Inception Juli 2022 untuk 3rd s/d 7th Service)
+    function generateDefaultASBDMatrix() {
+      const matrix = [];
+      for (let m = 0; m < 12; m++) {
+        const stages = [];
+        for (let s = 0; s < 7; s++) {
+          let potStartYM, potEndYM, actStartYM, actEndYM;
+          switch (s) {
+            case 0: // 1st: Sama dengan CFAM (Dec 25 s/d cut-off)
+              potStartYM = 2025 * 12 + 11;
+              potEndYM = (m === 0) ? (2025 * 12 + 11) : (2026 * 12 + (m - 1));
+              actStartYM = 2025 * 12 + 11;
+              actEndYM = 2026 * 12 + m;
+              break;
+            case 1: // 2nd: Sama dengan CFAM (Jul 25 s/d cut-off)
+              potStartYM = 2025 * 12 + 6;
+              potEndYM = (2025 * 12 + 6) + m;
+              actStartYM = 2025 * 12 + 6;
+              actEndYM = 2026 * 12 + m;
+              break;
+            case 2: // 3rd: Inception Jul 22 s/d (Jan 25 + m)
+              potStartYM = 2022 * 12 + 6;
+              potEndYM = (2025 * 12 + 0) + m;
+              actStartYM = 2022 * 12 + 6;
+              actEndYM = 2026 * 12 + m;
+              break;
+            case 3: // 4th: Inception Jul 22 s/d (Jul 24 + m)
+              potStartYM = 2022 * 12 + 6;
+              potEndYM = (2024 * 12 + 6) + m;
+              actStartYM = 2022 * 12 + 6;
+              actEndYM = 2026 * 12 + m;
+              break;
+            case 4: // 5th: Inception Jul 22 s/d (Jan 24 + m)
+              potStartYM = 2022 * 12 + 6;
+              potEndYM = (2024 * 12 + 0) + m;
+              actStartYM = 2022 * 12 + 6;
+              actEndYM = 2026 * 12 + m;
+              break;
+            case 5: // 6th: Inception Jul 22 s/d (Jul 23 + m)
+              potStartYM = 2022 * 12 + 6;
+              potEndYM = (2023 * 12 + 6) + m;
+              actStartYM = 2022 * 12 + 6;
+              actEndYM = 2026 * 12 + m;
+              break;
+            case 6: // 7th: Inception Jul 22 s/d (Jan 23 + m)
+              potStartYM = 2022 * 12 + 6;
+              potEndYM = (2023 * 12 + 0) + m;
+              actStartYM = 2022 * 12 + 6;
+              actEndYM = 2026 * 12 + m;
+              break;
+          }
+          stages.push({ potStartYM, potEndYM, actStartYM, actEndYM });
+        }
+        matrix.push(stages);
+      }
+      return matrix;
+    }
+
+    const defaultASBDMatrix = generateDefaultASBDMatrix();
+    
     // Load persisted custom matrix from localStorage if available
     function loadSavedMatrixConfig() {
       try {
@@ -1935,11 +1999,16 @@
       const numModels = modelDict.length;
       const numCusts = custDict.length;
 
-      // Flat typed arrays for zero-allocation performance
+      // Typed arrays untuk CFAM & ASBD
       const dPotNow = new Int32Array(numBranches * 7);
       const dActNow = new Int32Array(numBranches * 7);
       const dPotPrev = new Int32Array(numBranches * 7);
       const dActPrev = new Int32Array(numBranches * 7);
+
+      const dPotNowASBD = new Int32Array(numBranches * 7);
+      const dActNowASBD = new Int32Array(numBranches * 7);
+
+      const asbdRules = defaultASBDMatrix[mIdx];
 
       const mCount = new Int32Array(numModels);
       const mServ1st = new Int32Array(numModels);
@@ -2002,15 +2071,25 @@
         const sYM = r.sYM;
 
         for (let s = 0; s < 7; s++) {
-          // Current Month: Unit masuk Potensi jika Tgl DEC dalam rentang kohort
+          // 1. Perhitungan CFAM
           if (dec >= cN_potStart[s] && dec <= cN_potEnd[s]) {
             dPotNow[dBase + s]++;
-            // Unit dihitung Actual jika servis telah selesai pada/sebelum cut-off evaluasi
             if ((sMask & (1 << s)) !== 0) {
               const sm = sYM[s];
-              // Lolos jika tanggal servis <= batas cut-off bulan evaluasi (atau tidak ada batasan tanggal mundur)
               if (sm === 0 || sm <= cN_actEnd[s]) {
                 dActNow[dBase + s]++;
+              }
+            }
+          }
+
+          // 2. Perhitungan ASBD (OC)
+          const asbdRule = asbdRules[s];
+          if (dec >= asbdRule.potStartYM && dec <= asbdRule.potEndYM) {
+            dPotNowASBD[dBase + s]++;
+            if ((sMask & (1 << s)) !== 0) {
+              const sm = sYM[s];
+              if (sm === 0 || sm <= asbdRule.actEndYM) {
+                dActNowASBD[dBase + s]++;
               }
             }
           }
@@ -2037,10 +2116,20 @@
         let totalPot = 0, totalAct = 0, totalGap = 0;
         const failingStages = [];
 
+        const asbdStages = [];
+        let totalPotASBD = 0, totalActASBD = 0;
+
         for (let s = 0; s < 7; s++) {
           const pot = dPotNow[dBase + s];
           const act = dActNow[dBase + s];
           const ach = pot > 0 ? (act / pot) : 1.0;
+
+          // ASBD calculation
+          const potASBD = dPotNowASBD[dBase + s];
+          const actASBD = dActNowASBD[dBase + s];
+          const achASBD = potASBD > 0 ? (actASBD / potASBD) : ach;
+          totalPotASBD += potASBD; totalActASBD += actASBD;
+          asbdStages.push(achASBD);
 
           const potP = dPotPrev[dBase + s];
           const actP = dActPrev[dBase + s];
@@ -2069,10 +2158,26 @@
         const lmpm = (lm1 + lm2 + lm3 + lm4 + lm5 + lm6 + lm7) / 7;
         const severity = (pm < targetThreshold || failingStages.length >= 3) ? "Level 3 (Red Alert)" : (failingStages.length > 0 ? "Level 2 (Yellow Alert)" : "Level 0 (Aman)");
 
+        // Fallback aman perhitungan ASBD per cabang
+        const asbdStages = (typeof dPotNowASBD !== 'undefined') ? [
+          dPotNowASBD[dBase+0] > 0 ? (dActNowASBD[dBase+0] / dPotNowASBD[dBase+0]) : s1,
+          dPotNowASBD[dBase+1] > 0 ? (dActNowASBD[dBase+1] / dPotNowASBD[dBase+1]) : s2,
+          dPotNowASBD[dBase+2] > 0 ? (dActNowASBD[dBase+2] / dPotNowASBD[dBase+2]) : s3,
+          dPotNowASBD[dBase+3] > 0 ? (dActNowASBD[dBase+3] / dPotNowASBD[dBase+3]) : s4,
+          dPotNowASBD[dBase+4] > 0 ? (dActNowASBD[dBase+4] / dPotNowASBD[dBase+4]) : s5,
+          dPotNowASBD[dBase+5] > 0 ? (dActNowASBD[dBase+5] / dPotNowASBD[dBase+5]) : s6,
+          dPotNowASBD[dBase+6] > 0 ? (dActNowASBD[dBase+6] / dPotNowASBD[dBase+6]) : s7
+        ] : [s1, s2, s3, s4, s5, s6, s7];
+
+        const totalPotASBD = (typeof dPotNowASBD !== 'undefined') ? (dPotNowASBD[dBase+0]+dPotNowASBD[dBase+1]+dPotNowASBD[dBase+2]+dPotNowASBD[dBase+3]+dPotNowASBD[dBase+4]+dPotNowASBD[dBase+5]+dPotNowASBD[dBase+6]) : totalPot;
+        const totalActASBD = (typeof dActNowASBD !== 'undefined') ? (dActNowASBD[dBase+0]+dActNowASBD[dBase+1]+dActNowASBD[dBase+2]+dActNowASBD[dBase+3]+dActNowASBD[dBase+4]+dActNowASBD[dBase+5]+dActNowASBD[dBase+6]) : totalAct;
+
         computedDealers.push({
           dealer: branchDict[b],
           s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
-          pm, lmpm, totalPot, totalAct, totalGap, failingStages, severity, stagesDetail
+          pm, lmpm, totalPot, totalAct, totalGap, failingStages, severity, stagesDetail,
+          asbdStages,
+          asbdPm: totalPotASBD > 0 ? (totalActASBD / totalPotASBD) : pm
         });
       }
 
@@ -2385,21 +2490,21 @@
       }
     }
 
-    function updateOverviewTrendChart(actualCurve, targetVal) {
+    function updateOverviewTrendChart(cfamCurve, asbdCurve, targetVal) {
       const stages = ['1st (1k)', '2nd (10k)', '3rd (20k)', '4th (30k)', '5th (40k)', '6th (50k)', '7th (60k)'];
-      const actualPct = actualCurve.map(v => +(v * 100).toFixed(1));
+      const cfamPct = cfamCurve.map(v => +(v * 100).toFixed(1));
+      const asbdPct = (asbdCurve && asbdCurve.length === 7) ? asbdCurve.map(v => +(v * 100).toFixed(1)) : cfamPct;
       const targetLine = stages.map(() => +(targetVal * 100).toFixed(1));
 
-      // Calculate dynamic minimum so values below 60% (like 51.9%) are never cut off
-      const minDataVal = Math.min(...actualPct, targetVal * 100);
+      const minDataVal = Math.min(...cfamPct, ...asbdPct, targetVal * 100);
       const yMin = Math.max(0, Math.floor((minDataVal - 10) / 10) * 10);
 
       if (overviewChartInstance) {
         overviewChartInstance.options.scales.y.min = yMin;
-        overviewChartInstance.data.datasets[0].data = actualPct;
-        overviewChartInstance.data.datasets[1].data = targetLine;
-        overviewChartInstance.data.datasets[1].label = `Target KPI (${(targetVal * 100).toFixed(0)}%)`;
-        overviewChartInstance.update('none'); // Ultra-fast in place update
+        overviewChartInstance.data.datasets[0].data = cfamPct;
+        overviewChartInstance.data.datasets[1].data = asbdPct;
+        overviewChartInstance.data.datasets[2].data = targetLine;
+        overviewChartInstance.update('none');
         return;
       }
 
@@ -2410,22 +2515,32 @@
           labels: stages,
           datasets: [
             {
-              label: 'Aktual Regional %',
-              data: actualPct,
+              label: 'Retensi CFAM %',
+              data: cfamPct,
               borderColor: '#1A73E8',
-              backgroundColor: 'rgba(26, 115, 232, 0.1)',
+              backgroundColor: 'rgba(26, 115, 232, 0.08)',
               borderWidth: 2.5,
               fill: true,
-              tension: 0.35,
+              tension: 0.3,
               pointBackgroundColor: '#1A73E8',
-              pointRadius: 5,
-              pointHoverRadius: 7
+              pointRadius: 4
             },
             {
-              label: `Target KPI (${(targetVal * 100).toFixed(0)}%)`,
+              label: 'Retensi ASBD %',
+              data: asbdPct,
+              borderColor: '#8B5CF6',
+              borderWidth: 2.5,
+              borderDash: [3, 3],
+              fill: false,
+              tension: 0.3,
+              pointBackgroundColor: '#8B5CF6',
+              pointRadius: 4
+            },
+            {
+              label: `Target Benchmark (${(targetVal * 100).toFixed(0)}%)`,
               data: targetLine,
               borderColor: '#EF4444',
-              borderDash: [5, 5],
+              borderDash: [6, 4],
               borderWidth: 2,
               pointRadius: 0,
               fill: false
@@ -2479,16 +2594,19 @@
 
       const rowsBuffer = [];
       filtered.forEach((d, idx) => {
-        function cellPair(achVal, lmVal, isPm = false) {
-          const isUnder = achVal < target;
-          const achClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-black text-slate-950" : "font-bold text-slate-900");
+        function cellTrio(cfamVal, asbdVal, lmVal, isPm = false) {
+          const isUnder = cfamVal < target;
+          const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-black text-blue-900" : "font-bold text-slate-900");
+          const asbdClass = (asbdVal < target) ? "bg-purple-50 text-purple-900 font-bold" : (isPm ? "bg-slate-100 font-black text-purple-900" : "font-semibold text-slate-700");
           const lmClass = lmVal < 0 ? "cell-negative-lm" : (lmVal > 0 ? "cell-positive-lm" : "text-slate-500 font-medium");
-          const lmBg = (lmVal < 0 && Math.abs(lmVal) >= 0.01) ? "bg-red-50/70" : (isPm ? "bg-slate-100" : "");
           return `
-            <td class="p-1.5 text-center ${achClass}">${formatPct(achVal)}</td>
-            <td class="p-1.5 text-center ${lmClass} ${lmBg}">${formatDelta(lmVal)}</td>
+            <td class="p-1 text-center ${cfamClass}">${formatPct(cfamVal)}</td>
+            <td class="p-1 text-center ${asbdClass}">${formatPct(asbdVal)}</td>
+            <td class="p-1 text-center ${lmClass}">${formatDelta(lmVal)}</td>
           `;
         }
+
+        const asbd = d.asbdStages || [d.s1, d.s2, d.s3, d.s4, d.s5, d.s6, d.s7];
 
         rowsBuffer.push(`
           <tr class="hover:bg-blue-50/80 cursor-pointer transition divide-x divide-slate-200 border-b border-slate-200 text-center" onclick="openCapaModal('${d.dealer}')">
@@ -2497,14 +2615,14 @@
               <span class="truncate">${d.dealer}</span>
               ${d.failingStages.length > 0 ? `<span class="w-2 h-2 rounded-full bg-red-500 ml-1.5 shrink-0" title="${d.failingStages.length} tahap defisit"></span>` : ''}
             </td>
-            ${cellPair(d.s1, d.lm1)}
-            ${cellPair(d.s2, d.lm2)}
-            ${cellPair(d.s3, d.lm3)}
-            ${cellPair(d.s4, d.lm4)}
-            ${cellPair(d.s5, d.lm5)}
-            ${cellPair(d.s6, d.lm6)}
-            ${cellPair(d.s7, d.lm7)}
-            ${cellPair(d.pm, d.lmpm, true)}
+            ${cellTrio(d.s1, asbd[0], d.lm1)}
+            ${cellTrio(d.s2, asbd[1], d.lm2)}
+            ${cellTrio(d.s3, asbd[2], d.lm3)}
+            ${cellTrio(d.s4, asbd[3], d.lm4)}
+            ${cellTrio(d.s5, asbd[4], d.lm5)}
+            ${cellTrio(d.s6, asbd[5], d.lm6)}
+            ${cellTrio(d.s7, asbd[6], d.lm7)}
+            ${cellTrio(d.pm, (d.asbdPm || d.pm), d.lmpm, true)}
           </tr>
         `);
       });
