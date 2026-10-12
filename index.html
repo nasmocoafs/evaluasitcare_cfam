@@ -2149,6 +2149,7 @@
           s1, lm1, s2, lm2, s3, lm3, s4, lm4, s5, lm5, s6, lm6, s7, lm7,
           pm, lmpm, totalPot, totalAct, totalGap, failingStages, severity, stagesDetail,
           asbdStages,
+          totalPotASBD, totalActASBD,
           asbdPm: totalPotASBD > 0 ? (totalActASBD / totalPotASBD) : pm
         });
       }
@@ -2565,24 +2566,6 @@
 
       const rowsBuffer = [];
       filtered.forEach((d, idx) => {
-        if (tfoot) {
-        const avgAsbdPm = dealers.reduce((acc, d) => acc + (d.asbdPm || d.pm), 0) / n;
-        tfoot.innerHTML = `
-          <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700">
-            <td class="p-2 sticky-col-1 bg-slate-900 border-r border-slate-800 text-slate-400 text-[11px] font-bold">∑</td>
-            <td class="p-2 text-left sticky-col-2 bg-slate-900 border-r border-slate-800 text-[11px] font-black uppercase tracking-wider text-amber-300">TOTAL REGIONAL</td>
-            ${tfootCellTrio(asbdCurves[0], avgS1, avgLm1)}
-            ${tfootCellTrio(asbdCurves[1], avgS2, avgLm2)}
-            ${tfootCellTrio(asbdCurves[2], avgS3, avgLm3)}
-            ${tfootCellTrio(asbdCurves[3], avgS4, avgLm4)}
-            ${tfootCellTrio(asbdCurves[4], avgS5, avgLm5)}
-            ${tfootCellTrio(asbdCurves[5], avgS6, avgLm6)}
-            ${tfootCellTrio(asbdCurves[6], avgS7, avgLm7)}
-            ${tfootCellTrio(avgAsbdPm, avgPm, avgLmPm, true)}
-          </tr>
-        `;
-      }
-
         const asbd = d.asbdStages || [d.s1, d.s2, d.s3, d.s4, d.s5, d.s6, d.s7];
 
         rowsBuffer.push(`
@@ -2649,7 +2632,10 @@
       }
 
       if (tfoot) {
-        const avgAsbdPm = dealers.reduce((acc, d) => acc + (d.asbdPm || d.pm), 0) / n;
+        const regPotASBD = dealers.reduce((acc, d) => acc + (d.totalPotASBD || 0), 0);
+        const regActASBD = dealers.reduce((acc, d) => acc + (d.totalActASBD || 0), 0);
+        const regionalAsbdPm = regPotASBD > 0 ? (regActASBD / regPotASBD) : (dealers.reduce((acc, d) => acc + (d.asbdPm || d.pm), 0) / n);
+
         tfoot.innerHTML = `
           <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700">
             <td class="p-2 sticky-col-1 bg-slate-900 border-r border-slate-800 text-slate-400 text-[11px] font-bold">∑</td>
@@ -2661,7 +2647,7 @@
             ${tfootCellTrio(asbdCurves[4], avgS5, avgLm5)}
             ${tfootCellTrio(asbdCurves[5], avgS6, avgLm6)}
             ${tfootCellTrio(asbdCurves[6], avgS7, avgLm7)}
-            ${tfootCellTrio(avgAsbdPm, avgPm, avgLmPm, true)}
+            ${tfootCellTrio(regionalAsbdPm, avgPm, avgLmPm, true)}
           </tr>
         `;
       }
@@ -3496,40 +3482,41 @@
         [], // Blank separator row
         [
           "No", "Dealer Penjual",
-          "1st Service (1.000 KM)", "",
-          "2nd Service (10.000 KM)", "",
-          "3rd Service (20.000 KM)", "",
-          "4th Service (30.000 KM)", "",
-          "5th Service (40.000 KM)", "",
-          "6th Service (50.000 KM)", "",
-          "7th Service (60.000 KM)", "",
-          "Consolidated PM Rate", ""
+          "1st Service (1.000 KM)", "", "",
+          "2nd Service (10.000 KM)", "", "",
+          "3rd Service (20.000 KM)", "", "",
+          "4th Service (30.000 KM)", "", "",
+          "5th Service (40.000 KM)", "", "",
+          "6th Service (50.000 KM)", "", "",
+          "7th Service (60.000 KM)", "", "",
+          "Consolidated PM Rate", "", ""
         ],
         [
           "", "",
-          "% Ach", "vs LM",
-          "% Ach", "vs LM",
-          "% Ach", "vs LM",
-          "% Ach", "vs LM",
-          "% Ach", "vs LM",
-          "% Ach", "vs LM",
-          "% Ach", "vs LM",
-          "% Ach", "vs LM"
+          "ASBD", "CFAM", "vs LM",
+          "ASBD", "CFAM", "vs LM",
+          "ASBD", "CFAM", "vs LM",
+          "ASBD", "CFAM", "vs LM",
+          "ASBD", "CFAM", "vs LM",
+          "ASBD", "CFAM", "vs LM",
+          "ASBD", "CFAM", "vs LM",
+          "ASBD", "CFAM", "vs LM"
         ]
       ];
 
       exportDealers.forEach((d, idx) => {
+        const asbd = d.asbdStages || [d.s1, d.s2, d.s3, d.s4, d.s5, d.s6, d.s7];
         aoa.push([
           idx + 1,
           d.dealer,
-          formatPct(d.s1), formatDelta(d.lm1),
-          formatPct(d.s2), formatDelta(d.lm2),
-          formatPct(d.s3), formatDelta(d.lm3),
-          formatPct(d.s4), formatDelta(d.lm4),
-          formatPct(d.s5), formatDelta(d.lm5),
-          formatPct(d.s6), formatDelta(d.lm6),
-          formatPct(d.s7), formatDelta(d.lm7),
-          formatPct(d.pm), formatDelta(d.lmpm)
+          formatPct(asbd[0]), formatPct(d.s1), formatDelta(d.lm1),
+          formatPct(asbd[1]), formatPct(d.s2), formatDelta(d.lm2),
+          formatPct(asbd[2]), formatPct(d.s3), formatDelta(d.lm3),
+          formatPct(asbd[3]), formatPct(d.s4), formatDelta(d.lm4),
+          formatPct(asbd[4]), formatPct(d.s5), formatDelta(d.lm5),
+          formatPct(asbd[5]), formatPct(d.s6), formatDelta(d.lm6),
+          formatPct(asbd[6]), formatPct(d.s7), formatDelta(d.lm7),
+          formatPct(d.asbdPm || d.pm), formatPct(d.pm), formatDelta(d.lmpm)
         ]);
       });
 
@@ -3553,19 +3540,32 @@
         const avgPm = exportDealers.reduce((acc, d) => acc + d.pm, 0) / n;
         const avgLmPm = exportDealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
 
+        const regPotASBD = exportDealers.reduce((acc, d) => acc + (d.totalPotASBD || 0), 0);
+        const regActASBD = exportDealers.reduce((acc, d) => acc + (d.totalActASBD || 0), 0);
+        const regionalAsbdPm = regPotASBD > 0 ? (regActASBD / regPotASBD) : (exportDealers.reduce((acc, d) => acc + (d.asbdPm || d.pm), 0) / n);
+
+        const asbdCurves = [
+          exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[0] : d.s1), 0) / n,
+          exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[1] : d.s2), 0) / n,
+          exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[2] : d.s3), 0) / n,
+          exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[3] : d.s4), 0) / n,
+          exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[4] : d.s5), 0) / n,
+          exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[5] : d.s6), 0) / n,
+          exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[6] : d.s7), 0) / n
+        ];
+
         aoa.push([
           "",
           "TOTAL REGIONAL",
-          formatPct(avgS1), formatDelta(avgLm1),
-          formatPct(avgS2), formatDelta(avgLm2),
-          formatPct(avgS3), formatDelta(avgLm3),
-          formatPct(avgS4), formatDelta(avgLm4),
-          formatPct(avgS5), formatDelta(avgLm5),
-          formatPct(avgS6), formatDelta(avgLm6),
-          formatPct(avgS7), formatDelta(avgLm7),
-          formatPct(avgPm), formatDelta(avgLmPm)
+          formatPct(asbdCurves[0]), formatPct(avgS1), formatDelta(avgLm1),
+          formatPct(asbdCurves[1]), formatPct(avgS2), formatDelta(avgLm2),
+          formatPct(asbdCurves[2]), formatPct(avgS3), formatDelta(avgLm3),
+          formatPct(asbdCurves[3]), formatPct(avgS4), formatDelta(avgLm4),
+          formatPct(asbdCurves[4]), formatPct(avgS5), formatDelta(avgLm5),
+          formatPct(asbdCurves[5]), formatPct(avgS6), formatDelta(avgLm6),
+          formatPct(asbdCurves[6]), formatPct(avgS7), formatDelta(avgLm7),
+          formatPct(regionalAsbdPm), formatPct(avgPm), formatDelta(avgLmPm)
         ]);
-      }
 
       const ws = XLSX.utils.aoa_to_sheet(aoa);
 
