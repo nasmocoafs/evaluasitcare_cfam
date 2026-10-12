@@ -566,22 +566,22 @@
                 <th class="p-1 sticky-col-1 bg-slate-100"></th>
                 <th class="p-1 sticky-col-2 bg-slate-100"></th>
                 <!-- 1st -->
-                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[44px]">vs LM</th>
                 <!-- 2nd -->
-                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[44px]">vs LM</th>
                 <!-- 3rd -->
-                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[44px]">vs LM</th>
                 <!-- 4th -->
-                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[44px]">vs LM</th>
                 <!-- 5th -->
-                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[44px]">vs LM</th>
                 <!-- 6th -->
-                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[44px]">vs LM</th>
                 <!-- 7th -->
-                <th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[44px]">vs LM</th>
+                <th class="p-1 min-w-[48px] text-purple-800">ASBD</th><th class="p-1 min-w-[48px] text-blue-800">CFAM</th><th class="p-1 min-w-[44px]">vs LM</th>
                 <!-- PM Rate -->
-                <th class="p-1 min-w-[52px] bg-slate-200 text-blue-900 font-black">CFAM</th>
                 <th class="p-1 min-w-[52px] bg-slate-200 text-purple-900 font-black">ASBD</th>
+                <th class="p-1 min-w-[52px] bg-slate-200 text-blue-900 font-black">CFAM</th>
                 <th class="p-1 min-w-[48px] bg-slate-200 text-slate-900 font-black">vs LM</th>
               </tr>
             </thead>
@@ -2580,14 +2580,14 @@
 
       const rowsBuffer = [];
       filtered.forEach((d, idx) => {
-        function cellTrio(cfamVal, asbdVal, lmVal, isPm = false) {
+        function cellTrio(asbdVal, cfamVal, lmVal, isPm = false) {
           const isUnder = cfamVal < target;
-          const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-black text-blue-900" : "font-bold text-slate-900");
           const asbdClass = (asbdVal < target) ? "bg-purple-50 text-purple-900 font-bold" : (isPm ? "bg-slate-100 font-black text-purple-900" : "font-semibold text-slate-700");
+          const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-black text-blue-900" : "font-bold text-slate-900");
           const lmClass = lmVal < 0 ? "cell-negative-lm" : (lmVal > 0 ? "cell-positive-lm" : "text-slate-500 font-medium");
           return `
-            <td class="p-1 text-center ${cfamClass}">${formatPct(cfamVal)}</td>
             <td class="p-1 text-center ${asbdClass}">${formatPct(asbdVal)}</td>
+            <td class="p-1 text-center ${cfamClass}">${formatPct(cfamVal)}</td>
             <td class="p-1 text-center ${lmClass}">${formatDelta(lmVal)}</td>
           `;
         }
@@ -2601,14 +2601,14 @@
               <span class="truncate">${d.dealer}</span>
               ${d.failingStages.length > 0 ? `<span class="w-2 h-2 rounded-full bg-red-500 ml-1.5 shrink-0" title="${d.failingStages.length} tahap defisit"></span>` : ''}
             </td>
-            ${cellTrio(d.s1, asbd[0], d.lm1)}
-            ${cellTrio(d.s2, asbd[1], d.lm2)}
-            ${cellTrio(d.s3, asbd[2], d.lm3)}
-            ${cellTrio(d.s4, asbd[3], d.lm4)}
-            ${cellTrio(d.s5, asbd[4], d.lm5)}
-            ${cellTrio(d.s6, asbd[5], d.lm6)}
-            ${cellTrio(d.s7, asbd[6], d.lm7)}
-            ${cellTrio(d.pm, (d.asbdPm || d.pm), d.lmpm, true)}
+            ${cellTrio(asbd[0], d.s1, d.lm1)}
+            ${cellTrio(asbd[1], d.s2, d.lm2)}
+            ${cellTrio(asbd[2], d.s3, d.lm3)}
+            ${cellTrio(asbd[3], d.s4, d.lm4)}
+            ${cellTrio(asbd[4], d.s5, d.lm5)}
+            ${cellTrio(asbd[5], d.s6, d.lm6)}
+            ${cellTrio(asbd[6], d.s7, d.lm7)}
+            ${cellTrio((d.asbdPm || d.pm), d.pm, d.lmpm, true)}
           </tr>
         `);
       });
@@ -2645,14 +2645,14 @@
         dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[6] : d.s7), 0) / n
       ];
 
-      function tfootCellTrio(cfamVal, asbdVal, lmVal, isPm = false) {
+      function tfootCellTrio(asbdVal, cfamVal, lmVal, isPm = false) {
         const isUnder = cfamVal < target;
-        const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-950 font-black text-amber-300" : "font-black text-white");
         const asbdClass = (asbdVal < target) ? "bg-purple-900/60 text-purple-200 font-bold" : (isPm ? "bg-slate-950 font-black text-purple-300" : "font-bold text-slate-200");
+        const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-950 font-black text-amber-300" : "font-black text-white");
         const lmClass = lmVal < 0 ? "text-red-400 font-bold" : (lmVal > 0 ? "text-emerald-400 font-bold" : "text-slate-400 font-medium");
         return `
-          <td class="p-1.5 text-center ${cfamClass}">${formatPct(cfamVal)}</td>
           <td class="p-1.5 text-center ${asbdClass}">${formatPct(asbdVal)}</td>
+          <td class="p-1.5 text-center ${cfamClass}">${formatPct(cfamVal)}</td>
           <td class="p-1.5 text-center ${lmClass} ${isPm ? 'bg-slate-950 font-black' : ''}">${formatDelta(lmVal)}</td>
         `;
       }
@@ -2663,14 +2663,14 @@
           <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700">
             <td class="p-2 sticky-col-1 bg-slate-900 border-r border-slate-800 text-slate-400 text-[11px] font-bold">∑</td>
             <td class="p-2 text-left sticky-col-2 bg-slate-900 border-r border-slate-800 text-[11px] font-black uppercase tracking-wider text-amber-300">TOTAL REGIONAL</td>
-            ${tfootCellTrio(avgS1, asbdCurves[0], avgLm1)}
-            ${tfootCellTrio(avgS2, asbdCurves[1], avgLm2)}
-            ${tfootCellTrio(avgS3, asbdCurves[2], avgLm3)}
-            ${tfootCellTrio(avgS4, asbdCurves[3], avgLm4)}
-            ${tfootCellTrio(avgS5, asbdCurves[4], avgLm5)}
-            ${tfootCellTrio(avgS6, asbdCurves[5], avgLm6)}
-            ${tfootCellTrio(avgS7, asbdCurves[6], avgLm7)}
-            ${tfootCellTrio(avgPm, avgAsbdPm, avgLmPm, true)}
+            ${tfootCellTrio(asbdCurves[0], avgS1, avgLm1)}
+            ${tfootCellTrio(asbdCurves[1], avgS2, avgLm2)}
+            ${tfootCellTrio(asbdCurves[2], avgS3, avgLm3)}
+            ${tfootCellTrio(asbdCurves[3], avgS4, avgLm4)}
+            ${tfootCellTrio(asbdCurves[4], avgS5, avgLm5)}
+            ${tfootCellTrio(asbdCurves[5], avgS6, avgLm6)}
+            ${tfootCellTrio(asbdCurves[6], avgS7, avgLm7)}
+            ${tfootCellTrio(avgAsbdPm, avgPm, avgLmPm, true)}
           </tr>
         `;
       }
