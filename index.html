@@ -2112,7 +2112,11 @@
           // Akumulasi Tahap 1 s/d 7 Sesuai Baris PM Rate Matriks ASBD
           const potASBD = dPotNowASBD[dBase + s];
           const actASBD = dActNowASBD[dBase + s];
-          const achASBD = potASBD > 0 ? (actASBD / potASBD) : 1.0;
+          
+          // 1st & 2nd Service ASBD disamakan dengan CFAM (ach), 3rd s/d 7th tetap ASBD
+          const achASBD = (s < 2) ? ach : (potASBD > 0 ? (actASBD / potASBD) : 1.0);
+          
+          // Akumulasi PM Rate ASBD tetap memakai potensi & aktual riil tanpa diubah
           totalPotASBD += potASBD; 
           totalActASBD += actASBD;
           asbdStages.push(achASBD);
@@ -2620,10 +2624,10 @@
       const avgPm = dealers.reduce((acc, d) => acc + d.pm, 0) / n;
       const avgLmPm = dealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
 
-      // Hitung kurva regional ASBD untuk 7 tahapan
+      // Hitung kurva regional ASBD untuk 7 tahapan (1st & 2nd sama dengan CFAM)
       const asbdCurves = [
-        dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[0] : d.s1), 0) / n,
-        dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[1] : d.s2), 0) / n,
+        avgS1, // 1st sama dengan CFAM Regional
+        avgS2, // 2nd sama dengan CFAM Regional
         dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[2] : d.s3), 0) / n,
         dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[3] : d.s4), 0) / n,
         dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[4] : d.s5), 0) / n,
@@ -3557,8 +3561,8 @@
         const regionalAsbdPm = regPotASBD > 0 ? (regActASBD / regPotASBD) : (exportDealers.reduce((acc, d) => acc + (d.asbdPm || d.pm), 0) / n);
 
         const asbdCurves = [
-          exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[0] : d.s1), 0) / n,
-          exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[1] : d.s2), 0) / n,
+          avgS1, // 1st sama dengan CFAM Regional
+          avgS2, // 2nd sama dengan CFAM Regional
           exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[2] : d.s3), 0) / n,
           exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[3] : d.s4), 0) / n,
           exportDealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[4] : d.s5), 0) / n,
