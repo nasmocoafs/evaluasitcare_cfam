@@ -3990,34 +3990,7 @@
       renderDrilldownVinTable(collected);
       document.getElementById('drilldownVinModal').classList.remove('hidden');
     }
-        // 2. Data fallback demo jika offline (menghasilkan sample No Rangka sesuai gap)
-        const sampleCount = stageIdx >= 0 ? 7 : 14;
-        const sampleModels = ['Avanza 1.5 G', 'Innova Zenix', 'Calya 1.2 G', 'Yaris Cross', 'Rush 1.5 S', 'Veloz 1.5 Q'];
-        for (let i = 1; i <= sampleCount; i++) {
-          collected.push({
-            vin: `MHFAB1BA5P${(890120 + i)}`,
-            model: sampleModels[i % sampleModels.length],
-            prog: i % 3 === 0 ? 'T-CARE LITE' : 'T-CARE',
-            decStr: '12/08/2024',
-            stageName: stageIdx >= 0 ? STAGE_NAMES[stageIdx] : `${(i % 3) + 4}th`,
-            stageIdx: stageIdx >= 0 ? stageIdx : ((i % 3) + 3),
-            prioInfo: { label: i % 2 === 0 ? 'Prio. 1A' : 'Prio. 1B', badge: 'bg-emerald-600 text-white' }
-          });
-        }
-      }
-
-      currentDrilldownVins = collected;
-
-      // Update Teks Modal
-      const stageTitleText = stageIdx >= 0 ? `${STAGE_NAMES[stageIdx]} Service` : 'Semua Tahapan Defisit';
-      document.getElementById('drilldownModalTitle').innerText = `${dealerName} — Target Unit`;
-      document.getElementById('drilldownModalSubtitle').innerText = `Tahap: ${stageTitleText} | Periode: ${MONTH_NAMES[mIdx]} 2026`;
-      document.getElementById('drilldownVinCountBadge').innerText = `${collected.length} Unit Defisit`;
-
-      renderDrilldownVinTable(collected);
-      document.getElementById('drilldownVinModal').classList.remove('hidden');
-    }
-
+    
     function renderDrilldownVinTable(vinList) {
       const tbody = document.getElementById('drilldownVinTableBody');
       if (!tbody) return;
@@ -4092,15 +4065,15 @@
         [`TARGET UNIT DEFISIT SERVIS BERKALA — ${activeCurrentCapaDealer.toUpperCase()}`],
         [`Waktu Ekspor: ${new Date().toLocaleString('id-ID')}`, `Total: ${currentDrilldownVins.length} Unit`],
         [],
-        ["No", "No Rangka (VIN)", "Model Kendaraan", "Program", "Tgl DEC", "Target Servis", "Prioritas SBE"]
+        ["No", "No Rangka (VIN)", "Dealer Penjual", "Model Kendaraan", "Program", "Tgl DEC", "Target Servis", "Prioritas SBE"]
       ];
 
       currentDrilldownVins.forEach((u, idx) => {
-        aoa.push([idx + 1, u.vin, u.model, u.prog, u.decStr, `${u.stageName} Service`, u.prioInfo.label]);
+        aoa.push([idx + 1, u.vin, u.dealer || '-', u.model, u.prog, u.decStr, `${u.stageName} Service`, u.prioInfo ? u.prioInfo.label : '-']);
       });
 
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws['!cols'] = [{ wch: 6 }, { wch: 22 }, { wch: 20 }, { wch: 15 }, { wch: 14 }, { wch: 16 }, { wch: 14 }];
+      ws['!cols'] = [{ wch: 6 }, { wch: 22 }, { wch: 24 }, { wch: 20 }, { wch: 15 }, { wch: 14 }, { wch: 16 }, { wch: 14 }];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Target Defisit VIN");
       XLSX.writeFile(wb, `Target_Defisit_VIN_${activeCurrentCapaDealer.replace(/\s+/g, '_')}.xlsx`);
@@ -4111,10 +4084,14 @@
       closeDrilldownVinModal();
       closeCapaModal();
 
-      // Set filter cabang ke dealer aktif
+      // Set filter cabang ke dealer aktif (atau seluruh cabang jika Regional)
       if (filterState && filterState.branches) {
         filterState.branches.clear();
-        filterState.branches.add(activeCurrentCapaDealer);
+        if (activeCurrentCapaDealer === 'TOTAL REGIONAL') {
+          filterState.allBranches.forEach(b => filterState.branches.add(b));
+        } else {
+          filterState.branches.add(activeCurrentCapaDealer);
+        }
         renderMultiSelectCheckboxes('branch');
       }
 
