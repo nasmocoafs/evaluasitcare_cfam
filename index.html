@@ -1362,55 +1362,38 @@
     let isMatrixCustomized = false;
 
 
-    // Generator Matriks ASBD (Inception Juli 2022 untuk 3rd s/d 7th Service)
+    // Generator Matriks ASBD Resmi (100% Sesuai Sheet Matrix ASBD: Inception Jul 2022 1st s/d 7th)
     function generateDefaultASBDMatrix() {
       const matrix = [];
       for (let m = 0; m < 12; m++) {
         const stages = [];
         for (let s = 0; s < 7; s++) {
-          let potStartYM, potEndYM, actStartYM, actEndYM;
+          const potStartYM = 2022 * 12 + 6; // Default Inception T-Care: Jul 2022
+          const actStartYM = 2022 * 12 + 6;
+          const actEndYM = 2026 * 12 + m;   // Masuk s/d Bulan Evaluasi 2026
+          let potEndYM;
+
           switch (s) {
-            case 0: // 1st: Sama dengan CFAM (Dec 25 s/d cut-off)
-              potStartYM = 2025 * 12 + 11;
+            case 0: // 1st: Jul 22 s/d (M-1) 2026
               potEndYM = (m === 0) ? (2025 * 12 + 11) : (2026 * 12 + (m - 1));
-              actStartYM = 2025 * 12 + 11;
-              actEndYM = 2026 * 12 + m;
               break;
-            case 1: // 2nd: Sama dengan CFAM (Jul 25 s/d cut-off)
-              potStartYM = 2025 * 12 + 6;
+            case 1: // 2nd: Jul 22 s/d (Jul 25 + M)
               potEndYM = (2025 * 12 + 6) + m;
-              actStartYM = 2025 * 12 + 6;
-              actEndYM = 2026 * 12 + m;
               break;
-            case 2: // 3rd: Inception Jul 22 s/d (Jan 25 + m)
-              potStartYM = 2022 * 12 + 6;
+            case 2: // 3rd: Jul 22 s/d (Jan 25 + M)
               potEndYM = (2025 * 12 + 0) + m;
-              actStartYM = 2022 * 12 + 6;
-              actEndYM = 2026 * 12 + m;
               break;
-            case 3: // 4th: Inception Jul 22 s/d (Jul 24 + m)
-              potStartYM = 2022 * 12 + 6;
+            case 3: // 4th: Jul 22 s/d (Jul 24 + M)
               potEndYM = (2024 * 12 + 6) + m;
-              actStartYM = 2022 * 12 + 6;
-              actEndYM = 2026 * 12 + m;
               break;
-            case 4: // 5th: Inception Jul 22 s/d (Jan 24 + m)
-              potStartYM = 2022 * 12 + 6;
+            case 4: // 5th: Jul 22 s/d (Jan 24 + M)
               potEndYM = (2024 * 12 + 0) + m;
-              actStartYM = 2022 * 12 + 6;
-              actEndYM = 2026 * 12 + m;
               break;
-            case 5: // 6th: Inception Jul 22 s/d (Jul 23 + m)
-              potStartYM = 2022 * 12 + 6;
+            case 5: // 6th: Jul 22 s/d (Jul 23 + M)
               potEndYM = (2023 * 12 + 6) + m;
-              actStartYM = 2022 * 12 + 6;
-              actEndYM = 2026 * 12 + m;
               break;
-            case 6: // 7th: Inception Jul 22 s/d (Jan 23 + m)
-              potStartYM = 2022 * 12 + 6;
+            case 6: // 7th: Jul 22 s/d (Jan 23 + M)
               potEndYM = (2023 * 12 + 0) + m;
-              actStartYM = 2022 * 12 + 6;
-              actEndYM = 2026 * 12 + m;
               break;
           }
           stages.push({ potStartYM, potEndYM, actStartYM, actEndYM });
@@ -2082,22 +2065,11 @@
             }
           }
 
-          // 2. Perhitungan ASBD (OC): Inception Jul 2022 (T-Care) vs Jan 2023 (T-Care Lite/Lite+)
+          // 2. Perhitungan ASBD (OC): Inception Jul 2022 (T-Care) vs Jan 2023 (T-Care Lite/Lite+) untuk 1st s/d 7th
           const asbdRule = asbdRules[s];
-          let asbdPotStart = asbdRule.potStartYM;
+          const asbdInceptionYM = r.isLite ? (2023 * 12 + 0) : (2022 * 12 + 6);
 
-          // Untuk tahap 3rd s/d 7th (s >= 2), terapkan tanggal peluncuran program masing-masing
-          if (s >= 2) {
-            if (r.isLite) {
-              // T-Care Lite & Lite+ dimulai Januari 2023
-              asbdPotStart = 2023 * 12 + 0;
-            } else {
-              // T-Care Standard dimulai Juli 2022
-              asbdPotStart = 2022 * 12 + 6;
-            }
-          }
-
-          if (dec >= asbdPotStart && dec <= asbdRule.potEndYM) {
+          if (dec >= asbdInceptionYM && dec <= asbdRule.potEndYM) {
             dPotNowASBD[dBase + s]++;
             if ((sMask & (1 << s)) !== 0) {
               const sm = sYM[s];
@@ -2129,7 +2101,7 @@
         let totalPot = 0, totalAct = 0, totalGap = 0;
         const failingStages = [];
 
-        const asbdStages = [];
+       const asbdStages = [];
         let totalPotASBD = 0, totalActASBD = 0;
 
         for (let s = 0; s < 7; s++) {
@@ -2137,11 +2109,12 @@
           const act = dActNow[dBase + s];
           const ach = pot > 0 ? (act / pot) : 1.0;
 
-          // ASBD calculation
+          // Akumulasi Tahap 1 s/d 7 Sesuai Baris PM Rate Matriks ASBD
           const potASBD = dPotNowASBD[dBase + s];
           const actASBD = dActNowASBD[dBase + s];
-          const achASBD = potASBD > 0 ? (actASBD / potASBD) : ach;
-          totalPotASBD += potASBD; totalActASBD += actASBD;
+          const achASBD = potASBD > 0 ? (actASBD / potASBD) : 1.0;
+          totalPotASBD += potASBD; 
+          totalActASBD += actASBD;
           asbdStages.push(achASBD);
 
           const potP = dPotPrev[dBase + s];
@@ -2179,7 +2152,6 @@
           asbdPm: totalPotASBD > 0 ? (totalActASBD / totalPotASBD) : pm
         });
       }
-
       // Model Analytics Map
       const modelStats = {};
       for (let m = 0; m < numModels; m++) {
@@ -2593,17 +2565,23 @@
 
       const rowsBuffer = [];
       filtered.forEach((d, idx) => {
-        function cellTrio(asbdVal, cfamVal, lmVal, isPm = false) {
-          const isUnder = cfamVal < target;
-          const asbdClass = (asbdVal < target) ? "bg-purple-50 text-purple-900 font-bold" : (isPm ? "bg-slate-100 font-black text-purple-900" : "font-semibold text-slate-700");
-          const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-black text-blue-900" : "font-bold text-slate-900");
-          const lmClass = lmVal < 0 ? "cell-negative-lm" : (lmVal > 0 ? "cell-positive-lm" : "text-slate-500 font-medium");
-          return `
-            <td class="p-1 text-center ${asbdClass}">${formatPct(asbdVal)}</td>
-            <td class="p-1 text-center ${cfamClass}">${formatPct(cfamVal)}</td>
-            <td class="p-1 text-center ${lmClass}">${formatDelta(lmVal)}</td>
-          `;
-        }
+        if (tfoot) {
+        const avgAsbdPm = dealers.reduce((acc, d) => acc + (d.asbdPm || d.pm), 0) / n;
+        tfoot.innerHTML = `
+          <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700">
+            <td class="p-2 sticky-col-1 bg-slate-900 border-r border-slate-800 text-slate-400 text-[11px] font-bold">∑</td>
+            <td class="p-2 text-left sticky-col-2 bg-slate-900 border-r border-slate-800 text-[11px] font-black uppercase tracking-wider text-amber-300">TOTAL REGIONAL</td>
+            ${tfootCellTrio(asbdCurves[0], avgS1, avgLm1)}
+            ${tfootCellTrio(asbdCurves[1], avgS2, avgLm2)}
+            ${tfootCellTrio(asbdCurves[2], avgS3, avgLm3)}
+            ${tfootCellTrio(asbdCurves[3], avgS4, avgLm4)}
+            ${tfootCellTrio(asbdCurves[4], avgS5, avgLm5)}
+            ${tfootCellTrio(asbdCurves[5], avgS6, avgLm6)}
+            ${tfootCellTrio(asbdCurves[6], avgS7, avgLm7)}
+            ${tfootCellTrio(avgAsbdPm, avgPm, avgLmPm, true)}
+          </tr>
+        `;
+      }
 
         const asbd = d.asbdStages || [d.s1, d.s2, d.s3, d.s4, d.s5, d.s6, d.s7];
 
