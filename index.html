@@ -2708,15 +2708,27 @@
       ];
 
       function tfootCellTrio(asbdVal, cfamVal, lmVal, isPm = false, stageIdx = -1) {
-        const isUnder = cfamVal < target;
-        const asbdClass = (asbdVal < target) ? "bg-purple-900/60 text-purple-200 font-bold" : (isPm ? "bg-slate-950 font-black text-purple-300" : "font-bold text-slate-200");
-        const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-950 font-black text-amber-300" : "font-black text-white");
-        const lmClass = lmVal < 0 ? "text-red-400 font-bold" : (lmVal > 0 ? "text-emerald-400 font-bold" : "text-slate-400 font-medium");
-        const clickAttr = `onclick="event.stopPropagation(); openDeficitVinDrilldown('TOTAL REGIONAL', ${stageIdx})" class="p-1.5 text-center cursor-pointer hover:opacity-75 transition" title="Klik untuk melihat detail No Rangka (VIN) defisit Regional"`;
+        // Cek apakah di bawah target benchmark (Irregularity Control)
+        const isAsbdUnder = asbdVal < target;
+        const isCfamUnder = cfamVal < target;
+
+        // Terapkan highlight merah (cell-under-target) jika di bawah target
+        const asbdStyle = isAsbdUnder
+          ? "cell-under-target"
+          : (isPm ? "bg-slate-950 text-purple-300 font-black" : "font-bold text-slate-200");
+
+        const cfamStyle = isCfamUnder
+          ? "cell-under-target"
+          : (isPm ? "bg-slate-950 text-amber-300 font-black" : "font-black text-white");
+
+        const lmStyle = lmVal < 0 ? "text-red-400 font-bold" : (lmVal > 0 ? "text-emerald-400 font-bold" : "text-slate-400 font-medium");
+        const clickAction = `onclick="event.stopPropagation(); openDeficitVinDrilldown('TOTAL REGIONAL', ${stageIdx})" title="Klik untuk melihat detail No Rangka (VIN) defisit Regional"`;
+
+        // Gabungkan kelas menjadi satu atribut class agar tidak tertimpa browser
         return `
-          <td ${clickAttr} class="${asbdClass}">${formatPct(asbdVal)}</td>
-          <td ${clickAttr} class="${cfamClass}">${formatPct(cfamVal)}</td>
-          <td ${clickAttr} class="${lmClass} ${isPm ? 'bg-slate-950 font-black' : ''}">${formatDelta(lmVal)}</td>
+          <td ${clickAction} class="p-1.5 text-center cursor-pointer hover:opacity-80 transition select-none ${asbdStyle}">${formatPct(asbdVal)}</td>
+          <td ${clickAction} class="p-1.5 text-center cursor-pointer hover:opacity-80 transition select-none ${cfamStyle}">${formatPct(cfamVal)}</td>
+          <td ${clickAction} class="p-1.5 text-center cursor-pointer hover:opacity-80 transition select-none ${lmStyle} ${isPm ? 'bg-slate-950 font-black' : ''}">${formatDelta(lmVal)}</td>
         `;
       }
 
@@ -3875,11 +3887,13 @@
     let activeCurrentCapaDealer = '';
     let currentDrilldownVins = [];
     let currentDrilldownStageIdx = -1;
+    let drilldownRenderLimit = 60; // Batas render DOM awal agar pembukaan modal instan
 
     function openDeficitVinDrilldown(dealerName, stageIdx = -1) {
       if (!dealerName) return;
       currentDrilldownStageIdx = stageIdx;
       activeCurrentCapaDealer = dealerName;
+      drilldownRenderLimit = 60; // Reset ke 60 baris pertama
       const isRegional = (dealerName === 'TOTAL REGIONAL');
 
       const evalMonthStr = currentPeriodMode === 'range' ? document.getElementById('rangeEndMonth').value : document.getElementById('monthSelect').value;
@@ -3902,10 +3916,20 @@
         if (targetStages.length === 0) targetStages = [0, 1, 2, 3, 4, 5, 6];
       }
 
-      const collected = [];
-      const addedVins = new Set(); // Mencegah 1 unit ganda jika memiliki lebih dari 1 tahap defisit
+      // Optimasi: Pra-hitung aturan matriks di luar perulangan agar eksekusi di bawah 15ms
+      const rulesPrecomputed = targetStages.map(s => {
+        const rule = getMatrixRule(mIdx, s);
+        return {
+          s,
+          stageName: STAGE_NAMES[s],
+          potStart: rule.potStartYM,
+          potEnd: rule.potEndYM
+        };
+      });
 
-      // 1. Data Google Sheets riil
+      const collected = [];
+      const addedVins = new Set();
+
       if (rawNormalizedDataset && rawNormalizedDataset.records) {
         const { records, branchDict, modelDict, progDict } = rawNormalizedDataset;
         const dIdx = isRegional ? -1 : branchDict.indexOf(dealerName);
@@ -3913,29 +3937,24 @@
         for (let i = 0; i < records.length; i++) {
           const r = records[i];
 
-          // Filter cabang jika bukan pencarian regional
           if (!isRegional && r.dealerIdx !== dIdx) continue;
           if (!filterState.programs.has(progDict[r.progIdx])) continue;
           if (!filterState.branches.has(branchDict[r.dealerIdx])) continue;
 
-          // FILTER KUNCI: Buang unit yang tidak valid atau usianya > 36 bulan (EXPIRED)
+          // Buang data tidak valid atau usia melebihi 36 bulan (EXPIRED)
           if (r.decYM <= 0) continue;
-          const ageMonths = evalYM - r.decYM;
-          if (ageMonths > 36) continue; // Melebihi 36 bulan otomatis dibuang!
-
-          // Lewati jika unit sudah menyelesaikan 7th service
+          if ((evalYM - r.decYM) > 36) continue;
           if ((r.sDoneMask & 127) === 127) continue;
 
-          for (const s of targetStages) {
-            const rule = getMatrixRule(mIdx, s);
-            if (r.decYM >= rule.potStartYM && r.decYM <= rule.potEndYM) {
-              // Jika belum servis di tahapan s, ini adalah target defisit riil
-              if ((r.sDoneMask & (1 << s)) === 0) {
+          for (let k = 0; k < rulesPrecomputed.length; k++) {
+            const rule = rulesPrecomputed[k];
+            if (r.decYM >= rule.potStart && r.decYM <= rule.potEnd) {
+              if ((r.sDoneMask & (1 << rule.s)) === 0) {
                 if (addedVins.has(r.vin)) break;
                 addedVins.add(r.vin);
 
                 let doneCount = 0;
-                for (let k = 0; k < 7; k++) if ((r.sDoneMask & (1 << k)) !== 0) doneCount++;
+                for (let j = 0; j < 7; j++) if ((r.sDoneMask & (1 << j)) !== 0) doneCount++;
                 const sisaSvc = Math.max(0, 7 - doneCount);
                 const expYear = Math.floor(r.decYM / 12) + 3;
                 const prioInfo = determinePriority(sisaSvc, expYear);
@@ -3946,8 +3965,8 @@
                   model: modelDict[r.modelIdx],
                   prog: progDict[r.progIdx],
                   decStr: r.decStr,
-                  stageName: STAGE_NAMES[s],
-                  stageIdx: s,
+                  stageName: rule.stageName,
+                  stageIdx: rule.s,
                   prioInfo
                 });
                 break;
@@ -3956,7 +3975,6 @@
           }
         }
       } else {
-        // 2. Data fallback demo (selalu dalam rentang aktif 2024-2025)
         const sampleCount = isRegional ? 35 : (stageIdx >= 0 ? 7 : 14);
         const sampleModels = ['Avanza 1.5 G', 'Innova Zenix', 'Calya 1.2 G', 'Yaris Cross', 'Rush 1.5 S', 'Veloz 1.5 Q'];
         for (let i = 1; i <= sampleCount; i++) {
@@ -3975,64 +3993,94 @@
 
       currentDrilldownVins = collected;
 
-      // Update Teks Modal Header
       const stageTitleText = stageIdx >= 0 ? `${STAGE_NAMES[stageIdx]} Service` : 'Semua Tahapan Defisit';
       document.getElementById('drilldownModalTitle').innerText = isRegional
         ? `TOTAL REGIONAL — Target Unit Defisit`
         : `${dealerName} — Target Unit Defisit`;
 
       document.getElementById('drilldownModalSubtitle').innerText = isRegional
-        ? `Tahap: ${stageTitleText} (Konsolidasi 22 Cabang) | Usia: ≤36 Bln (Aktif) | Periode: ${MONTH_NAMES[mIdx]} 2026`
+        ? `Tahap: ${stageTitleText} (22 Cabang Nasmoco) | Usia: ≤36 Bln (Aktif) | Periode: ${MONTH_NAMES[mIdx]} 2026`
         : `Tahap: ${stageTitleText} | Usia: ≤36 Bln (Aktif) | Periode: ${MONTH_NAMES[mIdx]} 2026`;
 
-      document.getElementById('drilldownVinCountBadge').innerText = `${collected.length} Unit Defisit`;
+      document.getElementById('drilldownVinCountBadge').innerText = `${collected.length.toLocaleString()} Unit Defisit`;
 
       renderDrilldownVinTable(collected);
       document.getElementById('drilldownVinModal').classList.remove('hidden');
     }
-    
+
     function renderDrilldownVinTable(vinList) {
       const tbody = document.getElementById('drilldownVinTableBody');
+      const counterEl = document.getElementById('drilldownCounterText');
       if (!tbody) return;
 
       if (vinList.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400 font-sans">Tidak ada unit defisit aktif (≤36 bulan) yang ditemukan untuk kriteria ini.</td></tr>`;
-        document.getElementById('drilldownCounterText').innerText = `Total: 0 unit`;
+        if (counterEl) counterEl.innerText = `Total: 0 unit`;
         return;
       }
 
-      tbody.innerHTML = vinList.map((u, i) => `
-        <tr class="hover:bg-blue-50/70 transition border-b border-slate-200">
-          <td class="p-2 text-center text-slate-500 font-bold">${i + 1}</td>
-          <td class="p-2 font-bold text-slate-900 flex items-center justify-between">
-            <span>${u.vin}</span>
-            <button onclick="copyToClipboard('${u.vin}')" title="Salin No Rangka" class="text-slate-400 hover:text-blue-600 ml-1.5 text-[10px]">
-              <i class="fa-regular fa-copy"></i>
-            </button>
-          </td>
-          <td class="p-2 font-sans font-medium text-slate-800 text-left">${u.dealer || '-'}</td>
-          <td class="p-2 font-sans font-semibold text-slate-800">${u.model}</td>
-          <td class="p-2 font-sans text-center">
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.prog.includes('LITE') ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}">${u.prog}</span>
-          </td>
-          <td class="p-2 text-center text-slate-600">${u.decStr}</td>
-          <td class="p-2 text-center">
-            <span class="bg-red-100 text-red-800 border border-red-300 font-extrabold px-1.5 py-0.5 rounded text-[10px]">${u.stageName} Service</span>
-          </td>
-          <td class="p-2 text-center">
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.prioInfo.badge}">${u.prioInfo.label}</span>
-          </td>
-          <td class="p-2 text-center">
-            <button onclick="copyToClipboard('${u.vin}')" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans text-[10px] rounded border border-slate-300 font-bold">
-              Salin
-            </button>
-          </td>
-        </tr>
-      `).join('');
+      // Potong tampilan awal ke batas drilldownRenderLimit agar browser tidak membeku
+      const displayCount = Math.min(vinList.length, drilldownRenderLimit);
+      const rows = [];
 
-      document.getElementById('drilldownCounterText').innerText = `Menampilkan ${vinList.length} unit aktif (≤36 bulan) yang menjadi target follow-up.`;
+      for (let i = 0; i < displayCount; i++) {
+        const u = vinList[i];
+        rows.push(`
+          <tr class="hover:bg-blue-50/70 transition border-b border-slate-200">
+            <td class="p-2 text-center text-slate-500 font-bold">${i + 1}</td>
+            <td class="p-2 font-bold text-slate-900 flex items-center justify-between">
+              <span>${u.vin}</span>
+              <button onclick="copyToClipboard('${u.vin}')" title="Salin No Rangka" class="text-slate-400 hover:text-blue-600 ml-1.5 text-[10px]">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </td>
+            <td class="p-2 font-sans font-medium text-slate-800 text-left">${u.dealer || '-'}</td>
+            <td class="p-2 font-sans font-semibold text-slate-800">${u.model}</td>
+            <td class="p-2 font-sans text-center">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.prog.includes('LITE') ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}">${u.prog}</span>
+            </td>
+            <td class="p-2 text-center text-slate-600">${u.decStr}</td>
+            <td class="p-2 text-center">
+              <span class="bg-red-100 text-red-800 border border-red-300 font-extrabold px-1.5 py-0.5 rounded text-[10px]">${u.stageName} Service</span>
+            </td>
+            <td class="p-2 text-center">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.prioInfo.badge}">${u.prioInfo.label}</span>
+            </td>
+            <td class="p-2 text-center">
+              <button onclick="copyToClipboard('${u.vin}')" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans text-[10px] rounded border border-slate-300 font-bold">
+                Salin
+              </button>
+            </td>
+          </tr>
+        `);
+      }
+
+      tbody.innerHTML = rows.join('');
+
+      // Berikan notifikasi & tombol muat bertahap jika masih ada data yang belum dirender
+      if (counterEl) {
+        if (vinList.length > displayCount) {
+          counterEl.innerHTML = `
+            <span>Menampilkan <strong>${displayCount}</strong> dari <strong>${vinList.length.toLocaleString()}</strong> unit target aktif.</span>
+            <button onclick="loadMoreDrilldownVins()" class="ml-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold px-2 py-0.5 rounded border border-blue-300 transition cursor-pointer">
+              + Tampilkan 60 Unit Lagi
+            </button>
+          `;
+        } else {
+          counterEl.innerHTML = `<span>Menampilkan seluruh <strong>${vinList.length.toLocaleString()}</strong> unit target aktif (≤36 bulan).</span>`;
+        }
+      }
     }
 
+    function loadMoreDrilldownVins() {
+      drilldownRenderLimit += 60;
+      const q = (document.getElementById('searchDrilldownInput')?.value || '').toLowerCase();
+      const currentList = q
+        ? currentDrilldownVins.filter(u => u.vin.toLowerCase().includes(q) || u.model.toLowerCase().includes(q) || (u.dealer && u.dealer.toLowerCase().includes(q)))
+        : currentDrilldownVins;
+      renderDrilldownVinTable(currentList);
+    }
+    
     function filterDrilldownVinTable() {
       const q = (document.getElementById('searchDrilldownInput')?.value || '').toLowerCase();
       const filtered = currentDrilldownVins.filter(u =>
