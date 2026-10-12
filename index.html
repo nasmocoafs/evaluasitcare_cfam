@@ -1026,10 +1026,13 @@
             <div class="font-black text-red-600 text-base" id="modalLowestStage">-</div>
             <div class="text-[10px] text-red-700 font-medium" id="modalLowestAch">-</div>
           </div>
-          <div>
-            <div class="text-[10px] text-slate-400 font-bold uppercase">Total Gap Defisit</div>
-            <div class="font-black text-looker-accent text-base" id="modalTotalGap">- Unit</div>
-            <div class="text-[10px] text-slate-500" id="modalEstLoss">Est. Recovery: -</div>
+          <div onclick="openDeficitVinDrilldown(activeCurrentCapaDealer, -1)" class="cursor-pointer hover:bg-red-50/80 p-1.5 rounded-xl border border-transparent hover:border-red-300 transition group" title="Klik untuk membuka daftar No Rangka (VIN) target">
+            <div class="text-[10px] text-slate-500 font-bold uppercase flex items-center justify-center gap-1 group-hover:text-red-700">
+              <span>Total Gap Defisit</span>
+              <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-red-500"></i>
+            </div>
+            <div class="font-black text-looker-accent text-base group-hover:scale-105 transition" id="modalTotalGap">- Unit</div>
+            <div class="text-[10px] text-red-700 font-bold underline" id="modalEstLoss">Klik Lihat No Rangka ➔</div>
           </div>
         </div>
 
@@ -1121,7 +1124,75 @@
       </div>
     </div>
   </div>
+ <!-- MODAL DRILLDOWN TARGET VIN DEFISIT -->
+  <div id="drilldownVinModal" class="fixed inset-0 bg-slate-900/70 z-[110] flex items-center justify-center p-3 hidden backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+      <div class="p-3.5 bg-looker-header text-white flex items-center justify-between border-b border-slate-800">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold text-sm shadow">
+            <i class="fa-solid fa-crosshairs"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span id="drilldownModalTitle">Target Unit Belum Servis (VIN)</span>
+              <span id="drilldownVinCountBadge" class="text-[10px] bg-red-500/80 text-white px-2 py-0.2 rounded-full font-bold">0 Unit</span>
+            </h3>
+            <p class="text-[11px] text-slate-300" id="drilldownModalSubtitle">Daftar kendaraan wajib follow-up cabang</p>
+          </div>
+        </div>
+        <button onclick="closeDrilldownVinModal()" class="text-slate-400 hover:text-white text-base w-7 h-7 rounded flex items-center justify-center hover:bg-white/10 transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
 
+      <!-- Action Toolbar -->
+      <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center space-x-2">
+          <input type="text" id="searchDrilldownInput" onkeyup="filterDrilldownVinTable()" placeholder="Cari No Rangka / Model..." class="px-2.5 py-1 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-red-500 w-48 sm:w-60 font-sans">
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="copyAllDrilldownVins()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-1 px-2.5 rounded-lg transition flex items-center space-x-1.5 shadow-2xs">
+            <i class="fa-regular fa-copy"></i>
+            <span>Salin Semua VIN</span>
+          </button>
+          <button onclick="exportDrilldownVinsToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-2.5 rounded-lg transition flex items-center space-x-1.5 shadow-2xs">
+            <i class="fa-solid fa-file-excel"></i>
+            <span>Export Excel</span>
+          </button>
+          <button onclick="jumpToRawExplorerFromModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2.5 rounded-lg transition flex items-center space-x-1.5 shadow-2xs">
+            <i class="fa-solid fa-magnifying-glass-chart"></i>
+            <span>Buka di Raw Explorer</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Display -->
+      <div class="p-4 overflow-y-auto max-h-[60vh] scrollbar-thin">
+        <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
+          <thead class="bg-slate-900 text-white font-bold sticky top-0 z-10 divide-x divide-slate-800 text-[11px] text-center">
+            <tr>
+              <th class="p-2 w-10">No</th>
+              <th class="p-2 min-w-[170px] text-left">No Rangka (VIN)</th>
+              <th class="p-2 min-w-[130px] text-left">Model Kendaraan</th>
+              <th class="p-2 min-w-[90px]">Program</th>
+              <th class="p-2 min-w-[90px]">Tgl DEC</th>
+              <th class="p-2 min-w-[110px]">Target Servis</th>
+              <th class="p-2 min-w-[90px]">Prioritas</th>
+              <th class="p-2 min-w-[80px]">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="drilldownVinTableBody" class="divide-y divide-slate-200 bg-white font-mono text-[11px] text-slate-800"></tbody>
+        </table>
+      </div>
+
+      <div class="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+        <span id="drilldownCounterText">Menampilkan data...</span>
+        <button onclick="closeDrilldownVinModal()" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 rounded-lg text-slate-800 font-semibold transition">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  
   <div id="gsheetsModal" class="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-3 hidden backdrop-blur-xs">
     <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
       <div class="p-3.5 bg-looker-header text-white flex items-center justify-between">
@@ -3678,20 +3749,27 @@
 
       const tbody = document.getElementById('modalStageTableBody');
       const buf = [];
-      d.stagesDetail.forEach(st => {
+      activeCurrentCapaDealer = d.dealer; // Simpan nama cabang aktif untuk drilldown
+
+      d.stagesDetail.forEach((st, sIdx) => {
         const isUnder = st.ach < activeCalculatedData.targetThreshold;
+        const rowClickAttr = isUnder ? `onclick="openDeficitVinDrilldown('${d.dealer}', ${sIdx})" class="divide-x divide-slate-200 hover:bg-red-50/70 cursor-pointer transition" title="Klik untuk melihat ${st.gap} unit VIN target ${st.name} Service"` : `class="divide-x divide-slate-200"`;
+
         buf.push(`
-          <tr class="divide-x divide-slate-200">
-            <td class="p-1.5 font-bold text-left">${st.name} Service</td>
+          <tr ${rowClickAttr}>
+            <td class="p-1.5 font-bold text-left ${isUnder ? 'text-red-700 flex items-center justify-between' : ''}">
+              <span>${st.name} Service</span>
+              ${isUnder ? '<i class="fa-solid fa-arrow-up-right-from-square text-[9px] ml-1"></i>' : ''}
+            </td>
             <td class="p-1.5">${st.pot}</td>
             <td class="p-1.5">${st.act}</td>
             <td class="p-1.5 font-bold ${isUnder ? 'text-red-600 bg-red-50' : 'text-emerald-700'}">${formatPct(st.ach)}</td>
             <td class="p-1.5 ${st.lm < 0 ? 'text-red-600' : 'text-emerald-700'}">${formatDelta(st.lm)}</td>
             <td class="p-1.5 text-slate-500">${(activeCalculatedData.targetThreshold * 100).toFixed(0)}%</td>
-            <td class="p-1.5 font-bold ${st.gap > 0 ? 'text-red-600' : 'text-slate-400'}">${st.gap}</td>
+            <td class="p-1.5 font-black ${st.gap > 0 ? 'text-red-600 underline' : 'text-slate-400'}">${st.gap}</td>
             <td class="p-1.5">
-              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${isUnder ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}">
-                ${isUnder ? 'DEFISIT' : 'OK'}
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${isUnder ? 'bg-red-100 text-red-800 border border-red-300 shadow-2xs' : 'bg-emerald-100 text-emerald-800'}">
+                ${isUnder ? 'DEFISIT ➔' : 'OK'}
               </span>
             </td>
           </tr>
@@ -3789,6 +3867,207 @@
       openGoogleSheetsModal();
     }
 
+    let activeCurrentCapaDealer = '';
+    let currentDrilldownVins = [];
+    let currentDrilldownStageIdx = -1;
+
+    function openDeficitVinDrilldown(dealerName, stageIdx = -1) {
+      if (!dealerName) return;
+      currentDrilldownStageIdx = stageIdx;
+      activeCurrentCapaDealer = dealerName;
+
+      const evalMonthStr = currentPeriodMode === 'range' ? document.getElementById('rangeEndMonth').value : document.getElementById('monthSelect').value;
+      const mIdx = MONTH_NAMES.indexOf(evalMonthStr) !== -1 ? MONTH_NAMES.indexOf(evalMonthStr) : 8;
+
+      let targetStages = [];
+      const d = activeCalculatedData?.dealers.find(x => x.dealer === dealerName);
+
+      if (stageIdx >= 0) {
+        targetStages = [stageIdx];
+      } else {
+        // Jika klik kartu Total Gap, ambil seluruh tahapan yang defisit
+        if (d && d.stagesDetail) {
+          d.stagesDetail.forEach((st, s) => {
+            if (st.gap > 0 || st.ach < activeCalculatedData.targetThreshold) {
+              targetStages.push(s);
+            }
+          });
+        }
+        if (targetStages.length === 0) targetStages = [0, 1, 2, 3, 4, 5, 6];
+      }
+
+      const collected = [];
+
+      // 1. Jika terhubung ke Google Sheets riil (67.000+ data unit)
+      if (rawNormalizedDataset && rawNormalizedDataset.records) {
+        const { records, branchDict, modelDict, progDict } = rawNormalizedDataset;
+        const dIdx = branchDict.indexOf(dealerName);
+
+        for (let i = 0; i < records.length; i++) {
+          const r = records[i];
+          if (r.dealerIdx !== dIdx) continue;
+          if (!filterState.programs.has(progDict[r.progIdx])) continue;
+
+          for (const s of targetStages) {
+            const rule = getMatrixRule(mIdx, s);
+            if (r.decYM >= rule.potStartYM && r.decYM <= rule.potEndYM) {
+              // Unit yang belum menyelesaikan servis tahapan s adalah target gap!
+              if ((r.sDoneMask & (1 << s)) === 0) {
+                let doneCount = 0;
+                for (let k = 0; k < 7; k++) if ((r.sDoneMask & (1 << k)) !== 0) doneCount++;
+                const sisaSvc = Math.max(0, 7 - doneCount);
+                const expYear = r.decYM > 0 ? (Math.floor(r.decYM / 12) + 3) : 2026;
+                const prioInfo = determinePriority(sisaSvc, expYear);
+
+                collected.push({
+                  vin: r.vin,
+                  model: modelDict[r.modelIdx],
+                  prog: progDict[r.progIdx],
+                  decStr: r.decStr,
+                  stageName: STAGE_NAMES[s],
+                  stageIdx: s,
+                  prioInfo
+                });
+              }
+            }
+          }
+        }
+      } else {
+        // 2. Data fallback demo jika offline (menghasilkan sample No Rangka sesuai gap)
+        const sampleCount = stageIdx >= 0 ? 7 : 14;
+        const sampleModels = ['Avanza 1.5 G', 'Innova Zenix', 'Calya 1.2 G', 'Yaris Cross', 'Rush 1.5 S', 'Veloz 1.5 Q'];
+        for (let i = 1; i <= sampleCount; i++) {
+          collected.push({
+            vin: `MHFAB1BA5P${(890120 + i)}`,
+            model: sampleModels[i % sampleModels.length],
+            prog: i % 3 === 0 ? 'T-CARE LITE' : 'T-CARE',
+            decStr: '12/08/2024',
+            stageName: stageIdx >= 0 ? STAGE_NAMES[stageIdx] : `${(i % 3) + 4}th`,
+            stageIdx: stageIdx >= 0 ? stageIdx : ((i % 3) + 3),
+            prioInfo: { label: i % 2 === 0 ? 'Prio. 1A' : 'Prio. 1B', badge: 'bg-emerald-600 text-white' }
+          });
+        }
+      }
+
+      currentDrilldownVins = collected;
+
+      // Update Teks Modal
+      const stageTitleText = stageIdx >= 0 ? `${STAGE_NAMES[stageIdx]} Service` : 'Semua Tahapan Defisit';
+      document.getElementById('drilldownModalTitle').innerText = `${dealerName} — Target Unit`;
+      document.getElementById('drilldownModalSubtitle').innerText = `Tahap: ${stageTitleText} | Periode: ${MONTH_NAMES[mIdx]} 2026`;
+      document.getElementById('drilldownVinCountBadge').innerText = `${collected.length} Unit Defisit`;
+
+      renderDrilldownVinTable(collected);
+      document.getElementById('drilldownVinModal').classList.remove('hidden');
+    }
+
+    function renderDrilldownVinTable(vinList) {
+      const tbody = document.getElementById('drilldownVinTableBody');
+      if (!tbody) return;
+
+      if (vinList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Tidak ada unit defisit yang ditemukan untuk kriteria ini.</td></tr>`;
+        document.getElementById('drilldownCounterText').innerText = `Total: 0 unit`;
+        return;
+      }
+
+      tbody.innerHTML = vinList.map((u, i) => `
+        <tr class="hover:bg-blue-50/70 transition border-b border-slate-200">
+          <td class="p-2 text-center text-slate-500 font-bold">${i + 1}</td>
+          <td class="p-2 font-bold text-slate-900 flex items-center justify-between">
+            <span>${u.vin}</span>
+            <button onclick="copyToClipboard('${u.vin}')" title="Salin No Rangka" class="text-slate-400 hover:text-blue-600 ml-1.5 text-[10px]">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </td>
+          <td class="p-2 font-sans font-semibold text-slate-800">${u.model}</td>
+          <td class="p-2 font-sans text-center">
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.prog.includes('LITE') ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}">${u.prog}</span>
+          </td>
+          <td class="p-2 text-center text-slate-600">${u.decStr}</td>
+          <td class="p-2 text-center">
+            <span class="bg-red-100 text-red-800 border border-red-300 font-extrabold px-1.5 py-0.5 rounded text-[10px]">${u.stageName} Service</span>
+          </td>
+          <td class="p-2 text-center">
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.prioInfo.badge}">${u.prioInfo.label}</span>
+          </td>
+          <td class="p-2 text-center">
+            <button onclick="copyToClipboard('${u.vin}')" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans text-[10px] rounded border border-slate-300 font-bold">
+              Salin
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById('drilldownCounterText').innerText = `Menampilkan ${vinList.length} unit target yang harus dikejar.`;
+    }
+
+    function filterDrilldownVinTable() {
+      const q = (document.getElementById('searchDrilldownInput')?.value || '').toLowerCase();
+      const filtered = currentDrilldownVins.filter(u => u.vin.toLowerCase().includes(q) || u.model.toLowerCase().includes(q));
+      renderDrilldownVinTable(filtered);
+    }
+
+    function closeDrilldownVinModal() {
+      document.getElementById('drilldownVinModal').classList.add('hidden');
+    }
+
+    function copyAllDrilldownVins() {
+      if (currentDrilldownVins.length === 0) return;
+      const allText = currentDrilldownVins.map(u => u.vin).join('\n');
+      navigator.clipboard.writeText(allText).then(() => {
+        showToast(`Berhasil menyalin seluruh ${currentDrilldownVins.length} No Rangka (VIN) ke clipboard!`, "success");
+      });
+    }
+
+    function exportDrilldownVinsToExcel() {
+      if (currentDrilldownVins.length === 0) {
+        showToast("Tidak ada data untuk diekspor", "warning");
+        return;
+      }
+
+      const aoa = [
+        [`TARGET UNIT DEFISIT SERVIS BERKALA — ${activeCurrentCapaDealer.toUpperCase()}`],
+        [`Waktu Ekspor: ${new Date().toLocaleString('id-ID')}`, `Total: ${currentDrilldownVins.length} Unit`],
+        [],
+        ["No", "No Rangka (VIN)", "Model Kendaraan", "Program", "Tgl DEC", "Target Servis", "Prioritas SBE"]
+      ];
+
+      currentDrilldownVins.forEach((u, idx) => {
+        aoa.push([idx + 1, u.vin, u.model, u.prog, u.decStr, `${u.stageName} Service`, u.prioInfo.label]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [{ wch: 6 }, { wch: 22 }, { wch: 20 }, { wch: 15 }, { wch: 14 }, { wch: 16 }, { wch: 14 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Target Defisit VIN");
+      XLSX.writeFile(wb, `Target_Defisit_VIN_${activeCurrentCapaDealer.replace(/\s+/g, '_')}.xlsx`);
+      showToast("File Excel Target VIN berhasil diunduh!", "success");
+    }
+
+    function jumpToRawExplorerFromModal() {
+      closeDrilldownVinModal();
+      closeCapaModal();
+
+      // Set filter cabang ke dealer aktif
+      if (filterState && filterState.branches) {
+        filterState.branches.clear();
+        filterState.branches.add(activeCurrentCapaDealer);
+        renderMultiSelectCheckboxes('branch');
+      }
+
+      // Set target servis jika dipilih spesifik
+      const stageSelect = document.getElementById('attacklistStageSelect');
+      if (stageSelect && currentDrilldownStageIdx >= 0) {
+        stageSelect.value = String(currentDrilldownStageIdx);
+      }
+
+      // Pindah ke Halaman 5 Raw Explorer
+      switchLookerPage('page-explorer');
+      fastRecalculate();
+      showToast(`Membuka Raw Explorer untuk ${activeCurrentCapaDealer}`, "info");
+    }
+    
     // Baseline synthetic generator
     function generateSyntheticBaseline(targetThreshold) {
       const dealersToProcess = NASMOCO_DEALERS.map(dName => {
