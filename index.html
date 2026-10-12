@@ -2564,6 +2564,18 @@
         filtered.sort((a, b) => matrixSortState.dir === 'desc' ? (b.pm - a.pm) : (a.pm - b.pm));
       }
 
+      function cellTrio(asbdVal, cfamVal, lmVal, isPm = false) {
+        const isUnder = cfamVal < target;
+        const asbdClass = (asbdVal < target) ? "bg-purple-50 text-purple-900 font-bold" : (isPm ? "bg-slate-100 font-black text-purple-900" : "font-semibold text-slate-700");
+        const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-100 font-black text-blue-900" : "font-bold text-slate-900");
+        const lmClass = lmVal < 0 ? "cell-negative-lm" : (lmVal > 0 ? "cell-positive-lm" : "text-slate-500 font-medium");
+        return `
+          <td class="p-1 text-center ${asbdClass}">${formatPct(asbdVal)}</td>
+          <td class="p-1 text-center ${cfamClass}">${formatPct(cfamVal)}</td>
+          <td class="p-1 text-center ${lmClass}">${formatDelta(lmVal)}</td>
+        `;
+      }
+
       const rowsBuffer = [];
       filtered.forEach((d, idx) => {
         const asbd = d.asbdStages || [d.s1, d.s2, d.s3, d.s4, d.s5, d.s6, d.s7];
@@ -3566,6 +3578,7 @@
           formatPct(asbdCurves[6]), formatPct(avgS7), formatDelta(avgLm7),
           formatPct(regionalAsbdPm), formatPct(avgPm), formatDelta(avgLmPm)
         ]);
+      }
 
       const ws = XLSX.utils.aoa_to_sheet(aoa);
 
