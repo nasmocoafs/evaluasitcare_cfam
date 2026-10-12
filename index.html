@@ -545,7 +545,7 @@
               <tr class="bg-looker-header text-white text-center font-bold divide-x divide-slate-700 border-b border-slate-700">
                 <th rowspan="2" class="p-2 w-10 sticky-col-1 bg-looker-header border-r border-slate-700">No</th>
                 <th rowspan="2" class="p-2 min-w-[180px] text-left sticky-col-2 bg-looker-header border-r border-slate-700">Dealer</th>
-                <th colspan="16" class="p-2 text-center text-xs font-black tracking-wide bg-[#111C2E] uppercase text-slate-100" id="matrixSuperHeader">
+                <th colspan="24" class="p-2 text-center text-xs font-black tracking-wide bg-[#111C2E] uppercase text-slate-100" id="matrixSuperHeader">
                   T-Care CAI (Target 91%)
                 </th>
               </tr>
@@ -2644,6 +2644,36 @@
         dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[5] : d.s6), 0) / n,
         dealers.reduce((acc, d) => acc + (d.asbdStages ? d.asbdStages[6] : d.s7), 0) / n
       ];
+
+      function tfootCellTrio(cfamVal, asbdVal, lmVal, isPm = false) {
+        const isUnder = cfamVal < target;
+        const cfamClass = isUnder ? "cell-under-target" : (isPm ? "bg-slate-950 font-black text-amber-300" : "font-black text-white");
+        const asbdClass = (asbdVal < target) ? "bg-purple-900/60 text-purple-200 font-bold" : (isPm ? "bg-slate-950 font-black text-purple-300" : "font-bold text-slate-200");
+        const lmClass = lmVal < 0 ? "text-red-400 font-bold" : (lmVal > 0 ? "text-emerald-400 font-bold" : "text-slate-400 font-medium");
+        return `
+          <td class="p-1.5 text-center ${cfamClass}">${formatPct(cfamVal)}</td>
+          <td class="p-1.5 text-center ${asbdClass}">${formatPct(asbdVal)}</td>
+          <td class="p-1.5 text-center ${lmClass} ${isPm ? 'bg-slate-950 font-black' : ''}">${formatDelta(lmVal)}</td>
+        `;
+      }
+
+      if (tfoot) {
+        const avgAsbdPm = dealers.reduce((acc, d) => acc + (d.asbdPm || d.pm), 0) / n;
+        tfoot.innerHTML = `
+          <tr class="bg-slate-900 text-white font-black divide-x divide-slate-800 text-center border-t-2 border-slate-700">
+            <td class="p-2 sticky-col-1 bg-slate-900 border-r border-slate-800 text-slate-400 text-[11px] font-bold">∑</td>
+            <td class="p-2 text-left sticky-col-2 bg-slate-900 border-r border-slate-800 text-[11px] font-black uppercase tracking-wider text-amber-300">TOTAL REGIONAL</td>
+            ${tfootCellTrio(avgS1, asbdCurves[0], avgLm1)}
+            ${tfootCellTrio(avgS2, asbdCurves[1], avgLm2)}
+            ${tfootCellTrio(avgS3, asbdCurves[2], avgLm3)}
+            ${tfootCellTrio(avgS4, asbdCurves[3], avgLm4)}
+            ${tfootCellTrio(avgS5, asbdCurves[4], avgLm5)}
+            ${tfootCellTrio(avgS6, asbdCurves[5], avgLm6)}
+            ${tfootCellTrio(avgS7, asbdCurves[6], avgLm7)}
+            ${tfootCellTrio(avgPm, avgAsbdPm, avgLmPm, true)}
+          </tr>
+        `;
+      }
 
       updateLookerOverview(dealers, avgPm, avgLmPm, avgS1, avgLm1, avgS7, avgLm7, target, [avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7], asbdCurves);
       renderFunnelPage([avgS1, avgS2, avgS3, avgS4, avgS5, avgS6, avgS7], target);
