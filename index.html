@@ -2065,11 +2065,11 @@
             }
           }
 
-          // 2. Perhitungan ASBD (OC): Inception Jul 2022 (T-Care) vs Jan 2023 (T-Care Lite/Lite+) untuk 1st s/d 7th
+          // 2. Perhitungan ASBD (OC): Kumulatif murni dari data terlama s/d cut-off batas tempo tahap servis
           const asbdRule = asbdRules[s];
-          const asbdInceptionYM = r.isLite ? (2023 * 12 + 0) : (2022 * 12 + 6);
 
-          if (dec >= asbdInceptionYM && dec <= asbdRule.potEndYM) {
+          // Cukup pastikan dec > 0 dan tidak melebihi batas usia tahapan servis (potEndYM)
+          if (dec > 0 && dec <= asbdRule.potEndYM) {
             dPotNowASBD[dBase + s]++;
             if ((sMask & (1 << s)) !== 0) {
               const sm = sYM[s];
