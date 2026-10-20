@@ -499,6 +499,38 @@
           </button>
         </div>
       </div>
+
+      <!-- BARIS BARU: GRAFIK & BREAKDOWN RETENSI BY SEGMENT -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="lg:col-span-2 bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3 flex flex-col justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="font-bold text-slate-800 text-sm">Grafik Retensi Servis Berkala by Segment Kendaraan</h3>
+              <p class="text-xs text-slate-500">Perbandingan capaian PM Rate (% ASBD vs % CFAM) berdasarkan kategori segmen unit.</p>
+            </div>
+            <div class="flex items-center space-x-3 text-xs font-medium">
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-xs bg-purple-600 mr-1.5"></span> % ASBD</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-xs bg-blue-600 mr-1.5"></span> % CFAM</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5"></span> Target KPI</span>
+            </div>
+          </div>
+          <div class="h-60">
+            <canvas id="overviewSegmentCanvas"></canvas>
+          </div>
+          <div id="overviewSegmentPills" class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-2 border-t border-slate-100 text-center"></div>
+        </div>
+
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
+          <div>
+            <h3 class="font-bold text-slate-800 text-sm">Rincian Performa & Populasi Segmen</h3>
+            <p class="text-xs text-slate-500">Kontribusi populasi unit dan retensi per kategori segmen.</p>
+          </div>
+          <div id="overviewSegmentCardsList" class="space-y-2 max-h-[260px] overflow-y-auto scrollbar-thin pr-1 text-xs"></div>
+          <button onclick="switchLookerPage('page-models')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-lg transition text-center">
+            Lihat Detail Model Kendaraan <i class="fa-solid fa-arrow-right ml-1"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="page-matrix" class="view-page space-y-3">
@@ -605,12 +637,14 @@
             <thead class="bg-slate-900 text-white font-bold divide-x divide-slate-800 text-xs">
               <tr>
                 <th class="p-2.5 w-12 text-center">No</th>
-                <th class="p-2.5 text-left">Model Utama (Family)</th>
-                <th class="p-2.5 text-center">Segmentasi</th>
+                <th class="p-2.5 text-left">Model Unit</th>
+                <th class="p-2.5 text-center">Kategori Segmen</th>
                 <th class="p-2.5 text-center">Program Dominan</th>
-                <th class="p-2.5 text-center">Populasi Unit</th>
-                <th class="p-2.5 text-center">Realisasi 1st</th>
-                <th class="p-2.5 text-center">Retensi 1st %</th>
+                <th class="p-2.5 text-center">Populasi Raw</th>
+                <th class="p-2.5 text-center">Potensi CFAM</th>
+                <th class="p-2.5 text-center">Realisasi CFAM</th>
+                <th class="p-2.5 text-center text-purple-300">PM Rate ASBD %</th>
+                <th class="p-2.5 text-center text-amber-300">PM Rate CFAM %</th>
                 <th class="p-2.5 text-center">Batas KPI</th>
                 <th class="p-2.5 text-center">Gap Defisit</th>
                 <th class="p-2.5 text-center">Status</th>
@@ -2069,6 +2103,10 @@
       const mServ1st = new Int32Array(numModels);
       const mLite = new Int32Array(numModels);
       const mTcare = new Int32Array(numModels);
+      const mPotCFAM = new Int32Array(numModels);
+      const mActCFAM = new Int32Array(numModels);
+      const mPotASBD = new Int32Array(numModels);
+      const mActASBD = new Int32Array(numModels);
 
       const cCount = new Int32Array(numCusts);
       const cServ1st = new Int32Array(numCusts);
@@ -2129,10 +2167,12 @@
           // 1. Perhitungan CFAM
           if (dec >= cN_potStart[s] && dec <= cN_potEnd[s]) {
             dPotNow[dBase + s]++;
+            mPotCFAM[mIdxObj]++;
             if ((sMask & (1 << s)) !== 0) {
               const sm = sYM[s];
               if (sm === 0 || sm <= cN_actEnd[s]) {
                 dActNow[dBase + s]++;
+                mActCFAM[mIdxObj]++;
               }
             }
           }
@@ -2140,13 +2180,14 @@
           // 2. Perhitungan ASBD (OC): Kumulatif murni dari data terlama s/d cut-off batas tempo tahap servis
           const asbdRule = asbdRules[s];
 
-          // Cukup pastikan dec > 0 dan tidak melebihi batas usia tahapan servis (potEndYM)
           if (dec > 0 && dec <= asbdRule.potEndYM) {
             dPotNowASBD[dBase + s]++;
+            mPotASBD[mIdxObj]++;
             if ((sMask & (1 << s)) !== 0) {
               const sm = sYM[s];
               if (sm === 0 || sm <= asbdRule.actEndYM) {
                 dActNowASBD[dBase + s]++;
+                mActASBD[mIdxObj]++;
               }
             }
           }
@@ -2234,7 +2275,14 @@
       for (let m = 0; m < numModels; m++) {
         if (mCount[m] > 0) {
           modelStats[modelDict[m]] = {
-            count: mCount[m], serviced1st: mServ1st[m], lite: mLite[m], tcare: mTcare[m]
+            count: mCount[m],
+            serviced1st: mServ1st[m],
+            lite: mLite[m],
+            tcare: mTcare[m],
+            potCFAM: mPotCFAM[m],
+            actCFAM: mActCFAM[m],
+            potASBD: mPotASBD[m],
+            actASBD: mActASBD[m]
           };
         }
       }
@@ -2933,69 +2981,162 @@
       });
     }
 
+    let overviewSegmentChartInstance = null;
+
+    const OFFICIAL_SEGMENT_ORDER = [
+      'LCGC',
+      'Economy',
+      'Standard',
+      'Medium Luxury',
+      'Luxury',
+      'Commercial',
+      'Lexus',
+      'CBU Non TAM'
+    ];
+
     function getModelFamilyAndSegment(rawModelName) {
-      const m = String(rawModelName || '').toUpperCase();
-      if (m.includes('CALYA')) return { family: 'Calya', segment: 'New Entry', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
-      if (m.includes('AGYA')) return { family: 'Agya', segment: 'New Entry', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+      const m = String(rawModelName || '').toUpperCase().trim();
+
+      // 1. Commercial (Cek Hilux Rangga lebih dulu sebelum Hilux reguler)
+      if (m.includes('RANGGA')) return { family: 'Hilux Rangga', segment: 'Commercial', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
+      if (m.includes('DYNA')) return { family: 'Dyna', segment: 'Commercial', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
+
+      // 2. LCGC
+      if (m.includes('AGYA')) return { family: 'Agya', segment: 'LCGC', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+      if (m.includes('CALYA')) return { family: 'Calya', segment: 'LCGC', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+
+      // 3. Economy
       if (m.includes('AVANZA')) return { family: 'Avanza', segment: 'Economy', badge: 'bg-blue-100 text-blue-800 border-blue-300' };
       if (m.includes('VELOZ')) return { family: 'Veloz', segment: 'Economy', badge: 'bg-blue-100 text-blue-800 border-blue-300' };
       if (m.includes('RUSH')) return { family: 'Rush', segment: 'Economy', badge: 'bg-blue-100 text-blue-800 border-blue-300' };
       if (m.includes('RAIZE')) return { family: 'Raize', segment: 'Economy', badge: 'bg-blue-100 text-blue-800 border-blue-300' };
-      if (m.includes('ZENIX') || m.includes('INNOVA')) return { family: 'Kijang Innova / Zenix', segment: 'Medium / MPV', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
-      if (m.includes('FORTUNER')) return { family: 'Fortuner', segment: 'Medium / SUV', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
-      if (m.includes('YARIS CROSS')) return { family: 'Yaris Cross', segment: 'Medium / SUV', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
-      if (m.includes('YARIS')) return { family: 'Yaris', segment: 'Medium / Hatchback', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
-      if (m.includes('COROLLA CROSS')) return { family: 'Corolla Cross', segment: 'Medium / SUV', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
-      if (m.includes('VOXY')) return { family: 'Voxy', segment: 'High / MPV', badge: 'bg-amber-100 text-amber-800 border-amber-300' };
-      if (m.includes('HILUX')) return { family: 'Hilux', segment: 'Commercial', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
-      if (m.includes('HIACE') || m.includes('HI-ACE')) return { family: 'HiAce', segment: 'Commercial', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
-      if (m.includes('DYNA')) return { family: 'Dyna', segment: 'Commercial', badge: 'bg-orange-100 text-orange-800 border-orange-300' };
-      if (m.includes('ALPHARD') || m.includes('VELLFIRE')) return { family: 'Alphard / Vellfire', segment: 'Premium / Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
-      if (m.includes('LAND CRUISER') || m.includes('LC')) return { family: 'Land Cruiser', segment: 'Premium / 4x4', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
-      if (m.includes('CAMRY') || m.includes('ALTIS') || m.includes('COROLLA')) return { family: 'Sedan (Camry/Altis)', segment: 'Medium Sedan', badge: 'bg-slate-100 text-slate-800 border-slate-300' };
-      if (m.includes('BZ4X')) return { family: 'bZ4X (EV)', segment: 'Electric Vehicle', badge: 'bg-cyan-100 text-cyan-800 border-cyan-300' };
-      return { family: rawModelName.trim() || 'Lainnya', segment: 'Other', badge: 'bg-slate-100 text-slate-700 border-slate-200' };
+      if (m.includes('ETIOS')) return { family: 'Etios', segment: 'Economy', badge: 'bg-blue-100 text-blue-800 border-blue-300' };
+
+      // 4. Luxury (Cek GR Corolla & GR Yaris lebih dulu sebelum Corolla/Yaris reguler)
+      if (m.includes('GR COROLLA')) return { family: 'GR Corolla', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('GR YARIS')) return { family: 'GR Yaris', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('GR86') || m.includes('GR 86') || m.includes('FT86') || m === '86') return { family: 'GR86', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('CAMRY')) return { family: 'Camry', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('ALPHARD')) return { family: 'Alphard', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('VELLFIRE') || m.includes('VELFIRE')) return { family: 'Vellfire', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('LAND CRUISER') || m.includes('LANDCRUISER') || m === 'LC') return { family: 'Land Cruiser', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('BZ4X')) return { family: 'bZ4X', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('SUPRA')) return { family: 'Supra', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('PRIUS')) return { family: 'Prius', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('RAV4') || m.includes('RAV 4')) return { family: 'RAV4', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('CROWN')) return { family: 'Crown', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('HARRIER')) return { family: 'Harrier', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (m.includes('URBAN CRUISER')) return { family: 'Urban Cruiser', segment: 'Luxury', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
+
+      // 5. Medium Luxury
+      if (m.includes('COROLLA CROSS')) return { family: 'Corolla Cross', segment: 'Medium Luxury', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+      if (m.includes('ALTIS') || m.includes('COROLLA')) return { family: 'Corolla Altis', segment: 'Medium Luxury', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+      if (m.includes('FORTUNER')) return { family: 'Fortuner', segment: 'Medium Luxury', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+      if (m.includes('VOXY')) return { family: 'Voxy', segment: 'Medium Luxury', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+      if (m.includes('C-HR') || m.includes('CHR')) return { family: 'C-HR', segment: 'Medium Luxury', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+      if (m.includes('NAV1') || m.includes('NAV 1')) return { family: 'NAV1', segment: 'Medium Luxury', badge: 'bg-purple-100 text-purple-800 border-purple-300' };
+
+      // 6. Standard
+      if (m.includes('ZENIX')) return { family: 'Zenix', segment: 'Standard', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+      if (m.includes('INNOVA')) return { family: 'Innova', segment: 'Standard', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+      if (m.includes('SIENTA')) return { family: 'Sienta', segment: 'Standard', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+      if (m.includes('YARIS CROSS')) return { family: 'Yaris Cross', segment: 'Standard', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+      if (m.includes('YARIS')) return { family: 'Yaris', segment: 'Standard', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+      if (m.includes('VIOS') || m.includes('LIMO')) return { family: 'Vios', segment: 'Standard', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+      if (m.includes('HILUX')) return { family: 'Hilux', segment: 'Standard', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+      if (m.includes('HIACE') || m.includes('HI-ACE')) return { family: 'HiAce', segment: 'Standard', badge: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+
+      // 7. Lexus
+      if (m.includes('LEXUS')) return { family: 'All Lexus Model', segment: 'Lexus', badge: 'bg-amber-100 text-amber-900 border-amber-300' };
+
+      // 8. CBU Non TAM
+      return { family: rawModelName.trim() || 'CBU Non TAM', segment: 'CBU Non TAM', badge: 'bg-slate-100 text-slate-700 border-slate-300' };
     }
 
     function renderModelPage(rawAnalytics, targetVal) {
-      const tbody = document.getElementById('modelAnalysisTableBody');
-      if (!tbody) return;
-
       const models = rawAnalytics?.models || {};
       const familyGroups = {};
+      const segmentGroups = {};
+
+      OFFICIAL_SEGMENT_ORDER.forEach(seg => {
+        segmentGroups[seg] = {
+          segment: seg,
+          count: 0,
+          potCFAM: 0,
+          actCFAM: 0,
+          potASBD: 0,
+          actASBD: 0,
+          lite: 0,
+          tcare: 0
+        };
+      });
 
       Object.entries(models).forEach(([rawName, data]) => {
         const info = getModelFamilyAndSegment(rawName);
+        const potC = data.potCFAM !== undefined ? data.potCFAM : data.count;
+        const actC = data.actCFAM !== undefined ? data.actCFAM : data.serviced1st;
+        const potA = data.potASBD !== undefined ? data.potASBD : data.count;
+        const actA = data.actASBD !== undefined ? data.actASBD : data.serviced1st;
+
         if (!familyGroups[info.family]) {
           familyGroups[info.family] = {
             family: info.family,
             segment: info.segment,
             badge: info.badge,
             count: 0,
-            serviced1st: 0,
+            potCFAM: 0,
+            actCFAM: 0,
+            potASBD: 0,
+            actASBD: 0,
             lite: 0,
             tcare: 0
           };
         }
         familyGroups[info.family].count += data.count;
-        familyGroups[info.family].serviced1st += data.serviced1st;
+        familyGroups[info.family].potCFAM += potC;
+        familyGroups[info.family].actCFAM += actC;
+        familyGroups[info.family].potASBD += potA;
+        familyGroups[info.family].actASBD += actA;
         familyGroups[info.family].lite += (data.lite || 0);
         familyGroups[info.family].tcare += (data.tcare || 0);
+
+        const segKey = segmentGroups[info.segment] ? info.segment : 'CBU Non TAM';
+        segmentGroups[segKey].count += data.count;
+        segmentGroups[segKey].potCFAM += potC;
+        segmentGroups[segKey].actCFAM += actC;
+        segmentGroups[segKey].potASBD += potA;
+        segmentGroups[segKey].actASBD += actA;
+        segmentGroups[segKey].lite += (data.lite || 0);
+        segmentGroups[segKey].tcare += (data.tcare || 0);
       });
 
-      const entries = Object.values(familyGroups).sort((a, b) => b.count - a.count);
+      // 1. Render Grafik & Kartu Segmen di Halaman Overview
+      renderOverviewSegmentSection(segmentGroups, targetVal);
+
+      // 2. Render Tabel di Halaman 3. Model Kendaraan
+      const tbody = document.getElementById('modelAnalysisTableBody');
+      if (!tbody) return;
+
+      const entries = Object.values(familyGroups).sort((a, b) => {
+        const idxA = OFFICIAL_SEGMENT_ORDER.indexOf(a.segment);
+        const idxB = OFFICIAL_SEGMENT_ORDER.indexOf(b.segment);
+        if (idxA !== idxB) return idxA - idxB;
+        return b.count - a.count;
+      });
 
       if (entries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-slate-400">Belum ada data model kendaraan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" class="p-4 text-center text-slate-400">Belum ada data model kendaraan.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = entries.map((data, idx) => {
-        const ach = data.count > 0 ? (data.serviced1st / data.count) : 0;
+        const achCFAM = data.potCFAM > 0 ? (data.actCFAM / data.potCFAM) : 0;
+        const achASBD = data.potASBD > 0 ? (data.actASBD / data.potASBD) : achCFAM;
         const progDominant = data.lite > data.tcare ? 'T-CARE LITE' : 'T-CARE';
         const modelTarget = progDominant.includes('LITE') ? TARGET_LITE : TARGET_TCARE;
-        const gap = Math.max(0, Math.ceil(data.count * modelTarget) - data.serviced1st);
-        const isUnder = ach < modelTarget;
+        const gap = Math.max(0, Math.ceil(data.potCFAM * modelTarget) - data.actCFAM);
+        const isUnder = achCFAM < modelTarget && data.potCFAM > 0;
+        const isAsbdUnder = achASBD < modelTarget && data.potASBD > 0;
 
         return `
           <tr class="hover:bg-slate-50 transition border-b border-slate-200 divide-x divide-slate-200 text-xs">
@@ -3011,9 +3152,11 @@
                 ${progDominant}
               </span>
             </td>
-            <td class="p-2 text-center font-bold text-slate-800">${data.count.toLocaleString()}</td>
-            <td class="p-2 text-center font-bold text-slate-800">${data.serviced1st.toLocaleString()}</td>
-            <td class="p-2 text-center font-black ${isUnder ? 'text-red-600 bg-red-50' : 'text-emerald-700'}">${formatPct(ach)}</td>
+            <td class="p-2 text-center font-bold text-slate-700">${data.count.toLocaleString()}</td>
+            <td class="p-2 text-center font-bold text-slate-800">${data.potCFAM.toLocaleString()}</td>
+            <td class="p-2 text-center font-bold text-slate-800">${data.actCFAM.toLocaleString()}</td>
+            <td class="p-2 text-center font-black ${isAsbdUnder ? 'text-red-600 bg-red-50' : 'text-purple-800 bg-purple-50/40'}">${formatPct(achASBD)}</td>
+            <td class="p-2 text-center font-black ${isUnder ? 'text-red-600 bg-red-50' : 'text-emerald-700'}">${formatPct(achCFAM)}</td>
             <td class="p-2 text-center text-slate-500 font-semibold">${formatPct(modelTarget)}</td>
             <td class="p-2 text-center font-black ${gap > 0 ? 'text-red-600' : 'text-slate-400'}">${gap > 0 ? `${gap.toLocaleString()} Unit` : '-'}</td>
             <td class="p-2 text-center">
@@ -3024,6 +3167,138 @@
           </tr>
         `;
       }).join('');
+    }
+
+    function renderOverviewSegmentSection(segmentGroups, targetVal) {
+      const activeSegments = OFFICIAL_SEGMENT_ORDER
+        .map(s => segmentGroups[s])
+        .filter(g => g && (g.count > 0 || ['LCGC', 'Economy', 'Standard', 'Medium Luxury', 'Luxury', 'Commercial'].includes(g.segment)));
+
+      const labels = activeSegments.map(g => g.segment);
+      const asbdData = activeSegments.map(g => g.potASBD > 0 ? +((g.actASBD / g.potASBD) * 100).toFixed(1) : 0);
+      const cfamData = activeSegments.map(g => g.potCFAM > 0 ? +((g.actCFAM / g.potCFAM) * 100).toFixed(1) : 0);
+      const targetLine = activeSegments.map(g => {
+        const segTarget = (g.segment === 'LCGC' && g.lite > g.tcare) ? TARGET_LITE : targetVal;
+        return +(segTarget * 100).toFixed(1);
+      });
+
+      const canvas = document.getElementById('overviewSegmentCanvas');
+      if (canvas) {
+        const nonZeroVals = [...asbdData, ...cfamData].filter(v => v > 0);
+        const minVal = nonZeroVals.length > 0 ? Math.min(...nonZeroVals, targetVal * 100) : 50;
+        const yMin = Math.max(0, Math.floor((minVal - 15) / 10) * 10);
+
+        if (overviewSegmentChartInstance) {
+          overviewSegmentChartInstance.options.scales.y.min = yMin;
+          overviewSegmentChartInstance.data.labels = labels;
+          overviewSegmentChartInstance.data.datasets[0].data = asbdData;
+          overviewSegmentChartInstance.data.datasets[1].data = cfamData;
+          overviewSegmentChartInstance.data.datasets[2].data = targetLine;
+          overviewSegmentChartInstance.update('none');
+        } else {
+          overviewSegmentChartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  type: 'bar',
+                  label: 'Retensi ASBD %',
+                  data: asbdData,
+                  backgroundColor: 'rgba(139, 92, 246, 0.85)',
+                  borderRadius: 5,
+                  barPercentage: 0.7,
+                  categoryPercentage: 0.65,
+                  order: 2
+                },
+                {
+                  type: 'bar',
+                  label: 'Retensi CFAM %',
+                  data: cfamData,
+                  backgroundColor: 'rgba(26, 115, 232, 0.9)',
+                  borderRadius: 5,
+                  barPercentage: 0.7,
+                  categoryPercentage: 0.65,
+                  order: 2
+                },
+                {
+                  type: 'line',
+                  label: 'Target KPI %',
+                  data: targetLine,
+                  borderColor: '#EF4444',
+                  borderWidth: 2,
+                  borderDash: [5, 5],
+                  pointRadius: 3,
+                  pointBackgroundColor: '#EF4444',
+                  fill: false,
+                  order: 1
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y}%`
+                  }
+                }
+              },
+              scales: {
+                y: { min: yMin, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+              }
+            }
+          });
+        }
+      }
+
+      // Render Pills Ringkasan Segmen di Bawah Grafik
+      const pillsEl = document.getElementById('overviewSegmentPills');
+      if (pillsEl) {
+        pillsEl.innerHTML = activeSegments.slice(0, 6).map(g => {
+          const cfam = g.potCFAM > 0 ? (g.actCFAM / g.potCFAM) : 0;
+          const segTarget = (g.segment === 'LCGC' && g.lite > g.tcare) ? TARGET_LITE : targetVal;
+          const isUnder = cfam < segTarget && g.potCFAM > 0;
+          return `
+            <div class="p-1.5 rounded-lg border ${isUnder ? 'bg-red-50/70 border-red-200 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-700'}">
+              <div class="text-[9px] font-bold uppercase text-slate-400 truncate">${g.segment}</div>
+              <div class="font-black text-xs ${isUnder ? 'text-red-600' : 'text-slate-900'}">${formatPct(cfam)}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render Kartu Detail di Sebelah Kanan Grafik Segmen
+      const listEl = document.getElementById('overviewSegmentCardsList');
+      if (listEl) {
+        listEl.innerHTML = activeSegments.filter(g => g.count > 0).map(g => {
+          const cfam = g.potCFAM > 0 ? (g.actCFAM / g.potCFAM) : 0;
+          const asbd = g.potASBD > 0 ? (g.actASBD / g.potASBD) : cfam;
+          const segTarget = (g.segment === 'LCGC' && g.lite > g.tcare) ? TARGET_LITE : targetVal;
+          const isUnder = cfam < segTarget && g.potCFAM > 0;
+          const gap = Math.max(0, Math.ceil(g.potCFAM * segTarget) - g.actCFAM);
+
+          return `
+            <div class="p-2.5 rounded-lg border ${isUnder ? 'border-red-200 bg-red-50/30' : 'border-slate-200 bg-slate-50/60'} space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-800">${g.segment}</span>
+                <div class="flex items-center space-x-2 text-[11px]">
+                  <span class="text-purple-700 font-bold" title="ASBD">ASBD: ${formatPct(asbd)}</span>
+                  <span class="font-black ${isUnder ? 'text-red-600' : 'text-emerald-700'}" title="CFAM">CFAM: ${formatPct(cfam)}</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] text-slate-500">
+                <span>Populasi: <strong>${g.count.toLocaleString()} Unit</strong></span>
+                <span class="${gap > 0 ? 'text-red-600 font-bold' : 'text-emerald-700 font-semibold'}">${gap > 0 ? `Defisit: -${gap.toLocaleString()} Unit` : 'Memenuhi Target'}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
 
     function renderSegmentsPage(rawAnalytics, targetVal) {
