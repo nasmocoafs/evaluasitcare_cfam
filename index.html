@@ -3650,6 +3650,9 @@
         return true;
       });
 
+      // Simpan data yang lolos filter aktif ke variabel global untuk diunduh Excel
+      currentFilteredAttacklistData = filtered;
+
       const rowsBuffer = [];
       const renderLimit = Math.min(filtered.length, 60);
 
@@ -3757,82 +3760,154 @@
       showToast(`No Rangka ${text} disalin ke clipboard!`, "info");
     }
 
+    // Helper konversi tanggal ke format Short Date (YYYY-MM-DD) agar Excel otomatis mengenali tanggal
+    function formatToShortDate(val, decYM) {
+      if (!val || val === '-' || val === '0') return '-';
+      const str = String(val).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+      const sep = str.includes('/') ? '/' : (str.includes('-') ? '-' : '');
+      if (sep) {
+        const parts = str.split(sep);
+        if (parts.length >= 3) {
+          let y = parseInt(parts[2], 10);
+          if (y < 100) y += 2000;
+          const p0 = parseInt(parts[0], 10);
+          const p1 = parseInt(parts[1], 10);
+          let m, d;
+          if (p1 > 12) {
+            m = p0; d = p1; // US format: M/D/YYYY (contoh: 9/15/2023)
+          } else if (p0 > 12) {
+            d = p0; m = p1; // ID format: D/M/YYYY (contoh: 15/9/2023)
+          } else {
+            m = p0; d = p1; // Default US format dari Google Sheets
+          }
+          if (y > 2000 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+            return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          }
+        }
+      }
+
+      if (/^\d{5}$/.test(str)) {
+        const num = parseInt(str, 10);
+        const dt = new Date(Math.round((num - 25569) * 86400 * 1000));
+        return dt.toISOString().slice(0, 10);
+      }
+
+      if (decYM && decYM > 0) {
+        const y = Math.floor(decYM / 12);
+        const m = (decYM % 12) + 1;
+        return `${y}-${String(m).padStart(2, '0')}-01`;
+      }
+
+      return str;
+    }
+
+    
     function exportAttacklistToExcel() {
-      if (!activeCalculatedData || !activeCalculatedData.rawSampleRows || activeCalculatedData.rawSampleRows.length === 0) {
-        showToast("Data attacklist belum tersedia untuk diekspor.", "warning");
+      // Pastikan data filter terkini sudah siap
+      if (typeof currentFilteredAttacklistData === 'undefined' || !currentFilteredAttacklistData || currentFilteredAttacklistData.length === 0) {
+        renderRawExplorerTable();
+      }
+
+      const exportList = (typeof currentFilteredAttacklistData !== 'undefined' && currentFilteredAttacklistData) ? currentFilteredAttacklistData : [];
+
+      if (exportList.length === 0) {
+        showToast("Tidak ada data unit yang sesuai filter untuk diekspor.", "warning");
         return;
       }
 
       const evalMonthStr = currentPeriodMode === 'range' ? document.getElementById('rangeEndMonth').value : document.getElementById('monthSelect').value;
-      const evalMIdx = MONTH_NAMES.indexOf(evalMonthStr) !== -1 ? MONTH_NAMES.indexOf(evalMonthStr) : 8;
-      const evalYM = 2026 * 12 + evalMIdx;
-      const stageOffsets = [1, 6, 12, 18, 24, 30, 36];
+
+      // Label filter status aktif untuk judul file dan header
+      const filterLabels = {
+        'all_active_atk': 'Semua Attacklist Aktif (<=36 Bln)',
+        'this_month': 'Bulan Ini (This Month)',
+        'm_plus_1': 'M+1 (Bulan Depan)',
+        'm_plus_2': 'M+2 (2 Bulan Lagi)',
+        'overdue': 'Overdue (Telat Tempo)',
+        'expired': 'Expired (>36 Bln)',
+        'all_raw': 'Semua Database Raw'
+      };
+      const activeFilterTitle = filterLabels[currentAttacklistFilter] || 'Attacklist Servis';
+      const stageFilterVal = document.getElementById('attacklistStageSelect')?.options[document.getElementById('attacklistStageSelect')?.selectedIndex]?.text || 'Semua Tahap';
+      const prioFilterVal = document.getElementById('priorityFilterSelect')?.value || 'Semua Prioritas';
 
       const aoa = [
-        ["TOYOTA AFTERSALES OPERATIONS — ATTACKLIST SERVIS BERKALA T-CARE"],
-        [`Periode Evaluasi: ${evalMonthStr} 2026`, `Waktu Ekspor: ${new Date().toLocaleString('id-ID')}`],
+        [`TOYOTA AFTERSALES OPERATIONS — ATTACKLIST SERVIS BERKALA (${activeFilterTitle.toUpperCase()})`],
+        [`Periode Evaluasi: ${evalMonthStr} 2026`, `Target Tahap: ${stageFilterVal}`, `Prioritas: ${prioFilterVal}`, `Total Unit: ${exportList.length.toLocaleString()}`],
+        [`Waktu Ekspor: ${new Date().toLocaleString('id-ID')}`],
         [],
         [
           "No", "No Rangka (VIN)", "Model Kendaraan", "Program", "Dealer Penjual",
-          "Tgl DEC", "Target Servis Berikutnya", "Kategori Attacklist",
+          "Tgl DEC", "Target Servis Berikutnya", "Status Attacklist",
           "1st Service", "2nd Service", "3rd Service", "4th Service", "5th Service", "6th Service", "7th Service",
-          "Prioritas", "Sisa Servis", "Tahun Expired"
+          "Prioritas (SBE)", "Sisa Servis", "Tahun Expired"
         ]
       ];
 
-      activeCalculatedData.rawSampleRows.forEach((r, idx) => {
-        let nextStageIdx = -1;
-        for (let s = 0; s < 7; s++) {
-          if ((r.sDoneMask & (1 << s)) === 0) {
-            nextStageIdx = s;
-            break;
-          }
+      exportList.forEach((u, idx) => {
+        let nextStageLabel = 'Selesai 7th';
+        if (u.nextStageIdx !== -1) {
+          nextStageLabel = `${STAGE_NAMES[u.nextStageIdx]} (${STAGE_NAMES[u.nextStageIdx] === '1st' ? '1.000' : (u.nextStageIdx * 10) + '.000'} KM)`;
         }
 
-        let atkLabel = 'Selesai 7th';
-        if (nextStageIdx !== -1 && r.decYM > 0) {
-          const dueYM = r.decYM + stageOffsets[nextStageIdx];
-          if (dueYM < evalYM) atkLabel = 'Overdue (Telat)';
-          else if (dueYM === evalYM) atkLabel = 'This Month (Bulan Ini)';
-          else if (dueYM === evalYM + 1) atkLabel = 'M+1 (Bulan Depan)';
-          else if (dueYM === evalYM + 2) atkLabel = 'M+2 (2 Bulan Depan)';
-          else atkLabel = 'Pipeline Masa Depan';
-        }
+        let statusText = 'Lengkap (7/7)';
+        if (u.atkCategory === 'overdue') statusText = 'Overdue (Telat)';
+        else if (u.atkCategory === 'this_month') statusText = 'Bulan Ini';
+        else if (u.atkCategory === 'm_plus_1') statusText = 'M+1';
+        else if (u.atkCategory === 'm_plus_2') statusText = 'M+2';
+        else if (u.atkCategory === 'expired') statusText = 'Expired (>36 Bln)';
+        else if (u.atkCategory === 'future') statusText = 'Pipeline';
+
+        // Format tanggal DEC ke Short Date (YYYY-MM-DD)
+        const shortDate = formatToShortDate(u.decStr, u.decYM);
 
         aoa.push([
           idx + 1,
-          r.vin,
-          r.model,
-          r.prog,
-          r.dealer,
-          r.decStr,
-          nextStageIdx !== -1 ? STAGE_NAMES[nextStageIdx] : 'Selesai',
-          atkLabel,
-          (r.sDoneMask & 1) ? 'Done' : 'Belum',
-          (r.sDoneMask & 2) ? 'Done' : 'Belum',
-          (r.sDoneMask & 4) ? 'Done' : 'Belum',
-          (r.sDoneMask & 8) ? 'Done' : 'Belum',
-          (r.sDoneMask & 16) ? 'Done' : 'Belum',
-          (r.sDoneMask & 32) ? 'Done' : 'Belum',
-          (r.sDoneMask & 64) ? 'Done' : 'Belum',
-          r.prioInfo ? r.prioInfo.label : '-',
-          r.sisaSvc || 0,
-          r.expYear || '-'
+          u.vin || '-',
+          u.model || '-',
+          u.prog || '-',
+          u.dealer || '-',
+          shortDate, // Format Short Date presisi (YYYY-MM-DD)
+          nextStageLabel,
+          statusText,
+          (u.sDoneMask & 1) ? 'Done' : 'Belum',
+          (u.sDoneMask & 2) ? 'Done' : 'Belum',
+          (u.sDoneMask & 4) ? 'Done' : 'Belum',
+          (u.sDoneMask & 8) ? 'Done' : 'Belum',
+          (u.sDoneMask & 16) ? 'Done' : 'Belum',
+          (u.sDoneMask & 32) ? 'Done' : 'Belum',
+          (u.sDoneMask & 64) ? 'Done' : 'Belum',
+          u.prioInfo ? u.prioInfo.label : '-',
+          u.sisaSvc !== undefined ? u.sisaSvc : '-',
+          u.expYear || '-'
         ]);
       });
 
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       ws['!cols'] = [
-        { wch: 6 }, { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 22 },
-        { wch: 12 }, { wch: 14 }, { wch: 22 },
-        { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 },
-        { wch: 20 }
+        { wch: 6 },  // No
+        { wch: 22 }, // VIN
+        { wch: 26 }, // Model
+        { wch: 16 }, // Program
+        { wch: 22 }, // Dealer
+        { wch: 14 }, // Tgl DEC (Short Date)
+        { wch: 20 }, // Target Servis
+        { wch: 20 }, // Status Attacklist
+        { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, // 1st - 7th
+        { wch: 16 }, // Prioritas
+        { wch: 12 }, // Sisa Svc
+        { wch: 14 }  // Exp Year
       ];
 
+      const cleanFilterName = currentAttacklistFilter.toUpperCase();
+      const fileName = `Attacklist_${cleanFilterName}_${evalMonthStr}_2026.xlsx`;
+
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Attacklist Servis");
-      XLSX.writeFile(wb, `Attacklist_T-Care_${evalMonthStr}_2026.xlsx`);
-      showToast("Attacklist Servis (.xlsx) berhasil diunduh!", "success");
+      XLSX.utils.book_append_sheet(wb, ws, "Attacklist");
+      XLSX.writeFile(wb, fileName);
+      showToast(`Export ${exportList.length.toLocaleString()} unit (${activeFilterTitle}) berhasil diunduh!`, "success");
     }
 
     function filterMatrixTable() {
