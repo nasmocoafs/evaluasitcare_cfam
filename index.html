@@ -867,8 +867,10 @@
                 <th rowspan="2" class="p-2 min-w-[120px] text-left">Model Kendaraan</th>
                 <th rowspan="2" class="p-2 min-w-[90px]">Program</th>
                 <th rowspan="2" class="p-2 min-w-[140px] text-left">Dealer Penjual</th>
-                <th rowspan="2" class="p-2 min-w-[85px]">Tgl DEC</th>
+                <th rowspan="2" class="p-2 min-w-[90px]">Tgl DEC</th>
+                <th rowspan="2" class="p-2 min-w-[105px] text-emerald-300">Tgl Last Svc</th>
                 <th rowspan="2" class="p-2 min-w-[105px]">Target Servis</th>
+                <th rowspan="2" class="p-2 min-w-[105px] text-amber-300">Tgl Target Next</th>
                 <th rowspan="2" class="p-2 min-w-[120px]">Status Attacklist</th>
                 <th colspan="7" class="p-1.5 bg-slate-950 text-amber-300 font-black tracking-wide border-b border-slate-800">
                   Riwayat Servis Berkala Lengkap (History per VIN)
@@ -3522,6 +3524,8 @@
       }
     }
 
+    let currentFilteredAttacklistData = [];
+
     function renderRawExplorerTable() {
       const tbody = document.getElementById('rawExplorerTableBody');
       if (!tbody) return;
@@ -3539,14 +3543,12 @@
 
       if (activeCalculatedData && activeCalculatedData.rawSampleRows && activeCalculatedData.rawSampleRows.length > 0) {
         rowsPool = activeCalculatedData.rawSampleRows;
-      } else {
-        rowsPool = [];
       }
 
       let countThisMonth = 0, countM1 = 0, countM2 = 0, countOverdue = 0, countTotal = 0;
 
       const processedUnits = rowsPool.map(r => {
-        // Cari servis tertinggi terakhir yang sudah dilakukan (cek mundur dari 7th ke 1st)
+        // 1. Cari servis tertinggi terakhir yang sudah dilakukan (mengatasi servis lompat)
         let lastDoneStageIdx = -1;
         for (let s = 6; s >= 0; s--) {
           if ((r.sDoneMask & (1 << s)) !== 0) {
@@ -3555,9 +3557,9 @@
           }
         }
 
-        // Target berikutnya adalah +1 setelah servis terakhir yang dilakukan
+        // 2. Target servis berikutnya adalah +1 setelah servis terakhir
         let nextStageIdx = (lastDoneStageIdx === -1) ? 0 : (lastDoneStageIdx + 1);
-        if (nextStageIdx >= 7) nextStageIdx = -1; // Sudah selesai 7th service
+        if (nextStageIdx >= 7) nextStageIdx = -1;
 
         let atkCategory = 'completed';
         let dueYM = 0;
@@ -3567,7 +3569,6 @@
         if (nextStageIdx !== -1 && r.decYM > 0) {
           dueYM = r.decYM + stageOffsets[nextStageIdx];
 
-          // Jika usia unit sudah lebih dari 36 bulan sejak DEC -> Expired
           if (isPast36Months) {
             atkCategory = 'expired';
           } else if (dueYM < evalYM) {
@@ -3592,7 +3593,22 @@
           }
         }
 
-        // Hitung sisa servis berdasarkan matriks prioritas SBE
+        // 3. Hitung Tanggal Last Service & Tanggal Target Next Service (Short Date YYYY-MM-DD)
+        let lastSvcDateStr = '-';
+        let lastSvcStageName = 'Belum Servis';
+        if (lastDoneStageIdx !== -1) {
+          lastSvcStageName = STAGE_NAMES[lastDoneStageIdx];
+          const actualLastYM = (r.sYM && r.sYM[lastDoneStageIdx] > 0)
+            ? r.sYM[lastDoneStageIdx]
+            : (r.decYM > 0 ? r.decYM + stageOffsets[lastDoneStageIdx] : 0);
+          lastSvcDateStr = calcServiceShortDate(r.decStr, r.decYM, actualLastYM);
+        }
+
+        const nextSvcDateStr = (nextStageIdx !== -1 && dueYM > 0)
+          ? calcServiceShortDate(r.decStr, r.decYM, dueYM)
+          : '-';
+
+        // 4. Hitung sisa servis & prioritas SBE
         let doneCount = 0;
         for (let s = 0; s < 7; s++) {
           if ((r.sDoneMask & (1 << s)) !== 0) doneCount++;
@@ -3601,7 +3617,19 @@
         const expYear = r.decYM > 0 ? (Math.floor(r.decYM / 12) + 3) : 2026;
         const prioInfo = determinePriority(sisaSvc, expYear);
 
-        return { ...r, nextStageIdx, dueYM, atkCategory, sisaSvc, expYear, prioInfo };
+        return {
+          ...r,
+          lastDoneStageIdx,
+          lastSvcStageName,
+          lastSvcDateStr,
+          nextStageIdx,
+          dueYM,
+          nextSvcDateStr,
+          atkCategory,
+          sisaSvc,
+          expYear,
+          prioInfo
+        };
       });
 
       const revThisMonth = countThisMonth * AVG_EST_REVENUE_PER_UNIT;
@@ -3656,7 +3684,6 @@
         return true;
       });
 
-      // Simpan data yang lolos filter aktif ke variabel global untuk diunduh Excel
       currentFilteredAttacklistData = filtered;
 
       const rowsBuffer = [];
@@ -3665,12 +3692,25 @@
       for (let i = 0; i < renderLimit; i++) {
         const u = filtered[i];
 
+        const shortDecDate = formatToShortDate(u.decStr, u.decYM);
+
+        const lastSvcCell = u.lastDoneStageIdx !== -1
+          ? `<div class="flex flex-col items-center leading-tight">
+               <span class="font-bold text-emerald-700">${u.lastSvcDateStr}</span>
+               <span class="text-[9px] text-slate-400 font-sans">(${u.lastSvcStageName} Svc)</span>
+             </div>`
+          : `<span class="text-slate-400 font-sans text-[10px]">Belum Servis</span>`;
+
         let nextStageLabel = '-';
         if (u.nextStageIdx !== -1) {
           nextStageLabel = `<span class="bg-blue-100 text-blue-900 font-extrabold px-1.5 py-0.5 rounded text-[10px] border border-blue-300">${STAGE_NAMES[u.nextStageIdx]} (${STAGE_NAMES[u.nextStageIdx] === '1st' ? '1k' : (u.nextStageIdx * 10) + 'k'} KM)</span>`;
         } else {
           nextStageLabel = `<span class="bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded text-[10px]">Selesai 7th</span>`;
         }
+
+        const nextSvcDateCell = u.nextStageIdx !== -1
+          ? `<span class="font-bold ${u.atkCategory === 'overdue' ? 'text-red-600' : 'text-blue-700'}">${u.nextSvcDateStr}</span>`
+          : `<span class="text-slate-400">-</span>`;
 
         let atkBadge = '';
         if (u.atkCategory === 'expired') {
@@ -3706,7 +3746,7 @@
             `;
           } else if (s === u.nextStageIdx) {
             stageHistoryCells += `
-              <td class="p-1 text-center" title="${STAGE_NAMES[s]}: Target Servis Berikutnya (Wajib Follow-Up)">
+              <td class="p-1 text-center" title="${STAGE_NAMES[s]}: Target Servis Berikutnya (${u.nextSvcDateStr})">
                 <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-900 border border-blue-400 font-black text-[9px] animate-pulse">
                   !
                 </span>
@@ -3739,8 +3779,10 @@
             <td class="p-2 font-sans font-semibold text-slate-800">${u.model || '-'}</td>
             <td class="p-2 font-sans">${u.prog ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.prog.toLowerCase().includes('lite') ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 text-blue-800 border border-blue-200'}">${u.prog}</span>` : '-'}</td>
             <td class="p-2 font-sans font-medium text-slate-700">${u.dealer || '-'}</td>
-            <td class="p-2 text-center text-slate-600">${u.decStr || '-'}</td>
+            <td class="p-2 text-center text-slate-600">${shortDecDate}</td>
+            <td class="p-2 text-center">${lastSvcCell}</td>
             <td class="p-2 text-center">${nextStageLabel}</td>
+            <td class="p-2 text-center">${nextSvcDateCell}</td>
             <td class="p-2 text-center">${atkBadge}</td>
             ${stageHistoryCells}
             <td class="p-2 text-center">
@@ -3758,7 +3800,7 @@
       if (counter) {
         counter.innerHTML = `
           <span>Menampilkan <strong>${renderLimit}</strong> dari <strong>${filtered.length.toLocaleString()}</strong> unit terpilih (Total database: ${rowsPool.length.toLocaleString()} unit).</span>
-          <span class="text-[10px] text-slate-400">Pill History: <span class="text-emerald-700 font-bold">✓ Selesai</span> | <span class="text-blue-700 font-bold">! Target Servis</span> | <span class="text-slate-400">- Belum Tempo</span></span>
+          <span class="text-[10px] text-slate-400">Pill History: <span class="text-emerald-700 font-bold">✓ Selesai</span> | <span class="text-blue-700 font-bold">! Target Servis</span> | <span class="text-slate-400">- Terlewat/Belum Tempo</span></span>
         `;
       }
     }
@@ -3817,9 +3859,24 @@
       return str;
     }
 
+    // Helper menghitung Short Date (YYYY-MM-DD) untuk Last Service & Target Next Service
+    function calcServiceShortDate(decStr, decYM, targetYM) {
+      if (!targetYM || targetYM <= 0) return '-';
+      const baseShort = formatToShortDate(decStr, decYM);
+      let day = 1;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(baseShort)) {
+        day = parseInt(baseShort.slice(8, 10), 10) || 1;
+      }
+      const y = Math.floor(targetYM / 12);
+      const m = (targetYM % 12) + 1;
+      // Pastikan tanggal tidak melebihi jumlah hari di bulan terkait (misal Februari maksimal 28/29)
+      const maxDays = new Date(y, m, 0).getDate();
+      const safeDay = Math.min(day, maxDays);
+      return `${y}-${String(m).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
+    }
+
     
     function exportAttacklistToExcel() {
-      // Pastikan data filter terkini sudah siap
       if (typeof currentFilteredAttacklistData === 'undefined' || !currentFilteredAttacklistData || currentFilteredAttacklistData.length === 0) {
         renderRawExplorerTable();
       }
@@ -3833,7 +3890,6 @@
 
       const evalMonthStr = currentPeriodMode === 'range' ? document.getElementById('rangeEndMonth').value : document.getElementById('monthSelect').value;
 
-      // Label filter status aktif untuk judul file dan header
       const filterLabels = {
         'all_active_atk': 'Semua Attacklist Aktif (<=36 Bln)',
         'this_month': 'Bulan Ini (This Month)',
@@ -3854,7 +3910,7 @@
         [],
         [
           "No", "No Rangka (VIN)", "Model Kendaraan", "Program", "Dealer Penjual",
-          "Tgl DEC", "Target Servis Berikutnya", "Status Attacklist",
+          "Tgl DEC", "Tahap Last Service", "Tgl Last Service", "Target Servis Berikutnya", "Tgl Target Next Service", "Status Attacklist",
           "1st Service", "2nd Service", "3rd Service", "4th Service", "5th Service", "6th Service", "7th Service",
           "Prioritas (SBE)", "Sisa Servis", "Tahun Expired"
         ]
@@ -3874,8 +3930,7 @@
         else if (u.atkCategory === 'expired') statusText = 'Expired (>36 Bln)';
         else if (u.atkCategory === 'future') statusText = 'Pipeline';
 
-        // Format tanggal DEC ke Short Date (YYYY-MM-DD)
-        const shortDate = formatToShortDate(u.decStr, u.decYM);
+        const shortDecDate = formatToShortDate(u.decStr, u.decYM);
 
         aoa.push([
           idx + 1,
@@ -3883,8 +3938,11 @@
           u.model || '-',
           u.prog || '-',
           u.dealer || '-',
-          shortDate, // Format Short Date presisi (YYYY-MM-DD)
-          nextStageLabel,
+          shortDecDate,                     // Tgl DEC (YYYY-MM-DD)
+          u.lastSvcStageName || 'Belum',    // Tahap Last Service
+          u.lastSvcDateStr || '-',          // Tgl Last Service (YYYY-MM-DD)
+          nextStageLabel,                   // Target Servis Berikutnya
+          u.nextSvcDateStr || '-',          // Tgl Target Next Service (YYYY-MM-DD)
           statusText,
           (u.sDoneMask & 1) ? 'Done' : 'Belum',
           (u.sDoneMask & 2) ? 'Done' : 'Belum',
@@ -3906,8 +3964,11 @@
         { wch: 26 }, // Model
         { wch: 16 }, // Program
         { wch: 22 }, // Dealer
-        { wch: 14 }, // Tgl DEC (Short Date)
+        { wch: 14 }, // Tgl DEC
+        { wch: 16 }, // Tahap Last Svc
+        { wch: 16 }, // Tgl Last Svc
         { wch: 20 }, // Target Servis
+        { wch: 18 }, // Tgl Target Next Svc
         { wch: 20 }, // Status Attacklist
         { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, // 1st - 7th
         { wch: 16 }, // Prioritas
