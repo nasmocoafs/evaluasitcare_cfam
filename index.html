@@ -1667,6 +1667,7 @@
     let recalcTimer = null;
     
     let currentAttacklistFilter = 'all_active_atk'; // 'all_active_atk', 'this_month', 'm_plus_1', 'm_plus_2', 'overdue', 'expired', 'all_raw'
+    let currentFilteredAttacklistData = [];
     let matrixSortState = { field: 'pm', dir: 'desc' }; // 'desc', 'asc', 'none'
     
     let rawNormalizedDataset = null; 
@@ -3545,13 +3546,18 @@
       let countThisMonth = 0, countM1 = 0, countM2 = 0, countOverdue = 0, countTotal = 0;
 
       const processedUnits = rowsPool.map(r => {
-        let nextStageIdx = -1;
-        for (let s = 0; s < 7; s++) {
-          if ((r.sDoneMask & (1 << s)) === 0) {
-            nextStageIdx = s;
+        // Cari servis tertinggi terakhir yang sudah dilakukan (cek mundur dari 7th ke 1st)
+        let lastDoneStageIdx = -1;
+        for (let s = 6; s >= 0; s--) {
+          if ((r.sDoneMask & (1 << s)) !== 0) {
+            lastDoneStageIdx = s;
             break;
           }
         }
+
+        // Target berikutnya adalah +1 setelah servis terakhir yang dilakukan
+        let nextStageIdx = (lastDoneStageIdx === -1) ? 0 : (lastDoneStageIdx + 1);
+        if (nextStageIdx >= 7) nextStageIdx = -1; // Sudah selesai 7th service
 
         let atkCategory = 'completed';
         let dueYM = 0;
@@ -3700,9 +3706,17 @@
             `;
           } else if (s === u.nextStageIdx) {
             stageHistoryCells += `
-              <td class="p-1 text-center" title="${STAGE_NAMES[s]}: Target Servis Berikutnya (Belum Masuk)">
+              <td class="p-1 text-center" title="${STAGE_NAMES[s]}: Target Servis Berikutnya (Wajib Follow-Up)">
                 <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-900 border border-blue-400 font-black text-[9px] animate-pulse">
                   !
+                </span>
+              </td>
+            `;
+          } else if (s < u.nextStageIdx) {
+            stageHistoryCells += `
+              <td class="p-1 text-center" title="${STAGE_NAMES[s]}: Terlewat / Lompat (Skipped)">
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-400 border border-slate-300 font-bold text-[9px]">
+                  -
                 </span>
               </td>
             `;
@@ -4044,34 +4058,34 @@
 
       const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-      // Define optimal column widths for clean readability
+      // Define optimal column widths for 26 columns (No, Dealer + 8x3 cols)
       ws['!cols'] = [
         { wch: 6 },   // No
         { wch: 28 },  // Dealer
-        { wch: 11 }, { wch: 10 }, // 1st
-        { wch: 11 }, { wch: 10 }, // 2nd
-        { wch: 11 }, { wch: 10 }, // 3rd
-        { wch: 11 }, { wch: 10 }, // 4th
-        { wch: 11 }, { wch: 10 }, // 5th
-        { wch: 11 }, { wch: 10 }, // 6th
-        { wch: 11 }, { wch: 10 }, // 7th
-        { wch: 13 }, { wch: 12 }  // PM Rate
+        { wch: 10 }, { wch: 10 }, { wch: 9 }, // 1st (ASBD, CFAM, vs LM)
+        { wch: 10 }, { wch: 10 }, { wch: 9 }, // 2nd
+        { wch: 10 }, { wch: 10 }, { wch: 9 }, // 3rd
+        { wch: 10 }, { wch: 10 }, { wch: 9 }, // 4th
+        { wch: 10 }, { wch: 10 }, { wch: 9 }, // 5th
+        { wch: 10 }, { wch: 10 }, { wch: 9 }, // 6th
+        { wch: 10 }, { wch: 10 }, { wch: 9 }, // 7th
+        { wch: 11 }, { wch: 11 }, { wch: 10 } // PM Rate
       ];
 
-      // Merge header cells professionally
+      // Merge header cells professionally across 26 columns (0 to 25)
       ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 17 } }, // Main Title
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 17 } }, // Sub Title
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 25 } }, // Main Title
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 25 } }, // Sub Title
         { s: { r: 4, c: 0 }, e: { r: 5, c: 0 } },  // No
         { s: { r: 4, c: 1 }, e: { r: 5, c: 1 } },  // Dealer Penjual
-        { s: { r: 4, c: 2 }, e: { r: 4, c: 3 } },  // 1st Service
-        { s: { r: 4, c: 4 }, e: { r: 4, c: 5 } },  // 2nd Service
-        { s: { r: 4, c: 6 }, e: { r: 4, c: 7 } },  // 3rd Service
-        { s: { r: 4, c: 8 }, e: { r: 4, c: 9 } },  // 4th Service
-        { s: { r: 4, c: 10 }, e: { r: 4, c: 11 } }, // 5th Service
-        { s: { r: 4, c: 12 }, e: { r: 4, c: 13 } }, // 6th Service
-        { s: { r: 4, c: 14 }, e: { r: 4, c: 15 } }, // 7th Service
-        { s: { r: 4, c: 16 }, e: { r: 4, c: 17 } }  // PM Rate
+        { s: { r: 4, c: 2 }, e: { r: 4, c: 4 } },  // 1st Service
+        { s: { r: 4, c: 5 }, e: { r: 4, c: 7 } },  // 2nd Service
+        { s: { r: 4, c: 8 }, e: { r: 4, c: 10 } }, // 3rd Service
+        { s: { r: 4, c: 11 }, e: { r: 4, c: 13 } }, // 4th Service
+        { s: { r: 4, c: 14 }, e: { r: 4, c: 16 } }, // 5th Service
+        { s: { r: 4, c: 17 }, e: { r: 4, c: 19 } }, // 6th Service
+        { s: { r: 4, c: 20 }, e: { r: 4, c: 22 } }, // 7th Service
+        { s: { r: 4, c: 23 }, e: { r: 4, c: 25 } }  // Consolidated PM Rate
       ];
 
       const wb = XLSX.utils.book_new();
@@ -4172,7 +4186,7 @@
       showToast("Rencana Tindakan Korektif (CAPA) tersimpan ke log audit!", "success");
     }
 
-    async function fetchLiveGoogleSheet() {
+      async function fetchLiveGoogleSheet() {
       if (isFetchingSheet) return;
       isFetchingSheet = true;
 
@@ -4182,52 +4196,46 @@
       const statusIndicator = document.getElementById('syncStatusIndicator');
       const lastSyncTime = document.getElementById('lastSyncTimestamp');
 
-      icon.classList.add('fa-spin');
-      btn.classList.add('opacity-80', 'pointer-events-none');
+      if (icon) icon.classList.add('fa-spin');
+      if (btn) btn.classList.add('opacity-80', 'pointer-events-none');
       showToast("Menghubungkan ke Google Sheets...", "info");
 
-      // Susun endpoint multi-tier dengan bypass CORS & GID spesifik tab Raw
+      // Prioritaskan tautan Publikasi Web CSV langsung (paling cepat & stabil untuk 67.000+ baris)
       const endpoints = [];
-      
-      // 1. Endpoint Google Visualization API resmi via GID (memiliki header Access-Control-Allow-Origin: *)
-      endpoints.push(`https://docs.google.com/spreadsheets/d/1swzEkk_K2c_6xoWoKvimHPZLEKXU_VC_Z50yyKE1Il4/gviz/tq?tqx=out:csv&gid=1631183000`);
-
-      // 2. Tautan Langsung Publikasi Web
       if (googleSheetDirectUrl) {
         endpoints.push(googleSheetDirectUrl);
-        // 3. Fallback jalur CORS Proxy jika browser memblokir pengalihan Google
         endpoints.push(`https://corsproxy.io/?url=${encodeURIComponent(googleSheetDirectUrl)}`);
         endpoints.push(`https://api.allorigins.win/raw?url=${encodeURIComponent(googleSheetDirectUrl)}`);
       }
-      
-      // 4. Fallback gviz via nama tab
+      endpoints.push(`https://docs.google.com/spreadsheets/d/${googleSheetId}/gviz/tq?tqx=out:csv&gid=1631183000`);
       endpoints.push(`https://docs.google.com/spreadsheets/d/${googleSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(googleSheetTabName)}`);
 
       let success = false;
       let csvContent = "";
 
-      for (const url of endpoints) {
-        try {
-          const res = await fetch(url, { cache: 'no-store' });
-          if (res.ok) {
-            const txt = await res.text();
-            // Validasi: pastikan respon adalah data CSV murni, bukan halaman login Google HTML
-            if (!txt.includes('<!DOCTYPE html>') && !txt.includes('<html') && txt.trim().length > 50) {
-              csvContent = txt;
-              success = true;
-              break;
-            }
-          }
-        } catch (e) {
-          console.warn("Mencoba endpoint cadangan karena CORS:", e);
-        }
-      }
-      icon.classList.remove('fa-spin');
-      btn.classList.remove('opacity-80', 'pointer-events-none');
-      isFetchingSheet = false;
+      try {
+        for (const url of endpoints) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-      if (success) {
-        try {
+            const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+              const txt = await res.text();
+              if (!txt.includes('<!DOCTYPE html>') && !txt.includes('<html') && txt.trim().length > 100) {
+                csvContent = txt;
+                success = true;
+                break;
+              }
+            }
+          } catch (e) {
+            console.warn("Mencoba endpoint cadangan:", e);
+          }
+        }
+
+        if (success && csvContent) {
           const tableData = parseCSVFast(csvContent);
 
           if (tableData && tableData.length > 1) {
@@ -4235,23 +4243,26 @@
             const now = new Date();
             const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-            statusIndicator.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
-            statusText.innerHTML = `Terhubung ke Google Sheets: <strong>${googleSheetTabName}</strong> (${(tableData.length - 1).toLocaleString()} unit)`;
-            lastSyncTime.innerText = `| Sinkronisasi: ${timeStr} WIB`;
+            if (statusIndicator) statusIndicator.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+            if (statusText) statusText.innerHTML = `Terhubung ke Google Sheets: <strong>${googleSheetTabName}</strong> (${(tableData.length - 1).toLocaleString()} unit)`;
+            if (lastSyncTime) lastSyncTime.innerText = `| Sinkronisasi: ${timeStr} WIB`;
 
             fastRecalculate();
             showToast(`Sinkronisasi sukses! ${(tableData.length - 1).toLocaleString()} unit siap dianalisis.`, "success");
             return;
           }
-        } catch (err) {
-          console.error("CSV parse error:", err);
         }
-      }
 
-      statusIndicator.className = "w-2 h-2 rounded-full bg-amber-400";
-      statusText.innerHTML = `Akses online dibatasi. Menampilkan data baseline Nasmoco.`;
-      showToast("Spreadsheet butuh izin 'Siapa saja yang memiliki link'. Membuka panduan...", "warning");
-      openGoogleSheetsModal();
+        if (statusIndicator) statusIndicator.className = "w-2 h-2 rounded-full bg-amber-400";
+        if (statusText) statusText.innerHTML = `Akses online dibatasi. Menampilkan data baseline Nasmoco.`;
+        showToast("Gagal menyambung online. Menampilkan data baseline Nasmoco.", "warning");
+      } catch (err) {
+        console.error("CSV parse error:", err);
+      } finally {
+        if (icon) icon.classList.remove('fa-spin');
+        if (btn) btn.classList.remove('opacity-80', 'pointer-events-none');
+        isFetchingSheet = false;
+      }
     }
 
     let activeCurrentCapaDealer = '';
