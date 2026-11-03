@@ -2024,7 +2024,14 @@
       const startM = document.getElementById('rangeStartMonth').value;
       const endM = document.getElementById('rangeEndMonth').value;
       const evalMonthStr = currentPeriodMode === 'range' ? endM : month;
-      const mIdx = MONTH_NAMES.indexOf(evalMonthStr) !== -1 ? MONTH_NAMES.indexOf(evalMonthStr) : 8; // default September
+      const mIdx = MONTH_NAMES.indexOf(evalMonthStr) !== -1 ? MONTH_NAMES.indexOf(evalMonthStr) : 8;
+
+      // Sinkronkan dropdown Halaman 6 (Setting Matrix) dengan bulan evaluasi yang dipilih di atas
+      const settingMonthEl = document.getElementById('matrixSettingMonthSelect');
+      if (settingMonthEl && parseInt(settingMonthEl.value, 10) !== mIdx) {
+        settingMonthEl.value = String(mIdx);
+        renderMatrixSettingsUI();
+      }
 
       const rule1st = getMatrixRule(mIdx, 0);
       if (currentPeriodMode === 'single') {
@@ -2410,7 +2417,15 @@
     }
 
     function onMatrixSettingMonthChange() {
+      const mIdx = parseInt(document.getElementById('matrixSettingMonthSelect').value, 10);
+      if (MONTH_NAMES[mIdx]) {
+        const monthSelectEl = document.getElementById('monthSelect');
+        const rangeEndEl = document.getElementById('rangeEndMonth');
+        if (monthSelectEl) monthSelectEl.value = MONTH_NAMES[mIdx];
+        if (rangeEndEl) rangeEndEl.value = MONTH_NAMES[mIdx];
+      }
       renderMatrixSettingsUI();
+      fastRecalculate();
     }
 
     function onMatrixFieldChange(stageIdx) {
@@ -2467,8 +2482,21 @@
     function renderMatrixLiveGridTable() {
       const tbody = document.getElementById('matrixLiveGridBody');
       if (!tbody) return;
-      const activeMonthIdx = MONTH_NAMES.indexOf(document.getElementById('monthSelect').value);
-      const settingMonthIdx = parseInt(document.getElementById('matrixSettingMonthSelect')?.value || '8', 10);
+      const evalMonthStr = currentPeriodMode === 'range'
+        ? document.getElementById('rangeEndMonth').value
+        : document.getElementById('monthSelect').value;
+      const activeMonthIdx = MONTH_NAMES.indexOf(evalMonthStr);
+      const settingMonthIdx = parseInt(document.getElementById('matrixSettingMonthSelect')?.value || String(activeMonthIdx), 10);
+
+      // Pindahkan highlight warna biru-emas di header tabel sesuai bulan aktif
+      const headerThs = document.querySelectorAll('#matrixLiveGridTable thead tr th');
+      if (headerThs.length >= 14) {
+        for (let m = 0; m < 12; m++) {
+          headerThs[m + 2].className = (m === activeMonthIdx || m === settingMonthIdx)
+            ? "p-2 min-w-[105px] bg-blue-900 text-amber-300 font-black"
+            : "p-2 min-w-[105px]";
+        }
+      }
 
       const rows = [];
       for (let s = 0; s < 7; s++) {
@@ -4680,8 +4708,33 @@
       showToast("Berhasil me-reset ke data baseline Nasmoco!", "success");
     }
 
+    // Otomatis mendeteksi bulan kalender berjalan dan mengatur evaluasi ke YTM Bulan Lalu (M-1)
+    function autoSetDefaultEvaluationMonth() {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth(); // 0 = Jan, 9 = Okt, 10 = Nov, 11 = Des
+
+      // Jika di tahun 2026, ambil bulan M-1 (misal: November [10] -> evaluasi Oktober [9])
+      let evalMonthIdx = 8; // fallback September
+      if (currentYear === 2026) {
+        evalMonthIdx = Math.max(0, currentMonth - 1);
+      } else if (currentYear > 2026) {
+        evalMonthIdx = 11; // Desember
+      }
+
+      const targetMonthName = MONTH_NAMES[evalMonthIdx];
+      const monthSelectEl = document.getElementById('monthSelect');
+      const rangeEndEl = document.getElementById('rangeEndMonth');
+      const settingMonthEl = document.getElementById('matrixSettingMonthSelect');
+
+      if (monthSelectEl) monthSelectEl.value = targetMonthName;
+      if (rangeEndEl) rangeEndEl.value = targetMonthName;
+      if (settingMonthEl) settingMonthEl.value = String(evalMonthIdx);
+    }
+
     window.onload = function () {
       loadSavedMatrixConfig();
+      autoSetDefaultEvaluationMonth(); // Set otomatis ke bulan M-1 sebelum kalkulasi awal
       resetToDemoData();
       renderMatrixSettingsUI();
       setTimeout(() => {
