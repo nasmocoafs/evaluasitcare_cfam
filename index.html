@@ -1624,18 +1624,14 @@
             }
           }
 
-      // 4. Month text string (Mendukung Bahasa Indonesia & Inggris: Mei/May, Agu/Aug, Okt/Oct, Des/Dec)
+      // 4. Month text string (e.g., "September 2026", "Sep 26")
       const sLower = str.toLowerCase();
-      const monthTokens = [
-        ['jan'], ['feb'], ['mar'], ['apr'], ['mei', 'may'], ['jun'],
-        ['jul'], ['agu', 'aug'], ['sep'], ['okt', 'oct'], ['nov'], ['des', 'dec']
-      ];
       for (let m = 0; m < 12; m++) {
-        if (monthTokens[m].some(tok => sLower.includes(tok))) {
-          // Prioritaskan tahun 4 digit (2022-2029), atau 2 digit di akhir teks agar tanggal hari tidak terbaca sebagai tahun
-          const yr4Match = str.match(/\b(20\d{2})\b/);
-          const yr2Match = str.match(/[-/\s](\d{2})$/);
-          let yr = yr4Match ? parseInt(yr4Match[1], 10) : (yr2Match ? (2000 + parseInt(yr2Match[1], 10)) : 2026);
+        const mShort = MONTH_NAMES[m].toLowerCase().slice(0, 3);
+        if (sLower.includes(mShort)) {
+          const yrMatch = str.match(/\b(20\d{2}|\d{2})\b/);
+          let yr = yrMatch ? parseInt(yrMatch[1], 10) : 2026;
+          if (yr < 100) yr += 2000;
           return yr * 12 + m;
         }
       }
@@ -2178,41 +2174,42 @@
         const sYM = r.sYM;
 
         for (let s = 0; s < 7; s++) {
-          const isServiced = (sMask & (1 << s)) !== 0;
-          const sm = sYM[s];
-
-          // 1. Perhitungan CFAM: Potensi (potStart s/d potEnd) & Actual (actStart s/d actEnd)
+          // 1. Perhitungan CFAM
           if (dec >= cN_potStart[s] && dec <= cN_potEnd[s]) {
             dPotNow[dBase + s]++;
             mPotCFAM[mIdxObj]++;
-          }
-          if (isServiced && dec >= cN_actStart[s] && dec <= cN_actEnd[s]) {
-            if (sm === 0 || sm <= cN_actEnd[s]) {
-              dActNow[dBase + s]++;
-              mActCFAM[mIdxObj]++;
+            if ((sMask & (1 << s)) !== 0) {
+              const sm = sYM[s];
+              if (sm === 0 || sm <= cN_actEnd[s]) {
+                dActNow[dBase + s]++;
+                mActCFAM[mIdxObj]++;
+              }
             }
           }
 
-          // 2. Perhitungan ASBD (OC): Kumulatif murni dari inception s/d cut-off
+          // 2. Perhitungan ASBD (OC): Kumulatif murni dari data terlama s/d cut-off batas tempo tahap servis
           const asbdRule = asbdRules[s];
+
           if (dec > 0 && dec <= asbdRule.potEndYM) {
             dPotNowASBD[dBase + s]++;
             mPotASBD[mIdxObj]++;
-          }
-          if (isServiced && dec > 0 && dec <= asbdRule.actEndYM) {
-            if (sm === 0 || sm <= asbdRule.actEndYM) {
-              dActNowASBD[dBase + s]++;
-              mActASBD[mIdxObj]++;
+            if ((sMask & (1 << s)) !== 0) {
+              const sm = sYM[s];
+              if (sm === 0 || sm <= asbdRule.actEndYM) {
+                dActNowASBD[dBase + s]++;
+                mActASBD[mIdxObj]++;
+              }
             }
           }
 
-          // 3. Previous Month (M-1)
+          // Previous Month: Evaluasi bulan sebelumnya (M-1)
           if (dec >= cP_potStart[s] && dec <= cP_potEnd[s]) {
             dPotPrev[dBase + s]++;
-          }
-          if (isServiced && dec >= cP_actStart[s] && dec <= cP_actEnd[s]) {
-            if (sm === 0 || sm <= cP_actEnd[s]) {
-              dActPrev[dBase + s]++;
+            if ((sMask & (1 << s)) !== 0) {
+              const sm = sYM[s];
+              if (sm === 0 || sm <= cP_actEnd[s]) {
+                dActPrev[dBase + s]++;
+              }
             }
           }
         }
@@ -2761,36 +2758,21 @@
       const n = dealers.length;
       if (n === 0) return;
 
-      // Hitung Total Regional secara Weighted (Total Actual Regional / Total Potensi Regional) sesuai Looker Studio
-      function calcWeightedStage(stageIdx, fallbackProp) {
-        let totPot = 0, totAct = 0;
-        dealers.forEach(d => {
-          if (d.stagesDetail && d.stagesDetail[stageIdx]) {
-            totPot += d.stagesDetail[stageIdx].pot;
-            totAct += d.stagesDetail[stageIdx].act;
-          }
-        });
-        return totPot > 0 ? (totAct / totPot) : (dealers.reduce((acc, d) => acc + d[fallbackProp], 0) / n);
-      }
-
-      const avgS1 = calcWeightedStage(0, 's1');
+      const avgS1 = dealers.reduce((acc, d) => acc + d.s1, 0) / n;
       const avgLm1 = dealers.reduce((acc, d) => acc + d.lm1, 0) / n;
-      const avgS2 = calcWeightedStage(1, 's2');
+      const avgS2 = dealers.reduce((acc, d) => acc + d.s2, 0) / n;
       const avgLm2 = dealers.reduce((acc, d) => acc + d.lm2, 0) / n;
-      const avgS3 = calcWeightedStage(2, 's3');
+      const avgS3 = dealers.reduce((acc, d) => acc + d.s3, 0) / n;
       const avgLm3 = dealers.reduce((acc, d) => acc + d.lm3, 0) / n;
-      const avgS4 = calcWeightedStage(3, 's4');
+      const avgS4 = dealers.reduce((acc, d) => acc + d.s4, 0) / n;
       const avgLm4 = dealers.reduce((acc, d) => acc + d.lm4, 0) / n;
-      const avgS5 = calcWeightedStage(4, 's5');
+      const avgS5 = dealers.reduce((acc, d) => acc + d.s5, 0) / n;
       const avgLm5 = dealers.reduce((acc, d) => acc + d.lm5, 0) / n;
-      const avgS6 = calcWeightedStage(5, 's6');
+      const avgS6 = dealers.reduce((acc, d) => acc + d.s6, 0) / n;
       const avgLm6 = dealers.reduce((acc, d) => acc + d.lm6, 0) / n;
-      const avgS7 = calcWeightedStage(6, 's7');
+      const avgS7 = dealers.reduce((acc, d) => acc + d.s7, 0) / n;
       const avgLm7 = dealers.reduce((acc, d) => acc + d.lm7, 0) / n;
-
-      const regPotCFAM = dealers.reduce((acc, d) => acc + (d.totalPot || 0), 0);
-      const regActCFAM = dealers.reduce((acc, d) => acc + (d.totalAct || 0), 0);
-      const avgPm = regPotCFAM > 0 ? (regActCFAM / regPotCFAM) : ((avgS1 + avgS2 + avgS3 + avgS4 + avgS5 + avgS6 + avgS7) / 7);
+      const avgPm = dealers.reduce((acc, d) => acc + d.pm, 0) / n;
       const avgLmPm = dealers.reduce((acc, d) => acc + d.lmpm, 0) / n;
 
       // Hitung kurva regional ASBD untuk 7 tahapan (1st & 2nd sama dengan CFAM)
