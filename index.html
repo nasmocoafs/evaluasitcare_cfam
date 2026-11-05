@@ -138,28 +138,18 @@
           <span class="sidebar-label truncate">2. Matrix 22 Cabang</span>
         </button>
 
-        <button onclick="switchLookerPage('page-models')" id="navBtn-page-models" title="3. Model Kendaraan" class="looker-nav-btn w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/80 text-slate-300 hover:text-white font-semibold flex items-center space-x-3 transition text-xs cursor-pointer">
-          <i class="fa-solid fa-car-rear text-purple-400 text-sm w-4 text-center shrink-0"></i>
-          <span class="sidebar-label truncate">3. Model Kendaraan</span>
-        </button>
-
-        <button onclick="switchLookerPage('page-segments')" id="navBtn-page-segments" title="4. Segmentasi & Loyalitas" class="looker-nav-btn w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/80 text-slate-300 hover:text-white font-semibold flex items-center space-x-3 transition text-xs cursor-pointer">
-          <i class="fa-solid fa-users-gear text-indigo-400 text-sm w-4 text-center shrink-0"></i>
-          <span class="sidebar-label truncate">4. Segmentasi & Loyalitas</span>
-        </button>
-
-        <button onclick="switchLookerPage('page-explorer')" id="navBtn-page-explorer" title="5. Raw Explorer & Attacklist" class="looker-nav-btn w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/80 text-slate-300 hover:text-white font-semibold flex items-center space-x-3 transition text-xs cursor-pointer">
+        <button onclick="switchLookerPage('page-explorer')" id="navBtn-page-explorer" title="3. Raw Explorer & Attacklist" class="looker-nav-btn w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/80 text-slate-300 hover:text-white font-semibold flex items-center space-x-3 transition text-xs cursor-pointer">
           <i class="fa-solid fa-magnifying-glass-chart text-emerald-400 text-sm w-4 text-center shrink-0"></i>
-          <span class="sidebar-label truncate">5. Raw Explorer & Attacklist</span>
+          <span class="sidebar-label truncate">3. Raw Explorer & Attacklist</span>
         </button>
 
         <div class="pt-2 pb-1 px-2.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 sidebar-label">
           Konfigurasi & Acuan
         </div>
 
-        <button onclick="switchLookerPage('page-matrix-settings')" id="navBtn-page-matrix-settings" title="6. Setting Matrix" class="looker-nav-btn w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/80 text-slate-300 hover:text-white font-semibold flex items-center space-x-3 transition text-xs cursor-pointer">
+        <button onclick="switchLookerPage('page-matrix-settings')" id="navBtn-page-matrix-settings" title="4. Setting Matrix" class="looker-nav-btn w-full py-2.5 px-3 rounded-xl hover:bg-slate-800/80 text-slate-300 hover:text-white font-semibold flex items-center space-x-3 transition text-xs cursor-pointer">
           <i class="fa-solid fa-sliders text-amber-400 text-sm w-4 text-center shrink-0"></i>
-          <span class="sidebar-label truncate">6. Setting Matrix</span>
+          <span class="sidebar-label truncate">4. Setting Matrix</span>
         </button>
 
         <button onclick="openMatrixReferenceModal()" title="Tabel Acuan Matriks Kohort" class="w-full py-2 px-3 rounded-xl hover:bg-slate-800/60 text-blue-400 hover:text-blue-300 font-medium flex items-center space-x-3 transition text-xs cursor-pointer">
@@ -747,58 +737,6 @@
         </div>
       </div>
     </div>
-
-    <div id="page-models" class="view-page space-y-4">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-4">
-        <div>
-          <h3 class="font-bold text-slate-800 text-base">Analisis Retensi Model Kendaraan</h3>
-          <p class="text-xs text-slate-500">Menganalisis kolom <code class="font-mono text-indigo-700">Model Kendaraan</code> dan program terkait dari data Raw.</p>
-        </div>
-
-        <div class="overflow-x-auto rounded-lg border border-slate-200">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead class="bg-slate-900 text-white font-bold divide-x divide-slate-800 text-xs">
-              <tr>
-                <th class="p-2.5 w-12 text-center">No</th>
-                <th class="p-2.5 text-left">Model Unit</th>
-                <th class="p-2.5 text-center">Kategori Segmen</th>
-                <th class="p-2.5 text-center">Program Dominan</th>
-                <th class="p-2.5 text-center">Populasi Raw</th>
-                <th class="p-2.5 text-center">Potensi CFAM</th>
-                <th class="p-2.5 text-center">Realisasi CFAM</th>
-                <th class="p-2.5 text-center text-purple-300">PM Rate ASBD %</th>
-                <th class="p-2.5 text-center text-amber-300">PM Rate CFAM %</th>
-                <th class="p-2.5 text-center">Batas KPI</th>
-                <th class="p-2.5 text-center">Gap Defisit</th>
-                <th class="p-2.5 text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody id="modelAnalysisTableBody" class="divide-y divide-slate-200 bg-white"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div id="page-segments" class="view-page space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3">
-          <h4 class="font-bold text-slate-800 text-xs flex items-center justify-between">
-            <span>TIPE CUSTOMER (RETAIL VS FLEET)</span>
-            <i class="fa-solid fa-users text-blue-600"></i>
-          </h4>
-          <p class="text-[11px] text-slate-500">Tingkat retensi pelanggan pribadi vs armada korporat.</p>
-          <div id="customerTypeSegmentCards" class="space-y-2.5 pt-1"></div>
-        </div>
-
-        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3">
-          <h4 class="font-bold text-slate-800 text-xs flex items-center justify-between">
-            <span>LOYALITAS CABANG (HOME VS VISITING DEALER)</span>
-            <i class="fa-solid fa-handshake text-emerald-600"></i>
-          </h4>
-          <p class="text-[11px] text-slate-500">Unit kembali servis di cabang penjual asli (*Home Dealer*) vs dealer Toyota lain (*Visiting*).</p>
-          <div id="dealerLoyaltyCards" class="space-y-2.5 pt-1 text-xs"></div>
-        </div>
-      </div>
 
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3">
         <h4 class="font-bold text-slate-800 text-xs flex items-center justify-between">
