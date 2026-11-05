@@ -2229,10 +2229,6 @@
           const isServiced = (sMask & (1 << s)) !== 0;
           const sm = sYM[s];
 
-          for (let s = 0; s < 7; s++) {
-          const isServiced = (sMask & (1 << s)) !== 0;
-          const sm = sYM[s];
-
           // 1. Perhitungan CFAM: Kohort VIN-to-VIN (Actual adalah subset murni dari Potensi)
           if (dec >= cN_potStart[s] && dec <= cN_potEnd[s]) {
             dPotNow[dBase + s]++;
