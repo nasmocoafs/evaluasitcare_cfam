@@ -571,6 +571,89 @@
           </button>
         </div>
       </div>
+
+      <!-- BARIS BARU 1: GRAFIK RETENSI MODEL KENDARAAN UTAMA (RINGKAS & MENARIK) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Kolom Kiri: Horizontal Bar Chart Top 8 Model -->
+        <div class="lg:col-span-2 bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3 flex flex-col justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="font-bold text-slate-800 text-sm">Grafik Retensi Model Kendaraan Utama (Top Populasi)</h3>
+              <p class="text-xs text-slate-500">Pencapaian PM Rate (% CFAM vs % ASBD) pada 8 model kendaraan teratas.</p>
+            </div>
+            <div class="flex items-center space-x-3 text-xs font-medium">
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-xs bg-blue-600 mr-1.5"></span> % CFAM</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-xs bg-purple-600 mr-1.5"></span> % ASBD</span>
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5"></span> Target KPI</span>
+            </div>
+          </div>
+          <!-- Canvas Horizontal Bar Chart -->
+          <div class="h-64">
+            <canvas id="overviewModelCanvas"></canvas>
+          </div>
+          <!-- Pills Ringkas Top Models -->
+          <div id="overviewModelPills" class="flex flex-wrap gap-2 pt-2 border-t border-slate-100 text-center"></div>
+        </div>
+
+        <!-- Kolom Kanan: Top & Prioritas Model Kendaraan -->
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
+          <div>
+            <h3 class="font-bold text-slate-800 text-sm">Performa Model Kendaraan</h3>
+            <p class="text-xs text-slate-500">Model dengan kepatuhan tertinggi vs prioritas follow-up.</p>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div class="text-[10px] font-bold uppercase text-emerald-700 tracking-wider">Top 3 Performer Model:</div>
+            <div id="overviewTopModelsList" class="space-y-1.5"></div>
+
+            <div class="pt-2 text-[10px] font-bold uppercase text-red-700 tracking-wider">Prioritas Perbaikan (Defisit):</div>
+            <div id="overviewBottomModelsList" class="space-y-1.5"></div>
+          </div>
+
+          <button onclick="switchLookerPage('page-models')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-lg transition text-center cursor-pointer">
+            Buka Tabel Lengkap Model Kendaraan <i class="fa-solid fa-arrow-right ml-1"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- BARIS BARU 2: RINGKASAN SEGMENTASI & LOYALITAS CUSTOMER (3 WIDGET) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 1. Tipe Customer -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3">
+          <h4 class="font-bold text-slate-800 text-xs flex items-center justify-between">
+            <span class="uppercase tracking-wider">TIPE CUSTOMER (RETAIL VS FLEET)</span>
+            <i class="fa-solid fa-users text-blue-600"></i>
+          </h4>
+          <p class="text-[11px] text-slate-500">Tingkat retensi pelanggan pribadi vs armada korporat.</p>
+          <div id="overviewCustomerTypeCards" class="space-y-2.5 pt-1"></div>
+        </div>
+
+        <!-- 2. Loyalitas Cabang -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3">
+          <h4 class="font-bold text-slate-800 text-xs flex items-center justify-between">
+            <span class="uppercase tracking-wider">LOYALITAS CABANG (HOME VS VISITING)</span>
+            <i class="fa-solid fa-handshake text-emerald-600"></i>
+          </h4>
+          <p class="text-[11px] text-slate-500">Servis di cabang penjual asli (*Same Outlet*) vs dealer lain.</p>
+          <div id="overviewDealerLoyaltyCards" class="space-y-2.5 pt-1 text-xs"></div>
+        </div>
+
+        <!-- 3. Ketepatan Waktu Servis -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 space-y-3 flex flex-col justify-between">
+          <div class="space-y-2.5">
+            <h4 class="font-bold text-slate-800 text-xs flex items-center justify-between">
+              <span class="uppercase tracking-wider">AUDIT KETEPATAN WAKTU (PUNCTUALITY)</span>
+              <i class="fa-solid fa-stopwatch text-purple-600"></i>
+            </h4>
+            <p class="text-[11px] text-slate-500">Perbandingan servis on-time vs terlambat (*Overdue*).</p>
+            <div id="overviewPunctualityContainer" class="space-y-2 pt-1"></div>
+          </div>
+          <button onclick="switchLookerPage('page-segments')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-lg transition text-center cursor-pointer mt-1">
+            Lihat Analisis Detail Loyalitas <i class="fa-solid fa-arrow-right ml-1"></i>
+          </button>
+        </div>
+      </div>
+
     </div>
 
     <div id="page-matrix" class="view-page space-y-3">
