@@ -2229,13 +2229,15 @@
           const isServiced = (sMask & (1 << s)) !== 0;
           const sm = sYM[s];
 
-          // 1. Perhitungan CFAM: Evaluasi mandiri antara Denominator (Potensi) dan Numerator (Actual)
+          for (let s = 0; s < 7; s++) {
+          const isServiced = (sMask & (1 << s)) !== 0;
+          const sm = sYM[s];
+
+          // 1. Perhitungan CFAM: Kohort VIN-to-VIN (Actual adalah subset murni dari Potensi)
           if (dec >= cN_potStart[s] && dec <= cN_potEnd[s]) {
             dPotNow[dBase + s]++;
             mPotCFAM[mIdxObj]++;
-          }
-          if (isServiced && dec >= cN_actStart[s] && dec <= cN_actEnd[s]) {
-            if (sm === 0 || sm <= cN_actEnd[s]) {
+            if (isServiced && (sm === 0 || sm <= cN_actEnd[s])) {
               dActNow[dBase + s]++;
               mActCFAM[mIdxObj]++;
             }
@@ -2246,9 +2248,7 @@
           if (dec > 0 && dec <= asbdRule.potEndYM) {
             dPotNowASBD[dBase + s]++;
             mPotASBD[mIdxObj]++;
-          }
-          if (isServiced && dec > 0 && dec <= asbdRule.actEndYM) {
-            if (sm === 0 || sm <= asbdRule.actEndYM) {
+            if (isServiced && (sm === 0 || sm <= asbdRule.actEndYM)) {
               dActNowASBD[dBase + s]++;
               mActASBD[mIdxObj]++;
             }
@@ -2257,9 +2257,7 @@
           // 3. Previous Month (M-1)
           if (dec >= cP_potStart[s] && dec <= cP_potEnd[s]) {
             dPotPrev[dBase + s]++;
-          }
-          if (isServiced && dec >= cP_actStart[s] && dec <= cP_actEnd[s]) {
-            if (sm === 0 || sm <= cP_actEnd[s]) {
+            if (isServiced && (sm === 0 || sm <= cP_actEnd[s])) {
               dActPrev[dBase + s]++;
             }
           }
