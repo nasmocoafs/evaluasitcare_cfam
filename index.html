@@ -597,8 +597,8 @@
             <div id="overviewBottomModelsList" class="space-y-1.5"></div>
           </div>
 
-          <button onclick="switchLookerPage('page-models')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-lg transition text-center cursor-pointer">
-            Buka Tabel Lengkap Model Kendaraan <i class="fa-solid fa-arrow-right ml-1"></i>
+          <button onclick="switchLookerPage('page-explorer')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-lg transition text-center cursor-pointer">
+            Buka Raw Explorer & Attacklist <i class="fa-solid fa-arrow-right ml-1"></i>
           </button>
         </div>
       </div>
@@ -2603,15 +2603,6 @@
         renderIrregularityCards(dealers, target);
       }
     }
-
-    const PAGE_TITLES = {
-      'page-overview': '1. Overview & KPI Executive',
-      'page-matrix': '2. Matrix Evaluasi 22 Cabang Nasmoco',
-      'page-models': '3. Analisis Model Kendaraan (Family & Segmen)',
-      'page-segments': '4. Segmentasi & Loyalitas Customer',
-      'page-explorer': '5. Raw Explorer & Attacklist Reminder',
-      'page-matrix-settings': '6. Konfigurasi Matriks Manual'
-    };
 
     function switchLookerPage(pageId) {
       const idx = LOOKER_PAGES.indexOf(pageId);
