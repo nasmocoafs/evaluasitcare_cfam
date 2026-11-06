@@ -959,7 +959,6 @@
                   Riwayat Servis Berkala Lengkap (History per VIN)
                 </th>
                 <th rowspan="2" class="p-2 min-w-[95px] text-center">Prioritas (SBE)</th>
-                <th rowspan="2" class="p-2 min-w-[125px] text-center bg-slate-950 text-amber-300 font-black">Aksi / Follow Up</th>
               </tr>
               <tr class="bg-slate-800 text-slate-200 text-[10px] divide-x divide-slate-700">
                 <th class="p-1 min-w-[38px]">1st</th>
@@ -3902,6 +3901,7 @@
       const searchKey = (document.getElementById('rawTableSearchInput')?.value || '').toLowerCase();
       const stageFilter = document.getElementById('attacklistStageSelect')?.value || 'all';
       const priorityFilter = document.getElementById('priorityFilterSelect')?.value || 'all';
+      const lastDealerFilter = document.getElementById('lastDealerFilterSelect')?.value || 'all';
 
       const stageOffsets = [1, 6, 12, 18, 24, 30, 36];
       let rowsPool = [];
@@ -3930,6 +3930,8 @@
         let dueYM = 0;
         const ageMonthsFromDec = r.decYM > 0 ? (evalYM - r.decYM) : 0;
         const isPast36Months = r.decYM > 0 && ageMonthsFromDec > 36;
+        // Near Expired: Usia 33 s/d 36 bulan sejak DEC (sisa waktu <= 3 bulan) & belum selesai 7th service
+        const isNearExpired = (r.decYM > 0 && ageMonthsFromDec >= 33 && ageMonthsFromDec <= 36 && nextStageIdx !== -1);
 
         if (nextStageIdx !== -1 && r.decYM > 0) {
           dueYM = r.decYM + stageOffsets[nextStageIdx];
@@ -3958,11 +3960,14 @@
           }
         }
 
-        // 3. Hitung Tanggal Last Service & Tanggal Target Next Service (Short Date YYYY-MM-DD)
+        // 3. Hitung Tanggal Last Service & Nama Bengkel Terakhir
         let lastSvcDateStr = '-';
         let lastSvcStageName = 'Belum Servis';
+        let lastDealerName = 'Belum Servis';
+
         if (lastDoneStageIdx !== -1) {
           lastSvcStageName = STAGE_NAMES[lastDoneStageIdx];
+          lastDealerName = (r.sDealers && r.sDealers[lastDoneStageIdx]) ? r.sDealers[lastDoneStageIdx] : (r.dealer || 'Cabang Asli');
           const actualLastYM = (r.sYM && r.sYM[lastDoneStageIdx] > 0)
             ? r.sYM[lastDoneStageIdx]
             : (r.decYM > 0 ? r.decYM + stageOffsets[lastDoneStageIdx] : 0);
@@ -3987,10 +3992,12 @@
           lastDoneStageIdx,
           lastSvcStageName,
           lastSvcDateStr,
+          lastDealerName,
           nextStageIdx,
           dueYM,
           nextSvcDateStr,
           atkCategory,
+          isNearExpired,
           sisaSvc,
           expYear,
           prioInfo
@@ -4035,15 +4042,24 @@
         if (currentAttacklistFilter === 'm_plus_1' && u.atkCategory !== 'm_plus_1') return false;
         if (currentAttacklistFilter === 'm_plus_2' && u.atkCategory !== 'm_plus_2') return false;
         if (currentAttacklistFilter === 'overdue' && u.atkCategory !== 'overdue') return false;
+        if (currentAttacklistFilter === 'near_expired' && !u.isNearExpired) return false;
         if (currentAttacklistFilter === 'expired' && u.atkCategory !== 'expired') return false;
 
         if (stageFilter !== 'all' && u.nextStageIdx !== parseInt(stageFilter, 10)) return false;
         if (priorityFilter !== 'all' && u.prioInfo.label !== priorityFilter) return false;
 
+        // Filter Dealer Last Service
+        if (lastDealerFilter === 'none') {
+          if (u.lastDoneStageIdx !== -1) return false;
+        } else if (lastDealerFilter !== 'all') {
+          if (!u.lastDealerName || !u.lastDealerName.toLowerCase().includes(lastDealerFilter.toLowerCase())) return false;
+        }
+
         if (searchKey) {
           const match = (u.vin && u.vin.toLowerCase().includes(searchKey)) ||
                         (u.model && u.model.toLowerCase().includes(searchKey)) ||
-                        (u.dealer && u.dealer.toLowerCase().includes(searchKey));
+                        (u.dealer && u.dealer.toLowerCase().includes(searchKey)) ||
+                        (u.lastDealerName && u.lastDealerName.toLowerCase().includes(searchKey));
           if (!match) return false;
         }
         return true;
@@ -4062,7 +4078,7 @@
         const lastSvcCell = u.lastDoneStageIdx !== -1
           ? `<div class="flex flex-col items-center leading-tight">
                <span class="font-bold text-emerald-700">${u.lastSvcDateStr}</span>
-               <span class="text-[9px] text-slate-400 font-sans">(${u.lastSvcStageName} Svc)</span>
+               <span class="text-[9px] text-slate-500 font-sans truncate max-w-[110px]" title="Bengkel Servis: ${u.lastDealerName}">(${u.lastSvcStageName} • ${u.lastDealerName.replace('Nasmoco ', '')})</span>
              </div>`
           : `<span class="text-slate-400 font-sans text-[10px]">Belum Servis</span>`;
 
@@ -4080,6 +4096,8 @@
         let atkBadge = '';
         if (u.atkCategory === 'expired') {
           atkBadge = `<span class="bg-slate-100 text-slate-600 border border-slate-300 font-bold px-2 py-0.5 rounded text-[10px]">⏰ Expired (>36 Bln)</span>`;
+        } else if (u.isNearExpired) {
+          atkBadge = `<span class="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded text-[10px]">⏳ Near Expired</span>`;
         } else if (u.atkCategory === 'this_month') {
           atkBadge = `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold px-2 py-0.5 rounded text-[10px]">🔥 Bulan Ini (${MONTH_SHORT[evalMIdx]})</span>`;
         } else if (u.atkCategory === 'm_plus_1') {
@@ -5071,11 +5089,35 @@
       if (settingMonthEl) settingMonthEl.value = String(evalMonthIdx);
     }
 
+    // Otomatis mengisi pilihan cabang ke dalam dropdown Dealer Last Service
+    function populateLastDealerDropdown() {
+      const select = document.getElementById('lastDealerFilterSelect');
+      if (!select) return;
+
+      const currentVal = select.value;
+      let dealerList = NASMOCO_DEALERS;
+      if (rawNormalizedDataset && rawNormalizedDataset.branchDict) {
+        dealerList = rawNormalizedDataset.branchDict.slice().sort();
+      }
+
+      let options = `
+        <option value="all" ${currentVal === 'all' ? 'selected' : ''}>Semua Dealer Svc</option>
+        <option value="none" ${currentVal === 'none' ? 'selected' : ''}>Belum Pernah Servis</option>
+      `;
+
+      dealerList.forEach(d => {
+        options += `<option value="${d}" ${currentVal === d ? 'selected' : ''}>${d}</option>`;
+      });
+
+      select.innerHTML = options;
+    }
+
     window.onload = function () {
       loadSavedMatrixConfig();
       autoSetDefaultEvaluationMonth(); // Set otomatis ke bulan M-1 sebelum kalkulasi awal
       resetToDemoData();
       renderMatrixSettingsUI();
+      populateLastDealerDropdown(); // <-- Isi pilihan dropdown dealer servis
       setTimeout(() => {
         fetchLiveGoogleSheet();
       }, 300);
