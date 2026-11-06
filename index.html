@@ -5095,10 +5095,29 @@
       if (!select) return;
 
       const currentVal = select.value;
-      let dealerList = NASMOCO_DEALERS;
-      if (rawNormalizedDataset && rawNormalizedDataset.branchDict) {
-        dealerList = rawNormalizedDataset.branchDict.slice().sort();
+
+      // 1. Gabungkan seluruh 22 Cabang Penjual + Nasmoco Purbalingga (Lengkap 23 Bengkel Nasmoco)
+      const dealerSet = new Set([
+        ...NASMOCO_DEALERS,
+        "Nasmoco Purbalingga"
+      ]);
+
+      // 2. Scan otomatis seluruh kolom riwayat servis (1st s/d 7th) di data Raw
+      // jika ada unit yang servis di bengkel resmi Toyota lainnya
+      if (rawNormalizedDataset && rawNormalizedDataset.records) {
+        rawNormalizedDataset.records.forEach(r => {
+          if (r.sDealers) {
+            r.sDealers.forEach(d => {
+              if (d && d !== '-' && d !== '0' && !d.startsWith('#')) {
+                dealerSet.add(d);
+              }
+            });
+          }
+        });
       }
+
+      // 3. Urutkan nama bengkel secara rapi dari A sampai Z
+      const dealerList = Array.from(dealerSet).sort();
 
       let options = `
         <option value="all" ${currentVal === 'all' ? 'selected' : ''}>Semua Dealer Svc</option>
